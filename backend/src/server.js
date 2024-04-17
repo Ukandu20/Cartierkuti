@@ -5,7 +5,7 @@ import projectRouter from './routers/project.router.js';
 
 const app = express();
 app.use(cors({
-    origin: ['http://localhost:3002'],
+    origin: ['https://main--cartierkuti.netlify.app/'],
     credentials: true
 }));
 
