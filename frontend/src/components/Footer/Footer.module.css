@@ -1,0 +1,49 @@
+
+
+
+
+.footer_container {
+    color: #fff;
+    padding: 20px;
+    text-align: left;
+    margin-top: 200px;
+  }
+  
+  
+  .social_links p {
+    margin: 0;
+    list-style: none;
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 16px;
+    
+  }
+  .icons {
+    color: aqua;
+    width: 30px;
+    height: 30px;
+    margin: 0 10px;
+    display: inline-block;
+    list-style: none;
+    vertical-align: middle;
+  }
+  
+  .contact_info p {
+    margin: 5px 0;
+    display: block;
+    list-style: none;
+    float: right;
+  }
+  
+  .social_links a,
+  .contact_info p {
+    color: #fff;
+    text-decoration: none;
+  }
+  
+  .social_links img:hover {
+    opacity: 0.8;
+    transform: scale(1.2);
+    transition: all 0.5s ease-in-out;
+  }
+  
