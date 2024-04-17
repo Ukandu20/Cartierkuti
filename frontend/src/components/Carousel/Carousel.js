@@ -13,7 +13,7 @@ export default function Carousel() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('https://cartierkuti.onrender.com/api/projects');
+        const response = await axios.get('http://localhost:5000/api/projects');
         setProjectData(response.data);
       } catch (error) {
         console.error('Error fetching project data:', error);

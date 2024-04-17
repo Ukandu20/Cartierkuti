@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import projectRouter from './routers/project.router.js';
+import router from './routers/router.js';
 
 
 const app = express();
@@ -11,7 +12,10 @@ app.use(cors({
 
 app.use('/api/projects', projectRouter);
 
-const PORT = 5001;
+app.get('/', router);
+
+
+const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ` + PORT);
 });
