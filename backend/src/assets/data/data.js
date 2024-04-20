@@ -14,6 +14,7 @@ export const project_data = [
         tags: ['Web Design & Development'],
         metadata: "https://github.com/Ukandu20/Cartierkuti",
         externalLink: "https://github.com/Ukandu20/Cartierkuti",
+        imageUrl: 'personalportfolio.png',
         date: "2023",
         featured: true
 
@@ -66,7 +67,6 @@ export const project_data = [
         metadata: "https://github.com/Ukandu20/Salon",
         externalLink: "https://github.com/Ukandu20/Salon",
         date: "2023",
-        imageUrl: 'personalportfolio.png',
         featured: true
 
 

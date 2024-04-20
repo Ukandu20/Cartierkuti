@@ -1,3 +1,5 @@
+// Portfolio.js
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import classes from './Portfolio.module.css';
@@ -6,6 +8,7 @@ export default function Portfolio() {
   const [activeTab, setActiveTab] = useState('All');
   const [activeProject, setActiveProject] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [error, setError] = useState(null);
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -20,6 +23,7 @@ export default function Portfolio() {
 
   const toggleActiveProject = (projectId) => {
     setActiveProject(activeProject === projectId ? null : projectId);
+    localStorage.setItem('activeProject', activeProject === projectId ? null : projectId); // Store active project ID in local storage
   };
 
   useEffect(() => {
@@ -27,8 +31,11 @@ export default function Portfolio() {
       try {
         const response = await axios.get('/api/projects');
         setProjects(response.data);
+        const storedActiveProject = localStorage.getItem('activeProject'); // Retrieve active project ID from local storage
+        setActiveProject(storedActiveProject ? parseInt(storedActiveProject, 10) : null); // Parse the ID to integer
       } catch (error) {
         console.error('Error fetching projects:', error);
+        setError('Error fetching projects. Please try again later.');
       }
     };
     fetchProjects();
@@ -118,7 +125,7 @@ export default function Portfolio() {
           Machine Learning
         </button>
       </div>
-      {renderProjectTab()}
+      {error ? <p>{error}</p> : renderProjectTab()}
     </div>
   );
 }
