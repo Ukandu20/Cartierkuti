@@ -8,12 +8,12 @@ export const project_data = [
         id: '1',
         category: 'Website Design & Development',
         title: "Personal Portfolio Website",
-        description: "My personal portfolio ",
-        languages: ["React"],
+        description: `A personal portfolio website showcasing my projects and skills.`,
+        languages: ["React", "Node.js", "Express"],        
         status: "In Progress",
         tags: ['Web Design & Development'],
-        metadata: "https://github.com/Ukandu20/Cartierkuti_Dev",
-        externalLink: "https://github.com/Ukandu20/Cartierkuti_Dev",
+        metadata: "https://github.com/Ukandu20/Cartierkuti",
+        externalLink: "https://github.com/Ukandu20/Cartierkuti",
         date: "2023",
         featured: true
 
@@ -56,15 +56,17 @@ export const project_data = [
 
     {
         id: '4',
-        category: 'Data Visualization',
-        title: "Project 1",
-        description: "This is the first project.",
-        languages: ["React", "Flask"],
+        category: 'Web Design & Development',
+        title: "Hair Salon App V1",
+        description: "A web application for managing a hair salon business. ",
+        languages: ["React", "Node.js"],
         status: "In Progress",
-        tags: ['Web Design & Development', 'Data Visualization', 'Machine Learning'],
-        metadata: "https://github.com/Ukandu20/Split",
-        externalLink: "https://github.com/Ukandu20/Split",
+        tags: ['Web Design & Development'],
+        metadata: "https://ukandu20.github.io/Salon/",      
+        metadata: "https://github.com/Ukandu20/Salon",
+        externalLink: "https://github.com/Ukandu20/Salon",
         date: "2023",
+        imageUrl: 'personalportfolio.png',
         featured: true
 
 

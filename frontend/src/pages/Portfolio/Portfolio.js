@@ -54,7 +54,7 @@ export default function Portfolio() {
                   </div>
                   {activeProject === project.id ? (
                     <>
-                      <img src={project.previewImage} alt={project.title} className={classes.card_image} />
+                      <img src={`${project.imageUrl}`} alt={project.title} className={classes.card_image} />
                       <p className={classes.card_info}>{project.description}</p>
                       <div className={classes.buttonGroup}>
                         <a href={project.externalLink} target="_blank" rel="noopener noreferrer" className={classes.button} onClick={(e) => handleViewProject(e, project.metadata, project.externalLink)}>
