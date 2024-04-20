@@ -42,10 +42,16 @@ export default function Portfolio() {
   }, []);
 
   const renderProjectTab = () => {
+      // Check if projects is null or undefined, and return null if so
+    if (!projects) {
+      return null;
+    }
+
+    // Filter projects based on active tab
     const filteredProjects = activeTab === 'All' ? projects : projects.filter(project => project.tags.includes(activeTab));
-    
+        
     return (
-      <div className={classes.container}>
+        <div className={classes.container}>
         <div className={classes.row}>
           {filteredProjects.map((project) => (
             <div
