@@ -76,9 +76,9 @@
 }
 
 .card_image {
-    max-width: auto;
+    max-width: 80%;
     height: auto;
-    border-radius: 8px 8px 0 0; /* Rounded top corners */
+    border-radius: 8px 8px 8px 8px; /* Rounded top corners */
 }
 
 .servicesText {
@@ -89,6 +89,7 @@
 .card_body {
     text-align: center;
     display: block;
+    height: auto;
 }
 
 .card_title {
