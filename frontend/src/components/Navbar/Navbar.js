@@ -2,7 +2,7 @@ import React from 'react'
 import classes from './Navbar.modules.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons'; // Updated icon import
-import logoImage from './logo1.png'; // Import the logo image
+import logoImage from './CARTIERKUTI.svg'; // Import the logo image
 
 
 export default function Navbar() {
@@ -24,7 +24,7 @@ export default function Navbar() {
                     <ul className={classes.nav_logo}>
                         <li>
                             <a href='/' className={window.location.pathname === '/' ? 'active' : ''}>
-                            <img src={logoImage} width='105px' height='60px' alt='logo' /> {/* Use the imported logo image */}                              
+                            <img src={logoImage} width='150px' alt='logo' className={classes.logo}/> {/* Use the imported logo image */}                              
                             </a>
                         </li>
                     </ul>

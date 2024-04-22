@@ -9,5 +9,3 @@ export const getById = async projectId => {
     const { data } = await axios.get('https://cartierkuti.onrender.com/api/projects/' + projectId);
     return data;
 };
-
-
