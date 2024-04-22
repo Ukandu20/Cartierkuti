@@ -8,13 +8,14 @@ import router from './routers/router.js';
 const __dirname = path.dirname(new URL(import.meta.url).pathname); // Use new URL instead of fileURLToPath
 
 const app = express();
+
+// Configure CORS middleware
 app.use(cors({
-    origin: ['https://cartierkuti.netlify.app'],
-    credentials: true
+    origin: 'http://localhost:3000', // Allow requests from 'http://localhost:3000'
+    credentials: true, // Allow credentials (e.g., cookies, authorization headers)
 }));
 
 app.use('/api/projects', projectRouter);
-
 app.get('/', router);
 
 const publicFolder = path.join(__dirname, 'public');
