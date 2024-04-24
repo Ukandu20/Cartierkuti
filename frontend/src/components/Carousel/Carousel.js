@@ -13,7 +13,7 @@ export default function Carousel() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('api/projects');
+        const response = await axios.get('/api/projects');
         setProjectData(response.data);
       } catch (error) {
         console.error('Error fetching project data:', error);
