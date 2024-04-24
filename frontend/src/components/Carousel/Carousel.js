@@ -13,15 +13,16 @@ export default function Carousel() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Replace 'your-backend-url' with the actual URL of your backend
         const response = await axios.get('/api/projects');
-        setProjectData(response.data);
+        setProjectData(response.data); // Assuming the response data is the array of projects
       } catch (error) {
         console.error('Error fetching project data:', error);
       }
     };
 
     fetchData();
-  }, []);
+  }, []); // Empty dependency array means this effect runs once on mount
 
   const handleNext = () => {
     const nextIndex = currentIndex === projectData.length - 1 ? 0 : currentIndex + 1;
