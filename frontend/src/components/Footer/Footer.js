@@ -25,6 +25,7 @@ export default function footer() {
               <a href="https://www.behance.net/okechiukandu" target="_blank" rel="noopener noreferrer">
                 <FontAwesomeIcon icon={faBehance} className={classes.icons}/>
               </a>
+              
 
             </div>
           </div>

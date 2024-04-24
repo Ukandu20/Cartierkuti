@@ -9,7 +9,7 @@ const __dirname = path.dirname(new URL(import.meta.url).pathname); // Use new UR
 
 const app = express();
 app.use(cors({
-    origin: ['https://cartierkuti.netlify.app'],
+    origin: ['https://cartierkuti.netlify.app', 'https://localhost:3000'],
     credentials: true
 }));
 
