@@ -1,5 +1,3 @@
-// Portfolio.js
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import classes from './Portfolio.module.css';
@@ -30,28 +28,36 @@ export default function Portfolio() {
     const fetchProjects = async () => {
       try {
         const response = await axios.get('/api/projects');
-        setProjects(response.data);
+        // Ensure the response data is an array
+        if (Array.isArray(response.data)) {
+          setProjects(response.data);
+        } else {
+          console.error('Data fetched is not an array:', response.data);
+          setProjects([]);  // Fallback to an empty array
+          setError('Fetched data format is incorrect, expected an array.');
+        }
         const storedActiveProject = localStorage.getItem('activeProject'); // Retrieve active project ID from local storage
         setActiveProject(storedActiveProject ? parseInt(storedActiveProject, 10) : null); // Parse the ID to integer
       } catch (error) {
         console.error('Error fetching projects:', error);
         setError('Error fetching projects. Please try again later.');
+        setProjects([]); // Ensure projects is always an array even on error
       }
     };
     fetchProjects();
   }, []);
 
   const renderProjectTab = () => {
-      // Check if projects is null or undefined, and return null if so
-    if (!projects) {
-      return null;
+    if (!Array.isArray(projects)) {
+      console.error('Expected projects to be an array but received:', projects);
+      return <p>Error: Projects data is corrupted.</p>;
     }
 
     // Filter projects based on active tab
     const filteredProjects = activeTab === 'All' ? projects : projects.filter(project => project.tags.includes(activeTab));
-        
+    
     return (
-        <div className={classes.container}>
+      <div className={classes.container}>
         <div className={classes.row}>
           {filteredProjects.map((project) => (
             <div
