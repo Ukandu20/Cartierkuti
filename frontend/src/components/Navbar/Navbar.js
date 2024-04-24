@@ -2,7 +2,7 @@ import React from 'react'
 import classes from './Navbar.modules.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons'; // Updated icon import
-import logoImage from './CARTIERKUTI.svg'; // Import the logo image
+import logoImage from './CARTIERKUTI.svg' // Import the logo image
 
 
 export default function Navbar() {
