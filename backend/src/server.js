@@ -11,7 +11,7 @@ const app = express();
 
 // Configure CORS middleware to allow requests from 'http://localhost:3000' with credentials
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'http://cartierkuti.netlify.app'],
     credentials: true
 }));
 
