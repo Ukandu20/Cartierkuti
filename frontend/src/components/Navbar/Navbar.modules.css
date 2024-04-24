@@ -21,6 +21,7 @@ nav, ul {
     margin-right: auto; /* Pushes the logo to the left */
     
   }
+  
 
 
   
@@ -42,7 +43,7 @@ nav, ul {
   
   /* Change link styles on hover */
   nav ul li a:hover {
-    color: goldenrod;
+    color: #CBB74B;
   }
   
   /* Active link styles */
@@ -67,10 +68,13 @@ nav, ul {
     font-weight: bold;
     transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   }
-
+  
   button:hover {
-    background-color: #005F5B;
+    background-color: #007A76;
+    border-color: #007A76;
     color: #CBB74B;
+    /* pointer */
+
   }
   
 
