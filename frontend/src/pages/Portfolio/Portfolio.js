@@ -12,11 +12,9 @@ export default function Portfolio() {
     setActiveTab(tab);
   };
 
-  const handleViewProject = (event, metadata, externalLink) => {
-    event.preventDefault();
-    console.log(`You are viewing project with metadata: ${metadata}`);
-    console.log(`External link: ${externalLink}`);
-    window.open(externalLink, '_blank');
+  const openLink = (url, event) => {
+    event.preventDefault(); // Prevent default anchor action
+    window.open(url, '_blank'); // Open the URL in a new tab
   };
 
   const toggleActiveProject = (projectId) => {
@@ -28,7 +26,6 @@ export default function Portfolio() {
     const fetchProjects = async () => {
       try {
         const response = await axios.get('/api/projects');
-        // Ensure the response data is an array
         if (Array.isArray(response.data)) {
           setProjects(response.data);
         } else {
@@ -76,10 +73,10 @@ export default function Portfolio() {
                       <img src={`${project.imageUrl}`} alt={project.title} className={classes.card_image} />
                       <p className={classes.card_info}>{project.description}</p>
                       <div className={classes.buttonGroup}>
-                        <a href={project.externalLink} target="_blank" rel="noopener noreferrer" className={classes.button} onClick={(e) => handleViewProject(e, project.metadata, project.externalLink)}>
+                        <a href={project.metadata} target="_blank" rel="noopener noreferrer" className={classes.button}>
                           Github
                         </a>
-                        <button className={classes.button} onClick={(e) => handleViewProject(e, project.metadata, project.externalLink)}>
+                        <button className={classes.button} onClick={(e) => openLink(project.externalLink, e)}>
                           Live Demo
                         </button>
                       </div>
