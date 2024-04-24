@@ -9,14 +9,23 @@ const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 const app = express();
 
-// Configure CORS middleware to allow requests from 'http://localhost:3000' with credentials
-app.use(cors({
-    origin: ['http://localhost:3000', 'http://cartierkuti.netlify.app'],
-    credentials: true
-}));
+// CORS configuration to allow requests from specific origins with credentials
+const corsOptions = {
+    origin: ['http://localhost:3000', 'https://cartierkuti.netlify.app'], // Allowed origins
+    credentials: true, // Allow credentials such as cookies, authorization headers, etc.
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Allowed custom headers
+};
+
+// Apply CORS middleware with the above options
+app.use(cors(corsOptions));
+
+// Enable preflight requests for all routes
+app.options('*', cors(corsOptions)); // Include before other routes
 
 // Routes for project data
 app.use('/api/projects', projectRouter);
+
 // Root route handler
 app.get('/', router);
 
@@ -24,16 +33,15 @@ app.get('/', router);
 const publicFolder = path.join(__dirname, 'public');
 app.use(express.static(publicFolder));
 
-// Fallback route for handling all other requests
+// Fallback route for handling all other requests and serving index.html
 app.get('*', (req, res) => {
     const indexFilePath = path.join(publicFolder, 'index.html');
-    console.log(`Attempting to send file from: ${indexFilePath}`);  // Debugging output for the file path
+    console.log(`Attempting to send file from: ${indexFilePath}`); // Debugging output for the file path
 
-    // Send index.html with error handling
     res.sendFile(indexFilePath, err => {
         if (err) {
-            console.error('Error sending file:', err);  // Log the error
-            res.status(500).send("Error: Unable to serve the requested file.");  // Send error response
+            console.error('Error sending file:', err); // Log the error
+            res.status(500).send("Error: Unable to serve the requested file."); // Send error response
         }
     });
 });
