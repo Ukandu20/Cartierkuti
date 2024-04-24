@@ -13,7 +13,7 @@ export const project_data = [
         status: "In Progress",
         tags: ['Web Design & Development'],
         metadata: "https://github.com/Ukandu20/Cartierkuti",
-        externalLink: "https://github.com/Ukandu20/Cartierkuti",
+        externalLink: "https://cartierkuti.netlify.app",
         imageUrl: 'personalportfolio.png',
         date: "2023",
         featured: true
