@@ -34,10 +34,25 @@ export const project_data = [
         tags: ['Web Design & Development'],     
         metadata: "https://github.com/Ukandu20/Salon",
         externalLink: "https://github.com/Ukandu20/Salon",
-        date: "2023",
+        date: "2024",
         featured: true
 
 
 
     },   
+
+    {
+        id: '3',
+        category: 'machine Learning',
+        title: "ASL Converter",
+        description: "A Python program that can identify sign language and convert it to text",
+        languages: ["Python"],
+        status: "In Progress",
+        tags: ['Machine Learning'],     
+        metadata: "https://github.com/Ukandu20/ASL_Converter",
+        externalLink: "https://github.com/Ukandu20/Salon",
+        date: "2024",
+        featured: true
+
+    },
 ];
