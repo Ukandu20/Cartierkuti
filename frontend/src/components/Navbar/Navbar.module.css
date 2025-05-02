@@ -1,0 +1,23 @@
+/* Navbar.module.css */
+
+/* Minimal structural styles retained for fallback or layout support */
+
+.navbarContainer {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+
+.logo {
+  height: 80px;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .logo {
+    height: 60px;
+  }
+}

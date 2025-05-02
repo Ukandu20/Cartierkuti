@@ -1,20 +1,23 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend server for Cartierkuti Portfolio",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
+  "start": "node src/server.js",
+  "dev": "nodemon src/server.js",
+  "seed": "node src/seeder.js",
+  "seed:fake": "node src/dynamicSeeder.js"
+},
+  "keywords": ["portfolio", "backend", "nodejs", "express", "mongoose"],
+  "author": "Okechi Ukandu",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "dotenv": "^16.4.5",         
+    "express": "^4.19.2",
+    "mongoose": "^8.12.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

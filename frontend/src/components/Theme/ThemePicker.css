@@ -1,0 +1,33 @@
+.switch{
+    position:fixed;top:1rem;left:5.75rem;   /* clear of logo */
+    width:42px;height:22px;z-index:1000     /* ↓ 25 % */
+  }
+  .switch input{opacity:0;width:0;height:0}
+  
+  .slider{
+    position:absolute;inset:0;cursor:pointer;
+    background:#ccc;border-radius:30px;
+    transition:.3s;display:flex;align-items:center;justify-content:flex-start;
+    padding:0 3px;font-size:14px              /* icon ↘ a bit */
+  }
+  .slider:before{
+    content:"";position:absolute;left:2px;bottom:2px;
+    width:18px;height:18px;border-radius:50%;background:#fff;transition:.3s
+  }
+  input:checked+.slider{background:#66bb6a;justify-content:flex-end}
+  input:checked+.slider:before{transform:translateX(20px)}
+  
+  .icon{position:relative;z-index:1;line-height:1}
+  
+  .themePrompt{
+    position:fixed;top:1rem;left:50%;transform:translateX(-50%);
+    background:var(--color-bg);color:var(--color-text);
+    border:1px solid var(--color-muted);border-radius:8px;padding:8px 12px;
+    display:flex;gap:6px;align-items:center;font-size:.875rem;z-index:1100
+  }
+  .themePrompt button{
+    border:none;background:var(--color-primary);color:#fff;
+    padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:600
+  }
+  .themePrompt button:hover{background:var(--color-secondary)}
+  

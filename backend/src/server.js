@@ -1,53 +1,43 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import projectRouter from './routers/project.router.js';
-import router from './routers/router.js';
+import { connectDB } from './config/db.js';
+import projectRouter from './routes/project.router.js';
+import dotenv from 'dotenv';
 
-// Determine the directory name of the current module using URL and path modules
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+dotenv.config(); // Load environment variables
 
 const app = express();
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-// CORS configuration to allow requests from specific origins with credentials
-const corsOptions = {
-    origin: ['http://localhost:3000', 'https://cartierkuti.netlify.app'], // Allowed origins
-    credentials: true, // Allow credentials such as cookies, authorization headers, etc.
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Allowed custom headers
-};
+// ─────────────── DB
+connectDB();
 
-// Apply CORS middleware with the above options
-app.use(cors(corsOptions));
+// ─────────────── middleware
+app.use(express.json()); // JSON body parser
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL?.split(',') || ['http://localhost:5173'], // allow multiple origins
+    credentials: true,
+  })
+);
 
-// Enable preflight requests for all routes
-app.options('*', cors(corsOptions)); // Include before other routes
-
-// Routes for project data
+// ─────────────── API routes
 app.use('/api/projects', projectRouter);
 
-// Root route handler
-app.get('/', router);
-
-// Set the directory for serving static files
+// ─────────────── static files
 const publicFolder = path.join(__dirname, 'public');
 app.use(express.static(publicFolder));
 
-// Fallback route for handling all other requests and serving index.html
+// Fallback for SPA routing
 app.get('*', (req, res) => {
-    const indexFilePath = path.join(publicFolder, 'index.html');
-    console.log(`Attempting to send file from: ${indexFilePath}`); // Debugging output for the file path
-
-    res.sendFile(indexFilePath, err => {
-        if (err) {
-            console.error('Error sending file:', err); // Log the error
-            res.status(500).send("Error: Unable to serve the requested file."); // Send error response
-        }
-    });
+  res.sendFile(path.join(publicFolder, 'index.html'));
 });
 
-// Start the server on port 5000
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// Optional global error handler (if you created one)
+import { errorHandler } from './middleware/errorhandler.js';
+app.use(errorHandler);
+
+// ─────────────── start
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

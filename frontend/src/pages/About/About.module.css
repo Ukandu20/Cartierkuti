@@ -1,64 +1,117 @@
 /* About.module.css */
 
-body {
+:root {
+    --accent-color: #05e2d7;
+  }
+  
+  body {
     color: azure;
-}
-
-.About {
-    margin: 50px;
-}
-
-.About_content {
+  }
+  
+  .About {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .About_content {
     max-width: 800px;
     margin: auto;
-}
-
-.tabs {
+    padding: 20px;
+  }
+  
+  .summary {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin: 20px 0;
+    color: #ccc;
+  }
+  
+  .tabs {
     display: flex;
     justify-content: center;
-    gap: 200px;
+    gap: 40px;
     margin-bottom: 20px;
-}
-
-.activeTab {
-    color: #05e2d7;
-    
-}
-
-.education_timeline {
+    flex-wrap: wrap;
+  }
+  
+  .tab {
+    padding: 10px 20px;
+    border: 1px solid var(--accent-color);
+    border-radius: 10px;
+    background-color: transparent;
+    color: var(--accent-color);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .tab:hover {
+    background-color: var(--accent-color);
+    color: black;
+  }
+  
+  .active {
+    background-color: var(--accent-color);
+    color: black;
+  }
+  
+  .education_timeline {
     margin-top: 20px;
-}
-
-.timeline_item {
+  }
+  
+  .timeline_item {
     margin-bottom: 20px;
     padding-bottom: 20px;
     border-bottom: 1px solid #ccc;
-}
-
-.skills_content {
+  }
+  
+  .skills_content {
     margin-top: 20px;
-}
-
-/* Optional: Adjust styles for the interests section and other content as needed */
-
-.interests {
+  }
+  
+  .skills_content ul {
+    padding-left: 20px;
+    list-style: disc;
+    color: #ccc;
+  }
+  
+  .interests {
     margin-top: 40px;
-}
-
-.interests_content {
+  }
+  
+  .interests_content {
     list-style: none;
     padding-left: 0;
-}
-
-.interests_content li {
+  }
+  
+  .interests_content li {
     margin-bottom: 10px;
-}
-
-.interests_content a {
-    color: #05e2d7;
+  }
+  
+  .interests_content a {
+    color: var(--accent-color);
     text-decoration: none;
-}
-
-.interests_content a:hover {
+  }
+  
+  .interests_content a:hover {
     text-decoration: underline;
-}
+  }
+  
+  @media (max-width: 768px) {
+    .About {
+      margin: 20px;
+    }
+  
+    .tabs {
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+  
+    .education_timeline,
+    .skills_content {
+      padding: 0 10px;
+    }
+  }
+  
