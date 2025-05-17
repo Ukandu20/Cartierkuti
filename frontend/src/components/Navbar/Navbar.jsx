@@ -83,6 +83,7 @@ const Navbar = () => {
           size="sm"
           leftIcon={<FontAwesomeIcon icon={faDownload} />}
           bg="brand.500"
+          px={3}
           _hover={{ bg: 'brand.600' }}
           color="black"
           onClick={downloadResume}

@@ -5,7 +5,7 @@ import React from 'react'
 import {
   Box,
   HStack,
-  IconButton,
+  Icon,
   Text,
 } from '@chakra-ui/react'
 import { useColorMode } from '../Theme/color-mode'  // ← your custom hook
@@ -29,8 +29,9 @@ export default function Footer() {
       py={6}
     >
       <HStack justify="center" spacing={6} mb={4}>
-        <IconButton
-          as="a"
+        <Icon
+          as={FaTwitter}
+          boxSize={6}
           href="https://twitter.com/yourhandle"
           target="_blank"
           rel="noopener noreferrer"
@@ -40,8 +41,9 @@ export default function Footer() {
           color={iconColor}
           _hover={{ bg: 'transparent', color: iconColor }}
         />
-        <IconButton
-          as="a"
+        <Icon
+          as={FaGithub}
+          boxSize={6}
           href="https://github.com/yourhandle"
           target="_blank"
           rel="noopener noreferrer"
@@ -51,8 +53,9 @@ export default function Footer() {
           color={iconColor}
           _hover={{ bg: 'transparent', color: iconColor }}
         />
-        <IconButton
-          as="a"
+        <Icon
+          as={FaLinkedin}
+          boxSize={6}
           href="https://linkedin.com/in/yourhandle"
           target="_blank"
           rel="noopener noreferrer"

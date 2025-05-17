@@ -17,6 +17,8 @@ import {
   Tabs,
   Select,
   createListCollection,
+  ButtonGroup,
+  Pagination,
 } from '@chakra-ui/react'
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
@@ -26,8 +28,8 @@ import classes from './Portfolio.module.css'
 import { useColorMode } from '../../components/Theme/color-mode'
 
 /* ───────────────── constants ───────────────── */
-const TABS      = ['All', 'Data Science', 'Web Development', 'Data Analysis']
-const PAGE_SIZE = 6
+const TABS      = ['All', 'Data Science', 'Data Analysis', 'Web Development', 'AI/ML', 'Others']
+const PAGE_SIZE = 9
 
 /* ───────────────── component ───────────────── */
 export default function Portfolio() {
@@ -262,25 +264,53 @@ export default function Portfolio() {
               />
             )}
 
+            {/* ───── Pagination ───── */}
             {pagesCount > 1 && (
-              <Flex justify="center" mt={8} gap={2}>
-                <IconButton
-                  aria-label="Previous"
-                  icon={<HiChevronLeft />}
-                  isDisabled={page === 1}
-                  onClick={() => setPage(p => p - 1)}
-                />
-                <Button size="sm" variant="ghost">
-                  {page} / {pagesCount}
-                </Button>
-                <IconButton
-                  aria-label="Next"
-                  icon={<HiChevronRight />}
-                  isDisabled={page === pagesCount}
-                  onClick={() => setPage(p => p + 1)}
-                />
-              </Flex>
+              <Flex
+                justify="center"
+                mt={8}
+                gap={2}
+                wrap="wrap"
+                >
+                  <Pagination.Root
+                /* total items & page size let the hook compute count for you      */
+                count={sorted.length}
+                pageSize={PAGE_SIZE}
+                /* controlled page state                                            */
+                page={page}
+                onPageChange={(e) => setPage(e.page)}   // ← e.page is the new page #
+              >
+                <ButtonGroup variant="ghost" size="sm" mt={8} gap={2}>
+                  {/* Prev */}
+                  <Pagination.PrevTrigger asChild>
+                    <IconButton aria-label="Previous">
+                      <HiChevronLeft />
+                    </IconButton>
+                  </Pagination.PrevTrigger>
+
+                  {/* Page buttons  */}
+                  <Pagination.Items
+                    render={(pageObj) => (
+                      <IconButton
+                        key={pageObj.value}
+                        variant={{ base: 'outline', _selected: 'solid' }}
+                      >
+                        {pageObj.value}
+                      </IconButton>
+                    )}
+                  />
+
+                  {/* Next */}
+                  <Pagination.NextTrigger asChild>
+                    <IconButton aria-label="Next">
+                      <HiChevronRight />
+                    </IconButton>
+                  </Pagination.NextTrigger>
+                </ButtonGroup>
+              </Pagination.Root>
+            </Flex>
             )}
+
           </Tabs.Content>
         </Tabs.Root>
       </div>
