@@ -21,9 +21,10 @@ export default function ProjectList({
       initial="hidden"
       animate="show"
       columns={{ base: 1, md: 2, xl: 3 }}
-      spacing={{ base: 6, md: 8 }}
+      spacingX={{ base: 6, md: 8, xl: 10 }}
+      spacingY={{ base: 10, md: 12 }}
     >
-      {searchedProjects.map(p => (
+      {searchedProjects.map((p) => (
         <Box as={motion.div} key={p.id} variants={itemVariants}>
           <ProjectCard
             project={p}

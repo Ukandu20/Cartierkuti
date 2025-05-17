@@ -11,8 +11,7 @@ import {
   Tag,
   Icon,
 } from "@chakra-ui/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { FaStar, FaHeart } from "react-icons/fa";
 import { useColorMode } from "../../components/Theme/color-mode";
 
 export default function ProjectDetails({
@@ -76,7 +75,11 @@ export default function ProjectDetails({
         mb={4}
       />
 
-      <Text mb={3} fontSize="md" color={colorMode === "light" ? "gray.600" : "gray.400"}>
+      <Text
+        mb={3}
+        fontSize="md"
+        color={colorMode === "light" ? "gray.600" : "gray.400"}
+      >
         {project.description}
       </Text>
 
@@ -85,7 +88,9 @@ export default function ProjectDetails({
           bg={accent}
           color="black"
           _hover={{ bg: hover }}
-          onClick={e => openLink(project.externalLink, e)}
+          px={2}
+          py={1}
+          onClick={(e) => openLink(project.externalLink, e)}
         >
           Live Demo
         </Button>
@@ -94,73 +99,101 @@ export default function ProjectDetails({
           borderColor={accent}
           color={accent}
           _hover={{ bg: hover, color: "black" }}
-          onClick={e => openLink(project.githubLink, e)}
+          px={2}
+          py={1}
+          onClick={(e) => openLink(project.githubLink, e)}
         >
           GitHub
         </Button>
       </HStack>
 
       <HStack spacing={2} mb={4} wrap="wrap">
-        {project.tags.map(tag => (
-          <Tag key={tag} bg={tagBg} color={tagColor} px={3} py={1} borderRadius="full">
-            {tag}
-          </Tag>
+        {project.tags.map((tag) => (
+          <Tag.Root key={tag} bg={tagBg} color={tagColor} px={3} py={1} borderRadius="full">
+            <Tag.Label>{tag}</Tag.Label>
+          </Tag.Root>
         ))}
       </HStack>
 
       <Button
         size="sm"
-        colorScheme={isFavorite ? "red" : "gray"}
+        colorScheme={isFavorite ? "red" : "white"}
         variant={isFavorite ? "solid" : "outline"}
         onClick={() => handleFavorite(project.id)}
         mb={6}
       >
-        {isFavorite ? "Unfavorite" : "Add to Favorites"}
+        <FaHeart color={isFavorite ? "red" : "white"} />
+
       </Button>
 
-      <Text fontWeight="bold" mb={2} color={colorMode === "light" ? "gray.800" : "gray.100"}>
+      {/* Reviews */}
+      <Text
+        fontWeight="bold"
+        mb={2}
+        color={colorMode === "light" ? "gray.800" : "gray.100"}
+      >
         Reviews
       </Text>
       <Stack spacing={3}>
         {reviews.length === 0 ? (
-          <Text fontSize="sm" color={colorMode === "light" ? "gray.400" : "gray.500"}>
+          <Text
+            fontSize="sm"
+            color={colorMode === "light" ? "gray.400" : "gray.500"}
+          >
             No reviews yet.
           </Text>
-        ) : reviews.map((rv, i) => (
-          <Box key={i}>
-            <HStack spacing={1} mb={1}>
-              {Array.from({ length: 5 }).map((_, j) => (
-                <Icon
-                  key={j}
-                  as={FontAwesomeIcon}
-                  icon={faStar}
-                  boxSize="14px"
-                  color={j < rv.stars ? "yellow.400" : "gray.600"}
-                />
-              ))}
-              <Text fontSize="xs" color={colorMode === "light" ? "gray.400" : "gray.500"}>
-                {new Date(rv.date).toLocaleDateString()}
+        ) : (
+          reviews.map((rv, idx) => (
+            <Box key={idx}>
+              <HStack spacing={1} mb={1}>
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <Icon
+                    as={<FaStar size={16} />}
+                    key={j}
+                    color={
+                      j < rv.stars
+                        ? "yellow.400"
+                        : colorMode === "light"
+                        ? "gray.600"
+                        : "gray.900"
+                    }
+                  />
+                  
+                ))}
+                <Text
+                  fontSize="xs"
+                  color={colorMode === "light" ? "gray.400" : "gray.500"}
+                >
+                  {new Date(rv.date).toLocaleDateString()}
+                </Text>
+              </HStack>
+              <Text
+                fontSize="sm"
+                color={colorMode === "light" ? "gray.700" : "gray.200"}
+              >
+                {rv.comment}
               </Text>
-            </HStack>
-            <Text fontSize="sm" color={colorMode === "light" ? "gray.700" : "gray.200"}>
-              {rv.comment}
-            </Text>
-          </Box>
-        ))}
+            </Box>
+          ))
+        )}
       </Stack>
 
+      {/* Leave a Review */}
       <Box mt={6}>
-        <Text fontWeight="bold" mb={2} color={colorMode === "light" ? "gray.800" : "gray.100"}>
+        <Text
+          fontWeight="bold"
+          mb={2}
+          color={colorMode === "light" ? "gray.800" : "gray.100"}
+        >
           Leave a Review
         </Text>
         <HStack mb={2}>
           {Array.from({ length: 5 }).map((_, i) => (
             <IconButton
               key={i}
-              icon={<FontAwesomeIcon icon={faStar} />}
-              variant={i < tempStars ? "solid" : "ghost"}
-              colorScheme="yellow"
-              size="sm"
+              icon={<FaStar size={16} />}
+              variant={i < tempStars ? "solid" : "solid"}
+              colorScheme="yellow.400"
               onClick={() => setTempStars(i + 1)}
               aria-label={`${i + 1} star`}
             />
@@ -169,7 +202,7 @@ export default function ProjectDetails({
         <Box
           as="textarea"
           value={comment}
-          onChange={e => setComment(e.target.value)}
+          onChange={(e) => setComment(e.target.value)}
           placeholder="What did you think?"
           bg={textareaBg}
           color={textareaColor}
@@ -181,7 +214,16 @@ export default function ProjectDetails({
           w="100%"
           minH="80px"
         />
-        <Button onClick={submitReview} colorScheme="brand" bg={accent} color="black" _hover={{ bg: hover }} isDisabled={!tempStars}>
+        <Button
+          onClick={submitReview}
+          colorScheme="brand"
+          bg={accent}
+          color="black"
+          px={2}
+          py={1}
+          _hover={{ bg: hover }}
+          isDisabled={!tempStars}
+        >
           Submit
         </Button>
       </Box>

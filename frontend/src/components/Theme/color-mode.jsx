@@ -1,6 +1,6 @@
 'use client'
 
-import { ThemeProvider, useTheme } from 'next-themes'
+import { ThemeProvider as NextThemeProvider, useTheme } from 'next-themes'
 import { chakra, IconButton, Skeleton } from '@chakra-ui/react'
 import * as React from 'react'
 import { LuMoon, LuSun } from 'react-icons/lu'
@@ -16,10 +16,10 @@ function ClientOnly({ children, fallback = null }) {
 // 2) Chakra span primitive
 const Span = chakra('span')
 
-// 3) ThemeProvider wrapper
+// 3) Next-Themes wrapper
 export function ColorModeProvider(props) {
   return (
-    <ThemeProvider
+    <NextThemeProvider
       attribute="class"
       disableTransitionOnChange
       defaultTheme="system"

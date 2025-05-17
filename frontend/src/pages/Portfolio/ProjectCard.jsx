@@ -1,4 +1,6 @@
 // src/components/ProjectCard/ProjectCard.jsx
+"use client";
+
 import React from "react";
 import {
   Card,
@@ -15,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { FaStar, FaTimes } from "react-icons/fa";
-import { useColorMode } from "../../components/Theme/color-mode";
+import { useColorMode } from "@/components/Theme/color-mode";
 import LinkButton from "@/components/Button/LinkButton";
 import FavoriteButton from "@/components/Button/FavoriteButton";
 import ProjectDetails from "./ProjectDetails";
@@ -34,7 +36,7 @@ export default function ProjectCard({
   const stripeColor = "brand.500";
 
   return (
-    <Dialog.Root size="xl" placement="center" motionPreset="slide-in-bottom">
+    <Dialog.Root size="lg" placement="center"  motionPreset="slide-in-bottom">
       <Dialog.Trigger asChild>
         <MotionCard
           maxW="sm"
@@ -67,13 +69,13 @@ export default function ProjectCard({
             </Text>
             <HStack spacing="0.5" mt="1">
               {Array.from({ length: 5 }).map((_, i) => (
-                <FaStar
-                  as={Icon}
+                <Icon
+                  as={FaStar}
                   key={i}
-                  boxSize="12px"
+                  boxSize={4}
                   color={
                     i < Math.round(project.avgStars || 0)
-                      ? "yellow.400"
+                      ? "yellow.500"
                       : "gray.500"
                   }
                 />
@@ -92,10 +94,10 @@ export default function ProjectCard({
               {project.avgStars != null && (
                 <HStack spacing="0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <FaStar
-                      as={Icon}
+                    <Icon
+                      as={FaStar}
                       key={i}
-                      boxSize="14px"
+                      boxSize={3.5}
                       color={
                         i < Math.round(project.avgStars)
                           ? "yellow.400"
@@ -111,43 +113,50 @@ export default function ProjectCard({
               <Stack direction="row" spacing="2" pt="2">
                 <LinkButton
                   size="sm"
-                  onClick={(e) =>
-                    hitAndOpen(project.id, project.externalLink, e)
-                  }
+                  onClick={(e) => hitAndOpen(project.id, project.externalLink, e)}
                 >
                   Demo
                 </LinkButton>
                 <LinkButton
                   size="sm"
                   variant="outline"
-                  onClick={(e) =>
-                    hitAndOpen(project.id, project.githubLink, e)
-                  }
+                  onClick={(e) => hitAndOpen(project.id, project.githubLink, e)}
                 >
                   GitHub
                 </LinkButton>
+                <FavoriteButton
+                  isFavorite={isFav}
+                  onClick={() => handleFavorite(project.id)}
+                />
               </Stack>
             </Stack>
           </Card.Body>
 
-          <Card.Footer justify="flex-end" p="3" gap="2">
-            <FavoriteButton
-              isFavorite={isFav}
-              onClick={() => handleFavorite(project.id)}
-            />
-          </Card.Footer>
         </MotionCard>
       </Dialog.Trigger>
 
       <Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
+        <Dialog.Positioner
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          overflow="auto"
+          p={4}
+        >
+          <Dialog.Content
+            maxH="calc(100vh - 4rem)"
+            overflowY="auto"
+            borderRadius="lg"
+            boxShadow="lg"
+            p={4}
+            bg={colorMode === "light" ? "white" : "gray.800"}
+          >
             <Dialog.Header>
               <Dialog.Title>{project.title}</Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <IconButton
-                  icon={<FaTimes size={16} />}
+                  icon={<FaTimes size={14} />}
                   aria-label="Close"
                   size="sm"
                   variant="ghost"
@@ -157,6 +166,7 @@ export default function ProjectCard({
                 />
               </Dialog.CloseTrigger>
             </Dialog.Header>
+
             <Dialog.Body p={0}>
               <ProjectDetails
                 project={project}
@@ -165,12 +175,16 @@ export default function ProjectCard({
                 isFavorite={isFav}
               />
             </Dialog.Body>
+
             <Dialog.Footer>
-              <Button variant="ghost">Close</Button>
+              <Dialog.CloseTrigger asChild>
+                <Button variant="ghost">Close</Button>
+              </Dialog.CloseTrigger>
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
+
     </Dialog.Root>
   );
 }

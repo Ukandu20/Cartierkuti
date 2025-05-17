@@ -35,10 +35,10 @@ const useActiveLink = (pathname) => {
 /* ───────────────────────── sections ──────────────────────── */
 const Hero = () => {
   const { colorMode } = useChakraContext();
-  const textColor = colorMode === 'light' ? 'gray.900' : 'gray.300';
-  const mainHeadingColor = colorMode === 'light' ? 'brand.800' : 'gray.800';
+  const textColor = colorMode === 'light' ? 'gray.200' : 'gray.900';
+  const mainHeadingColor = colorMode === 'light' ? 'gray.800' : 'gray.800';
   const subHeadingColor = colorMode === 'light' ? 'gray.600' : 'gray.800';
-  const linkColor = colorMode === 'light' ? 'brand.500' : 'brand.400';
+  const linkColor = colorMode === 'light' ? 'brand.500' : 'brand.500';
 
   return (
     <Box as="section" className={classes.hero}>
@@ -84,7 +84,7 @@ const Hero = () => {
 
 const Projects = () => {
   const { colorMode } = useChakraContext();
-  const headingColor = colorMode === 'light' ? 'gray.800' : 'gray.100';
+  const headingColor = colorMode === 'light' ? 'gray.100' : 'gray.800';
 
   return (
     <Box
@@ -140,8 +140,8 @@ const SkillGrid = ({ list }) => (
 
 const Skills = () => {
   const { colorMode } = useChakraContext();
-  const titleColor = colorMode === 'light' ? 'gray.800' : 'gray.100';
-  const subtitleColor = colorMode === 'light' ? 'gray.700' : 'gray.300';
+  const titleColor = colorMode === 'light' ? 'gray.800' : 'gray.800';
+  const subtitleColor = colorMode === 'light' ? 'gray.700' : 'gray.800';
 
   return (
     <Box as="section" id="skills">

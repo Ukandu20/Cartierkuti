@@ -1,13 +1,13 @@
 // src/components/Button/FavoriteButton.jsx
-import React from 'react';
-import { Button as ChakraButton, useChakraContext } from '@chakra-ui/react';
-import { FaHeart } from 'react-icons/fa';
-import styles from './FavoriteButton.module.css';
+import React from 'react'
+import { Button as ChakraButton } from '@chakra-ui/react'
+import { useColorMode } from '../Theme/color-mode'  // ← your custom hook
+import { FaHeart } from 'react-icons/fa'
+import styles from './FavoriteButton.module.css'
 
 const FavoriteButton = ({ isFavorite, onClick }) => {
-  const { colorMode } = useChakraContext();
-  // same color in light/dark, but computed here for future flexibility
-  const iconColor = '#e74c3c';
+  const { colorMode } = useColorMode()
+  const iconColor = '#e74c3c'
 
   return (
     <ChakraButton
@@ -15,10 +15,8 @@ const FavoriteButton = ({ isFavorite, onClick }) => {
       onClick={onClick}
       leftIcon={<FaHeart color={isFavorite ? iconColor : 'gray'} />}
       variant="ghost"
-    >
-      {isFavorite ? 'Favorited' : 'Add to Favorites'}
-    </ChakraButton>
-  );
-};
+    />
+  )
+}
 
-export default FavoriteButton;
+export default FavoriteButton

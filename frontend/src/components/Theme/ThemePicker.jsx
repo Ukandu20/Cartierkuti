@@ -40,9 +40,9 @@ const ThemePicker = () => {
 
   /* keyboard shortcut T ------------------------------------- */
   useEffect(() => {
-    const key = e => e.key.toLowerCase() === 't' && toggle();
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
+    const keyHandler = (e) => e.key.toLowerCase() === 't' && toggle();
+    window.addEventListener('keydown', keyHandler);
+    return () => window.removeEventListener('keydown', keyHandler);
   });
 
   /* toggle & setters ---------------------------------------- */

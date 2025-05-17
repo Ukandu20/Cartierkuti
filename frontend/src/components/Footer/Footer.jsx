@@ -1,41 +1,71 @@
-// Footer.jsx
-import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import classes from './Footer.module.css';
-import {
-  faBehance,
-  faGithub,
-  faLinkedin,
-} from '@fortawesome/free-brands-svg-icons';
-import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
+// src/components/Footer/Footer.jsx
+'use client'
 
-const socialMediaLinks = [
-  { id: 'github', icon: faGithub, title: 'GitHub', url: 'https://github.com/Ukandu20' },
-  { id: 'linkedin', icon: faLinkedin, title: 'LinkedIn', url: 'https://www.linkedin.com/in/okechiukandu/' },
-  { id: 'email', icon: faEnvelope, title: 'Email', url: 'mailto:oukandu2000@gmail.com' },
-  { id: 'behance', icon: faBehance, title: 'Behance', url: 'https://www.behance.net/okechiukandu' },
-];
+import React from 'react'
+import {
+  Box,
+  HStack,
+  IconButton,
+  Text,
+} from '@chakra-ui/react'
+import { useColorMode } from '../Theme/color-mode'  // ← your custom hook
+import { FaTwitter, FaGithub, FaLinkedin } from 'react-icons/fa'
 
 export default function Footer() {
+  const { colorMode } = useColorMode()
+
+  const bgColor   = colorMode === 'light' ? '#F9FAFB' : '#1A202C'
+  const textColor = colorMode === 'light' ? '#2D3748' : '#E2E8F0'
+  const iconColor = colorMode === 'light' ? '#4A5568' : '#A0AEC0'
+  const borderClr = colorMode === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
+
   return (
-    <footer className={classes.footer}>
-      <div className={classes.inner}>
-        <p className={classes.copy}>© {new Date().getFullYear()} Okechi Ukandu</p>
-        <div className={classes.icons}>
-          {socialMediaLinks.map((link) => (
-            <a
-              key={link.id}
-              href={link.url}
-              title={link.title}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={link.title}
-            >
-              <FontAwesomeIcon icon={link.icon} className={classes.icon} />
-            </a>
-          ))}
-        </div>
-      </div>
-    </footer>
-  );
+    <Box
+      as="footer"
+      bg={bgColor}
+      color={textColor}
+      borderTop="1px solid"
+      borderColor={borderClr}
+      py={6}
+    >
+      <HStack justify="center" spacing={6} mb={4}>
+        <IconButton
+          as="a"
+          href="https://twitter.com/yourhandle"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Twitter"
+          icon={<FaTwitter />}
+          variant="ghost"
+          color={iconColor}
+          _hover={{ bg: 'transparent', color: iconColor }}
+        />
+        <IconButton
+          as="a"
+          href="https://github.com/yourhandle"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub"
+          icon={<FaGithub />}
+          variant="ghost"
+          color={iconColor}
+          _hover={{ bg: 'transparent', color: iconColor }}
+        />
+        <IconButton
+          as="a"
+          href="https://linkedin.com/in/yourhandle"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="LinkedIn"
+          icon={<FaLinkedin />}
+          variant="ghost"
+          color={iconColor}
+          _hover={{ bg: 'transparent', color: iconColor }}
+        />
+      </HStack>
+      <Text textAlign="center" fontSize="sm">
+        © {new Date().getFullYear()} Your Name. All rights reserved.
+      </Text>
+    </Box>
+  )
 }

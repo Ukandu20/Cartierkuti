@@ -1,4 +1,4 @@
-import { Button } from '@chakra-ui/react';
+import { Button } from '@chakra-ui/react'
 
 const LinkButton = ({ children, onClick, ...props }) => (
   <Button
@@ -14,6 +14,6 @@ const LinkButton = ({ children, onClick, ...props }) => (
   >
     {children}
   </Button>
-);
+)
 
-export default LinkButton;
+export default LinkButton
