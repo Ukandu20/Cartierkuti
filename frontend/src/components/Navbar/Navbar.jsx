@@ -1,9 +1,8 @@
-// src/components/Navbar/Navbar.jsx
 'use client'
 
 import React from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDownload } from '@fortawesome/free-solid-svg-icons'
+import { FaDownload } from "react-icons/fa";
+import { Icon } from "@chakra-ui/react";
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import {
   Flex,
@@ -11,33 +10,29 @@ import {
   Box,
   Link as ChakraLink,
   Image,
-  Button,
+  Button,          
 } from '@chakra-ui/react'
 import ThemeToggle from '../Theme/ThemeToggle'
-import { useColorMode } from '..//Theme/color-mode'
+import { useColorMode } from '../Theme/color-mode'  
 import logo from './CARTIERKUTI.svg'
 
 const links = [
-  { href: '/', label: 'Home' },
-  { href: '/about', label: 'About' },
+  { href: '/',          label: 'Home'      },
+  { href: '/about',     label: 'About'     },
   { href: '/portfolio', label: 'Portfolio' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
+  { href: '/blog',      label: 'Blog'      },
+  { href: '/contact',   label: 'Contact'   },
 ]
 
 const Navbar = () => {
   const { pathname } = useLocation()
   const { colorMode } = useColorMode()
-  // pick colors from your design tokens or hard-code
-  const linkColor = colorMode === 'light' ? '#1D242D' : '#FFFFFF'
 
-  const downloadResume = () => {
-    const a = document.createElement('a')
-    a.href = 'resume.pdf'
-    a.target = '_blank'
-    a.download = 'resume.pdf'
-    a.click()
-  }
+  const linkColor  = colorMode === 'light' ? '#1D242D' : '#FFFFFF'
+  const activeLink = { fontWeight: 'bold', color: 'brand.600' }
+
+  //—Your previous “downloadResume” helper can now be pure HTML—
+  const resumeHref = '/resume.pdf'   // keep the file in /public
 
   return (
     <Flex
@@ -49,47 +44,45 @@ const Navbar = () => {
       position="relative"
       zIndex="banner"
     >
-      <ChakraLink
-        as={RouterLink}
-        to="/"
-        _hover={{ textDecor: 'none' }}
-      >
-        <Image
-          src={logo}
-          alt="logo"
-          h={{ base: '60px', md: '80px' }}
-        />
+      {/* logo */}
+      <ChakraLink as={RouterLink} to="/" _hover={{ textDecor: 'none' }}>
+        <Image src={logo} alt="logo" h={{ base: '60px', md: '80px' }} />
       </ChakraLink>
 
+      {/* theme switch */}
       <Box mx={{ base: 2, md: 6 }}>
         <ThemeToggle />
       </Box>
 
+      {/* nav links + resume button */}
       <HStack as="nav" spacing={{ base: 4, md: 8 }}>
         {links.map(({ href, label }) => (
           <ChakraLink
             key={href}
             as={RouterLink}
             to={href}
-            fontWeight={pathname === href ? 'bold' : 'medium'}
-            color={pathname === href ? 'brand.500' : linkColor}
+            {...(pathname === href ? activeLink : { color: linkColor })}
             _hover={{ color: 'brand.500' }}
           >
             {label}
           </ChakraLink>
         ))}
 
-        <Button
-          size="sm"
-          leftIcon={<FontAwesomeIcon icon={faDownload} />}
-          bg="brand.500"
-          px={3}
-          _hover={{ bg: 'brand.600' }}
-          color="black"
-          onClick={downloadResume}
-        >
-          Resume
-        </Button>
+        {/* —―― NEW recipe-driven button ――― */}
+          <Button
+            as="a"
+            href={resumeHref}
+            download
+            px={1.5}
+          >
+            <Icon
+              as={FaDownload}
+              boxSize={3.5}          // ≈14 px; tweak to taste
+              mr={1}                 // small gap before the text
+              aria-label="Download résumé"
+            />
+            Resume
+          </Button>
       </HStack>
     </Flex>
   )

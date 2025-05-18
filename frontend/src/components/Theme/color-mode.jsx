@@ -48,7 +48,7 @@ export function useColorModeValue(light, dark) {
 // 5) Icon + Button
 export function ColorModeIcon() {
   const { colorMode } = useColorMode()
-  return colorMode === 'dark' ? <LuMoon /> : <LuSun />
+  return colorMode === 'dark' ? <LuSun /> : <LuMoon />
 }
 
 export const ColorModeButton = React.forwardRef(function (props, ref) {
