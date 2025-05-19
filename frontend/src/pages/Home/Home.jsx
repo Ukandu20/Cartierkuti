@@ -1,187 +1,244 @@
 // src/pages/Home/Home.jsx
-import React from 'react';
+'use client'
+
+import React, { Suspense } from 'react'
 import {
   Box,
+  Button,
+  Flex,
   Heading,
-  Text,
+  Icon,
   Link as ChakraLink,
-  useChakraContext,
-} from '@chakra-ui/react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp } from '@fortawesome/free-solid-svg-icons';
+  SimpleGrid,
+  Spinner,
+  Stack,
+  Text,
+  useBreakpointValue,
+} from '@chakra-ui/react'
+import { Helmet } from 'react-helmet'
+import { FaExpandAlt } from 'react-icons/fa'
 import {
-  SiJavascript,
-  SiReact,
-  SiNodedotjs,
-  SiExpress,
-  SiMongodb,
-  SiPython,
-  SiPandas,
-  SiNumpy,
-  SiScikitlearn,
-  SiTensorflow,
-  SiMysql,
-} from 'react-icons/si';
-import { Link, useLocation } from 'react-router-dom';
-import Carousel from '../../components/Carousel/Carousel';
-import classes from './Home.module.css';
+  SiJavascript, SiReact, SiNodedotjs, SiExpress, SiMongodb,
+  SiPython, SiPandas, SiNumpy, SiScikitlearn, SiTensorflow, SiMysql,
+} from 'react-icons/si'
+import { Link, useLocation } from 'react-router-dom'
+import { useColorMode } from '@/components/Theme/color-mode'
 
-/* ───────────────────────── helpers ───────────────────────── */
+/* ─── helper to underline active nav link ─── */
 const useActiveLink = (pathname) => {
-  const location = useLocation();
-  return location.pathname === pathname ? 'active' : '';
-};
+  const { pathname: current } = useLocation()
+  return current === pathname ? { textDecoration: 'underline' } : undefined
+}
 
-/* ───────────────────────── sections ──────────────────────── */
+/* ───────────────────────── HERO ───────────────────────── */
 const Hero = () => {
-  const { colorMode } = useChakraContext();
-  const textColor = colorMode === 'light' ? 'gray.200' : 'gray.900';
-  const mainHeadingColor = colorMode === 'light' ? 'gray.800' : 'gray.800';
-  const subHeadingColor = colorMode === 'light' ? 'gray.600' : 'gray.800';
-  const linkColor = colorMode === 'light' ? 'brand.500' : 'brand.500';
+  const { colorMode } = useColorMode()
+
+  const main = colorMode === 'light' ? 'gray.100' : 'white'
+  const sub  = colorMode === 'light' ? 'gray.300' : 'gray.400'
+  const body = colorMode === 'light' ? 'gray.400' : 'gray.300'
 
   return (
-    <Box as="section" className={classes.hero}>
-      <Box className={classes.hero_content}>
+    <Flex
+      as="section"
+      role="region"
+      aria-labelledby="hero-heading"
+      direction="column"
+      align="center"
+      justify="center"
+      minH="calc(100vh - 90px)"
+      px={4}
+      bgGradient={
+        colorMode === 'light'
+          ? 'linear(to-b, whiteAlpha.900, whiteAlpha.700)'
+          : 'linear(to-b, gray.900, gray.800)'
+      }
+      textAlign="center"
+    >
+      <Stack spacing={6} maxW="800px" align="center">
         <Heading
-          as="h1"
-          size="2xl"
-          mb={2}
-          color={mainHeadingColor}
+          id="hero-heading"
+          fontSize={{ base: '5xl', md: '7xl' }}
+          fontWeight="700"
+          color={main}
+          lineHeight="1.1"
         >
-          Hey, I’m Preston
+          Hey, I’m&nbsp;
+          <Box as="span" color="brand.500" whiteSpace="nowrap">
+            Preston
+          </Box>
         </Heading>
+
         <Heading
           as="h2"
-          size="md"
-          mb={4}
-          color={subHeadingColor}
+          fontSize={{ base: '2xl', md: '4xl' }}
+          fontWeight="500"
+          color={sub}
         >
-          Full-stack & Data Science Developer
+          Full-stack&nbsp;&amp;&nbsp;Data&nbsp;Science&nbsp;Developer
         </Heading>
 
-        <Box className={classes.hero_info}>
-          <Text color={textColor} maxW="lg" fontSize="lg">
-            Computer Science grad with a passion for building robust web apps
-            and extracting insight from data.
-          </Text>
+        <Text fontSize="lg" color={body} maxW="75%">
+          Computer Science grad with a passion for building robust web apps
+          and extracting insights from data.
+        </Text>
 
-          <ChakraLink
-            as={Link}
-            to="/about"
-            className={`${classes.learn_more} ${useActiveLink('/about')}`}
-            color={linkColor}
-            _hover={{ textDecoration: 'underline' }}
-          >
-            <span>Learn More</span>
-            <FontAwesomeIcon icon={faArrowUp} className={classes.icon} />
-          </ChakraLink>
-        </Box>
-      </Box>
-    </Box>
-  );
-};
+        <Button
+          as={Link}
+          to="/about"
+          variant="link"
+          size="lg"
+          gap={2}
+          colorScheme="brand"
+          rightIcon={
+            <Icon
+              as={FaExpandAlt}
+              transform="rotate(45deg)"
+              mt="-2px"
+              aria-hidden="true"
+            />
+          }
+          aria-label="Learn more about me"
+          sx={useActiveLink('/about')}
+        >
+          Learn&nbsp;More
+        </Button>
+      </Stack>
+    </Flex>
+  )
+}
 
-const Projects = () => {
-  const { colorMode } = useChakraContext();
-  const headingColor = colorMode === 'light' ? 'gray.100' : 'gray.800';
+/* ─────────────────────── PROJECTS ─────────────────────── */
+const Projects = React.lazy(() =>
+  import(
+    /* webpackChunkName: "ProjectsCarousel" */
+    '../../components/Carousel/Carousel'
+  )
+)
+
+const FeaturedProjects = () => {
+  const { colorMode } = useColorMode()
+  const heading = colorMode === 'light' ? 'gray.800' : 'white'
 
   return (
     <Box
       as="section"
-      className={classes.projects}
-      textAlign="center"
+      role="region"
+      aria-labelledby="featured-heading"
+      py={16}
       px={4}
-      py={10}
-      maxW="6xl"
+      maxW="7xl"
       mx="auto"
+      textAlign="center"
     >
-      <Heading
-        as="h2"
-        size="xl"
-        mb={4}
-        color={headingColor}
-      >
-        Featured Projects
+      <Heading id="featured-heading" size="xl" mb={10} color={heading}>
+        Featured&nbsp;Projects
       </Heading>
-      <Carousel />
+
+      <Suspense fallback={<Spinner size="xl" />}>
+        <Projects />
+      </Suspense>
     </Box>
-  );
-};
+  )
+}
 
-/* skill arrays */
-const webTech = [
-  { name: 'JavaScript', Icon: SiJavascript },
-  { name: 'React', Icon: SiReact },
-  { name: 'Node.js', Icon: SiNodedotjs },
-  { name: 'Express', Icon: SiExpress },
-  { name: 'MongoDB', Icon: SiMongodb },
-];
+/* ─────────────────────── SKILLS ───────────────────────── */
+const webSkills = [
+  { label: 'JavaScript',    Icon: SiJavascript },
+  { label: 'React',         Icon: SiReact      },
+  { label: 'Node.js',       Icon: SiNodedotjs  },
+  { label: 'Express',       Icon: SiExpress    },
+  { label: 'MongoDB',       Icon: SiMongodb    },
+]
+const dataSkills = [
+  { label: 'Python',        Icon: SiPython      },
+  { label: 'pandas',        Icon: SiPandas      },
+  { label: 'NumPy',         Icon: SiNumpy       },
+  { label: 'scikit-learn',  Icon: SiScikitlearn },
+  { label: 'TensorFlow',    Icon: SiTensorflow  },
+  { label: 'SQL',           Icon: SiMysql       },
+]
 
-const dataTech = [
-  { name: 'Python', Icon: SiPython },
-  { name: 'pandas', Icon: SiPandas },
-  { name: 'NumPy', Icon: SiNumpy },
-  { name: 'scikit-learn', Icon: SiScikitlearn },
-  { name: 'TensorFlow', Icon: SiTensorflow },
-  { name: 'SQL', Icon: SiMysql },
-];
-
-const SkillGrid = ({ list }) => (
-  <ul className={classes.skill_grid}>
-    {list.map(({ name, Icon }) => (
-      <li key={name} className={classes.skill_card}>
-        <Icon className={classes.skill_icon} />
-        <span>{name}</span>
-      </li>
+const SkillGrid = ({ items }) => (
+  <SimpleGrid
+    columns={{ base: 3, sm: 4, md: 6 }}
+    spacing={8}
+    justifyItems="center"
+    mt={6}
+  >
+    {items.map(({ label, Icon: I }) => (
+      <Box key={label} textAlign="center" aria-label={label}>
+        <Icon as={I} fontSize="3xl" mb={2} aria-hidden="true" />
+        <Text fontSize="sm">{label}</Text>
+      </Box>
     ))}
-  </ul>
-);
+  </SimpleGrid>
+)
 
 const Skills = () => {
-  const { colorMode } = useChakraContext();
-  const titleColor = colorMode === 'light' ? 'gray.800' : 'gray.800';
-  const subtitleColor = colorMode === 'light' ? 'gray.700' : 'gray.800';
+  const { colorMode } = useColorMode()
+  const h   = colorMode === 'light' ? 'gray.800' : 'white'
+  const sub = colorMode === 'light' ? 'gray.600' : 'gray.300'
+  const subSize = useBreakpointValue({ base: 'lg', md: 'xl' })
 
   return (
-    <Box as="section" id="skills">
+    <Box
+      as="section"
+      role="region"
+      aria-labelledby="skills-heading"
+      py={16}
+      px={4}
+    >
       <Heading
-        as="h3"
+        id="skills-heading"
         size="xl"
         textAlign="center"
-        mb={6}
-        color={titleColor}
+        mb={10}
+        color={h}
       >
-        Technical Skills
+        Technical&nbsp;Skills
       </Heading>
 
-      <Heading
-        as="h2"
-        className={classes.skill_subtitle}
-        color={subtitleColor}
-      >
-        Web Development
+      <Heading size={subSize} textAlign="center" color={sub}>
+        Web&nbsp;Development
       </Heading>
-      <SkillGrid list={webTech} />
+      <SkillGrid items={webSkills} />
 
-      <Heading
-        as="h2"
-        className={classes.skill_subtitle}
-        color={subtitleColor}
-      >
-        Data Science & Analytics
+      <Heading size={subSize} textAlign="center" mt={14} color={sub}>
+        Data&nbsp;Science&nbsp;&amp;&nbsp;Analytics
       </Heading>
-      <SkillGrid list={dataTech} />
+      <SkillGrid items={dataSkills} />
     </Box>
-  );
-};
+  )
+}
 
-const Home = () => (
-  <>
-    <Hero />
-    <Projects />
-    <Skills />
-  </>
-);
+/* ─────────────────────── MAIN PAGE ────────────────────── */
+export default function Home() {
+  return (
+    <>
+      {/* SEO/meta */}
+      <Helmet>
+        <title>Preston | Full-stack & Data Science Developer</title>
+        <meta
+          name="description"
+          content="Portfolio of Preston – full-stack & data-science developer building robust web apps and extracting insights from data."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Preston | Full-stack & Data Science Developer" />
+        <meta
+          property="og:description"
+          content="Explore featured projects, technical skills, and career highlights of Preston."
+        />
+        <meta property="og:url" content="https://your-domain.com/" />
+        <meta property="og:image" content="https://your-domain.com/og-cover.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Helmet>
 
-export default Home;
+      <main>
+        <Hero />
+        <FeaturedProjects />
+        <Skills />
+      </main>
+    </>
+  )
+}

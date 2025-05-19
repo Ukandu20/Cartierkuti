@@ -13,11 +13,9 @@ export default function ThemeToggle(props) {
       aria-label="Toggle colour mode"
       onClick={toggleColorMode}
       variant="ghost"
-      rounded="full"
       {...props}
     >
       {colorMode === 'light' ? <FaSun /> : <FaMoon />}
     </IconButton>
   )
 }
-  
