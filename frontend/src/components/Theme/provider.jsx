@@ -1,19 +1,21 @@
 'use client'
 
-import { ChakraProvider } from '@chakra-ui/react'
-import { HelmetProvider } from 'react-helmet-async'
+
+import React from 'react'
+import { ChakraProvider }   from '@chakra-ui/react'
+import { HelmetProvider }   from 'react-helmet-async'
 
 import { ColorModeProvider } from './color-mode'
-import { system } from './theme'
+import { system }            from './theme'          // createSystem output
 
 export function Provider({ children }) {
   return (
     <HelmetProvider>
-      <ColorModeProvider>
-        <ChakraProvider value={system}>
+      <ChakraProvider value={system}>
+        <ColorModeProvider>
           {children}
-        </ChakraProvider>
-      </ColorModeProvider>
+        </ColorModeProvider>
+      </ChakraProvider>
     </HelmetProvider>
   )
 }

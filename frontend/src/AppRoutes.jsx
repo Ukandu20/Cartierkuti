@@ -5,7 +5,8 @@ import Home from './pages/Home/Home';
 import Portfolio from './pages/Portfolio/Portfolio';
 import About from './pages/About/About';
 import Error404 from './components/Error/Error404';
-import AdminDashboard from './pages/Admin/AdminDashboard'; // ✅ Import Admin Page
+import AdminDashboard from './pages/Admin/AdminDashboard'; 
+import Contact from './pages/Contact/Contact'; // Import the Contact component
 
 const AppRoutes = () => {
   return (
@@ -13,7 +14,8 @@ const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/portfolio" element={<Portfolio />} />
       <Route path="/about" element={<About />} />
-      <Route path="/admin" element={<AdminDashboard />} /> {/* ✅ Add Admin Route */}
+      <Route path="/admin" element={<AdminDashboard />} /> 
+      <Route path= "/contact" element={<Contact />} />
       <Route path="*" element={<Error404 />} />
     </Routes>
   );
