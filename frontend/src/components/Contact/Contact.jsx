@@ -1,127 +1,100 @@
-// src/components/Contact/Contact.jsx
-import React from 'react';
-import { useChakraContext } from '@chakra-ui/react';
+'use client'
 
-export const Contact = () => {
-  const { colorMode } = useChakraContext();
+import React from 'react'
+import {
+  Box,
+  Heading,
+  Text,
+  Button,
+  Link,
+  HStack,
+  Icon,
+  Stack,
+  useBreakpointValue,
+} from '@chakra-ui/react'
+import { useColorMode as useThemeColorMode } from '@/components/Theme/color-mode'
+import { FaLinkedin, FaGithub, FaBehance } from 'react-icons/fa'
 
-  // Compute light/dark values manually
-  const bg = colorMode === 'light' ? '#f9f9f9' : '#1c1e26';
-  const text = colorMode === 'light' ? '#1a202c' : '#ffffff';
-  const accent = colorMode === 'light' ? '#3182ce' : '#00c3ff';
-  const accentHover = colorMode === 'light' ? '#2b6cb0' : '#00a1cc';
-  const secondaryText = colorMode === 'light' ? '#4a5568' : '#ccc';
+/**
+ * Contact section – Chakra UI v3
+ * Uses design tokens + responsive props instead of inline styles.
+ */
+export default function Contact() {
+  const { colorMode } = useThemeColorMode()
 
-  const styles = {
-    contact: {
-      padding: '3rem 2rem 1.5rem',
-      background: bg,
-      color: text,
-      textAlign: 'center',
-      marginBottom: '2rem',
-    },
-    section_title: {
-      fontSize: '2rem',
-      fontWeight: '700',
-      marginBottom: '1.2rem',
-    },
-    contact_text: {
-      maxWidth: '50ch',
-      fontSize: '1.1rem',
-      margin: '0 auto 2rem',
-      opacity: 0.9,
-    },
-    cta_btn: {
-      display: 'inline-block',
-      padding: '0.9rem 2rem',
-      fontWeight: 600,
-      borderRadius: '40px',
-      background: accent,
-      color: '#fff',
-      fontSize: '1.05rem',
-      textDecoration: 'none',
-      transition: 'all 0.25s ease-in-out',
-      boxShadow: '0 6px 20px rgba(0, 195, 255, 0.2)',
-    },
-    cta_btn_hover: {
-      background: accentHover,
-    },
-    email_text: {
-      marginTop: '1.3rem',
-      fontSize: '0.95rem',
-      color: secondaryText,
-    },
-    email_link: {
-      color: accent,
-      textDecoration: 'none',
-    },
-    socials: {
-      marginTop: '2rem',
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '2rem',
-      fontSize: '1rem',
-    },
-    social_link: {
-      color: accent,
-      textDecoration: 'none',
-      fontWeight: 500,
-      transition: 'color 0.3s ease',
-    },
-  };
+  // Responsive tweak: larger button on desktop, smaller on mobile
+  const btnSize = useBreakpointValue({ base: 'md', md: 'lg' })
+
+  /* design tokens */
+  const accent = 'brand.500'
+  const accentHover = colorMode === 'light' ? 'brand.600' : 'brand.300'
 
   return (
-    <section style={styles.contact} id="contact">
-      <h2 style={styles.section_title}>Interested in Working Together?</h2>
+    <Box
+      as="section"
+      id="contact"
+      py={{ base: 14, md: 20 }}
+      px={4}
+      textAlign="center"
+    >
+      <Heading size="2xl" mb={4}>
+        Interested in Working Together?
+      </Heading>
 
-      <p style={styles.contact_text}>
-        I&apos;m always open to discussing exciting ideas, collaborations, or new opportunities.
-      </p>
+      <Text
+        maxW="2xl"
+        mx="auto"
+        fontSize="lg"
+        color="gray.600"
+        _dark={{ color: 'gray.300' }}
+        mb={8}
+      >
+        I&#39;m always open to discussing exciting ideas, collaborations, or new
+        opportunities.
+      </Text>
 
-      <a
+      <Button
+        as={Link}
         href="mailto:cartierkuti@gmail.com"
-        style={styles.cta_btn}
-        onMouseOver={(e) => (e.currentTarget.style.background = styles.cta_btn_hover.background)}
-        onMouseOut={(e) => (e.currentTarget.style.background = styles.cta_btn.background)}
+        size={btnSize}
+        bg={accent}
+        _hover={{ bg: accentHover }}
+        color="white"
+        px={8}
+        rounded="full"
+        boxShadow="md"
+        fontWeight="semibold"
       >
         Say Hello
-      </a>
+      </Button>
 
-      <p style={styles.email_text}>
+      <Text
+        mt={6}
+        fontSize="sm"
+        color="gray.600"
+        _dark={{ color: 'gray.400' }}
+      >
         or email me directly at{' '}
-        <a href="mailto:cartierkuti@gmail.com" style={styles.email_link}>
+        <Link href="mailto:cartierkuti@gmail.com" color={accent} fontWeight="medium">
           cartierkuti@gmail.com
-        </a>
-      </p>
+        </Link>
+      </Text>
 
-      <div style={styles.socials}>
-        <a
+      <HStack mt={10} spacing={8} justify="center">
+        <Link
           href="https://linkedin.com/in/YOUR-HANDLE"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={styles.social_link}
+          isExternal
+          aria-label="LinkedIn"
         >
-          LinkedIn
-        </a>
-        <a
-          href="https://github.com/YOUR-HANDLE"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={styles.social_link}
-        >
-          GitHub
-        </a>
-        <a
-          href="https://behance.net/YOUR-HANDLE"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={styles.social_link}
-        >
-          Behance
-        </a>
-      </div>
-    </section>
-  );
-};
-
-export default Contact;
+          <Icon as={FaLinkedin} boxSize={6} color={accent} _hover={{ color: accentHover }} />
+        </Link>
+        <Link href="https://github.com/YOUR-HANDLE" isExternal aria-label="GitHub">
+          <Icon as={FaGithub} boxSize={6} color={accent} _hover={{ color: accentHover }} />
+        </Link>
+        <Link href="https://behance.net/YOUR-HANDLE" isExternal aria-label="Behance">
+          <Icon as={FaBehance} boxSize={6} color={accent} _hover={{ color: accentHover }} />
+        </Link>
+      </HStack>
+    </Box>
+  )
+}

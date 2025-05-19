@@ -2,7 +2,7 @@ import React from 'react';
 import Navbar from './components/Navbar/Navbar';
 import AppRoutes from './AppRoutes';
 import Footer from './components/Footer/Footer';
-import Contact from './components/Contact/Contact';
+
 
 const App = () => {
   return (
@@ -11,7 +11,6 @@ const App = () => {
       </div>
       <Navbar />
       <AppRoutes />
-      <Contact />
       <Footer />
     </>
   );
