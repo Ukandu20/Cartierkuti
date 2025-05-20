@@ -6,7 +6,7 @@ import { ChakraProvider }   from '@chakra-ui/react'
 import { HelmetProvider }   from 'react-helmet-async'
 
 import { ColorModeProvider } from './color-mode'
-import { system }            from './theme'          // createSystem output
+import { system }            from './Theme'          // createSystem output
 
 export function Provider({ children }) {
   return (
