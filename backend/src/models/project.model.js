@@ -24,6 +24,9 @@ const projectSchema = new mongoose.Schema({
   avgStars:   { type: Number, default: 0 }, 
 });
 
-const Project = mongoose.model('Project', projectSchema, 'project_data');
 
-export default Project;
+projectSchema.index({ featured: 1, date: -1 });
+projectSchema.index({ views: -1 });
+projectSchema.index({ title: 'text', description: 'text' });
+
+export default mongoose.model('Project', projectSchema, 'project_data');

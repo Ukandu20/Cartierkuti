@@ -1,30 +1,31 @@
 import { Router } from "express";
-import Project from "../assets/project.model.js"; // adjust path to your model
+import Project from "../models/project.model.js"; 
+import asyncHandler from 'express-async-handler';
+import rateLimit   from 'express-rate-limit';
 
+const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 });
 const projectRouter = Router();
 
-/* ─────────────── READ  all projects */
-projectRouter.get("/", async (_req, res) => {
-  try {
-    /* include views & avgStars already stored in doc */
-    const projects = await Project.find().exec();
-    res.json(projects);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching projects" });
-  }
-});
+/* READ all */
+projectRouter.get('/', asyncHandler(async (_req, res) => {
+  const projects = await Project.find();
+  res.json(projects);
+}));
 
-/* ─────────────── READ  single project */
-projectRouter.get("/:id", async (req, res) => {
-  try {
-    const project = await Project.findById(req.params.id).exec();
-    project
-      ? res.json(project)
-      : res.status(404).json({ message: "Project not found" });
-  } catch {
-    res.status(500).json({ message: "Error fetching project" });
-  }
-});
+/* READ one */
+projectRouter.get('/:id', asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id);
+  if (!project) return res.status(404).json({ message: 'Not found' });
+  res.json(project);
+}));
+
+/* increment views – protected */
+projectRouter.patch('/:id/hit', hitLimiter, asyncHandler(async (req, res) => {
+  const { views } = await Project.findByIdAndUpdate(
+    req.params.id, { $inc: { views: 1 } }, { new: true, select: 'views' }
+  );
+  res.json({ views });
+}));
 
 /* ─────────────── CREATE */
 projectRouter.post("/", async (req, res) => {

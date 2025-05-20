@@ -280,6 +280,7 @@ function SlideCard({ project, textClr, cardBg, eager }) {
             href={project.externalLink}
             isExternal
             colorScheme="brand"
+            px={2}
           >
             Live Demo
           </Button>
@@ -289,6 +290,7 @@ function SlideCard({ project, textClr, cardBg, eager }) {
             isExternal
             variant="outline"
             colorScheme="brand"
+            px={2}
           >
             GitHub
           </Button>

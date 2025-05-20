@@ -100,21 +100,21 @@ export default function ContactPage() {
             <Box>
               <Heading size="lg" mb={2}>Let’s get in touch</Heading>
               <Text color={txtSec}>
-                Have a project or idea? Fill out the form or reach me through the channels below.
+                Have a project, feedback or idea? Fill out the form or reach me through the channels below.
               </Text>
             </Box>
             <VStack align="start" spacing={4} fontSize="sm">
               <HStack spacing={3}>
                 <Icon as={FaMapMarkerAlt} color={accent} />
-                <Text>123 Developer Lane, Lagos, NG</Text>
+                <Text>Windsor, ON</Text>
               </HStack>
               <HStack spacing={3}>
                 <Icon as={FaPhoneAlt} color={accent} />
-                <Link href="tel:+2348001234567">+234 800 123 4567</Link>
+                <Link href="tel:+12261234567">+1 226 123 4567</Link>
               </HStack>
               <HStack spacing={3}>
                 <Icon as={FaEnvelope} color={accent} />
-                <Link href="mailto:cartierkuti@gmail.com">cartierkuti@gmail.com</Link>
+                <Link href="mailto:okechiukandu@gmail.com">okechiukandu@gmail.com</Link>
               </HStack>
             </VStack>
           </VStack>
@@ -150,6 +150,7 @@ export default function ContactPage() {
                   name="user_name"
                   placeholder="Your Name"
                   size="md"
+                  paddingX={2}
                   required
                   {...fieldSharedProps}
                 />
@@ -164,6 +165,7 @@ export default function ContactPage() {
                   type="email"
                   placeholder="you@example.com"
                   size="md"
+                  paddingX={2}
                   required
                   {...fieldSharedProps}
                 />
@@ -171,12 +173,13 @@ export default function ContactPage() {
 
               {/* Subject */}
               <Field.Root gridColumn={{ md: '1 / -1' }}>
-                <Field.Label htmlFor="subject">Subject</Field.Label>
+                <Field.Label htmlFor="subject" >Subject</Field.Label>
                 <NativeSelect.Root id="subject" name="subject" size="md" width="full">
                   <NativeSelect.Field
                     placeholder="Choose subject"
                     bg={bgField}
                     borderColor={border}
+                    paddingX={2}
                     _focusVisible={{ borderColor: accent }}
                   >
                     <option value="Project Inquiry">Project Inquiry</option>
@@ -195,6 +198,7 @@ export default function ContactPage() {
                   name="message"
                   rows={6}
                   placeholder="Tell me about your project..."
+                  padding={2}
                   required
                   {...fieldSharedProps}
                 />

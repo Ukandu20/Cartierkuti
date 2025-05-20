@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { faker } from "@faker-js/faker";
-import Project from "./assets/project.model.js";
+import Project from "../models/project.model.js";
 
 dotenv.config();            // loads MONGODB_URI
 
