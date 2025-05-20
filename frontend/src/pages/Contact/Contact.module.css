@@ -1,0 +1,79 @@
+.contact {
+    padding: 6rem 2rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #1c1e26;
+    color: #fff;
+    text-align: center;
+  }
+  
+  .section_title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #fff;
+  }
+  
+  .contact_text {
+    max-width: 50ch;
+    font-size: 1.15rem;
+    margin: 0 auto 2.5rem;
+    opacity: 0.85;
+  }
+  
+  .cta_btn {
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    font-weight: 600;
+    border-radius: 40px;
+    background: #05e2d7;
+    color: #fff;
+    font-size: 1.15rem;
+    text-decoration: none;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 6px 20px rgba(0, 195, 255, 0.3);
+  }
+  
+  .cta_btn:hover {
+    background: #05e2d7;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 195, 255, 0.4);
+  }
+  
+  .email_text {
+    margin-top: 1.5rem;
+    font-size: 1rem;
+    color: #ccc;
+  }
+  
+  .email_text a {
+    color: #05e2d7;
+    text-decoration: none;
+  }
+  
+  .email_text a:hover {
+    color: #00a1cc;
+  }
+  
+  .socials {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    font-size: 1.05rem;
+  }
+  
+  .socials a {
+    color: #05e2d7;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    font-weight: 500;
+  }
+  
+  .socials a:hover {
+    color: #05e2d7;
+  }
+  

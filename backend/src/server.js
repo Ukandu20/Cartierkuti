@@ -1,53 +1,61 @@
+import 'express-async-errors';                  // NEW ➊
 import express from 'express';
-import cors from 'cors';
+import cors    from 'cors';
+import helmet  from 'helmet';                   // NEW ➋
+import hpp     from 'hpp';                      // NEW ➋
+import mongoSanitize from 'express-mongo-sanitize'; // NEW ➋
+import rateLimit from 'express-rate-limit';     // NEW
+import corsMiddleware from './config/cors.js'; 
 import path from 'path';
-import projectRouter from './routers/project.router.js';
-import router from './routers/router.js';
+import dotenv from 'dotenv';
+import { connectDB }      from './config/db.js';
+import projectRouter      from './routes/project.router.js';
+import { errorHandler }   from './middleware/errorhandler.js';
 
-// Determine the directory name of the current module using URL and path modules
+dotenv.config();
+const app = express();
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-const app = express();
+/* ─────────── DB */
+await connectDB();
 
-// CORS configuration to allow requests from specific origins with credentials
-const corsOptions = {
-    origin: ['http://localhost:3000', 'https://cartierkuti.netlify.app'], // Allowed origins
-    credentials: true, // Allow credentials such as cookies, authorization headers, etc.
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Allowed custom headers
-};
+/* ─────────── global middleware */
+app.use(helmet());
+app.use(hpp());
+app.use(mongoSanitize());
+app.use(express.json());
 
-// Apply CORS middleware with the above options
-app.use(cors(corsOptions));
+// centralized CORS
+app.use(corsMiddleware);
 
-// Enable preflight requests for all routes
-app.options('*', cors(corsOptions)); // Include before other routes
+/* ─────────── rate-limit for bots */
+const apiLimiter = rateLimit({ windowMs: 60_000, max: 150 });
+app.use('/api/', apiLimiter);
 
-// Routes for project data
+/* ─────────── routes */
 app.use('/api/projects', projectRouter);
 
-// Root route handler
-app.get('/', router);
-
-// Set the directory for serving static files
+/* ─────────── static & SPA fallback */
 const publicFolder = path.join(__dirname, 'public');
 app.use(express.static(publicFolder));
+app.get('*', (_, res) =>
+  res.sendFile(path.join(publicFolder, 'index.html'))
+);
 
-// Fallback route for handling all other requests and serving index.html
-app.get('*', (req, res) => {
-    const indexFilePath = path.join(publicFolder, 'index.html');
-    console.log(`Attempting to send file from: ${indexFilePath}`); // Debugging output for the file path
+/* ─────────── error funnel */
+app.use(errorHandler);
 
-    res.sendFile(indexFilePath, err => {
-        if (err) {
-            console.error('Error sending file:', err); // Log the error
-            res.status(500).send("Error: Unable to serve the requested file."); // Send error response
-        }
-    });
-});
+/* ─────────── start */
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, () =>
+  console.log(`⇢ API up on ${PORT}`)
+);
 
-// Start the server on port 5000
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+/* graceful shutdown */
+['SIGTERM', 'SIGINT'].forEach(sig =>
+  process.on(sig, async () => {
+    console.log(`↧ ${sig} received, closing server…`);
+    await mongoose.connection.close();
+    server.close(() => process.exit(0));
+  })
+);

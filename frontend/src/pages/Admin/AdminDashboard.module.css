@@ -1,0 +1,49 @@
+.adminDashboard {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+  }
+  
+  .projectForm {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 40px;
+  }
+  
+  .projectForm input,
+  .projectForm textarea {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+  }
+  
+  .projectForm button {
+    padding: 10px 20px;
+    background: #007bff;
+    border: none;
+    color: white;
+    border-radius: 5px;
+  }
+  
+  .projectList ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .projectList li {
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .projectList button {
+    background: red;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
+  

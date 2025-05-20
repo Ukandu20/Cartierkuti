@@ -1,0 +1,65 @@
+.project-details {
+    padding: 20px;
+  }
+  
+  .project-details img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .project-details p {
+    font-size: 18px;
+    color: #666;
+    margin-bottom: 20px;
+  }
+  
+  .project-details .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .project-details .button-group a,
+  .project-details .button-group button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 1px;
+    cursor: pointer;
+  }
+  
+  .project-details .button-group a {
+    background-color: #4CAF50;
+    color: #fff;
+  }
+  
+  .project-details .button-group button {
+    background-color: #03A9F4;
+    color: #fff;
+  }
+  
+  .project-details .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .project-details .tags span {
+    padding: 5px 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  
+  .project-details .favorite-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #FFC107;
+    color: #fff;
+  }
