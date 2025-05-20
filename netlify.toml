@@ -3,7 +3,7 @@
   base    = "frontend"
   command = "npm ci && npm run build"
   # Vite outputs into `dist/` by default
-  publish = "frontend/dist"
+  publish = "dist"
 
 # Single-page‐app routing
 [[redirects]]
