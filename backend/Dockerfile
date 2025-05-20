@@ -1,5 +1,5 @@
 # ─── Stage 1: install & prune dev deps ─────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20-alpine3.19 AS builder
 WORKDIR /app
 
 # Only copy package manifests and lockfile, install deps
@@ -17,7 +17,7 @@ RUN npm prune --production
 
 
 # ─── Stage 2: runtime image ────────────────────────────────────────────────
-FROM node:20-alpine
+FROM node:20-alpine3.19
 WORKDIR /app
 
 # Set NODE_ENV for production optimizations
@@ -32,6 +32,10 @@ USER node
 
 # Expose the port your app listens on
 EXPOSE 5000
+
+# ─── healthcheck ────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
+  CMD wget --quiet --tries=1 --spider http://localhost:5000/api/projects || exit 1
 
 # Default command
 CMD ["node", "server.js"]

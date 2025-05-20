@@ -1,0 +1,27 @@
+services:
+  api:
+    build: .
+    ports:
+      - '5001:5000'
+    env_file:
+      - .env            # relative to this file; if your .env lives in the parent folder, use ../.env
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - MONGODB_URI=${MONGODB_URI}
+      - CLIENT_URL=${CLIENT_URL}
+    depends_on:
+      - mongo
+    volumes:
+      - ./:/app         # mount your source
+      # remove this line: - /app/node_modules
+
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - '27017:27017'
+
+volumes:
+  mongo-data:
