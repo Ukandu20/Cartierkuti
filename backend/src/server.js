@@ -5,6 +5,7 @@ import helmet  from 'helmet';                   // NEW ➋
 import hpp     from 'hpp';                      // NEW ➋
 import mongoSanitize from 'express-mongo-sanitize'; // NEW ➋
 import rateLimit from 'express-rate-limit';     // NEW
+import corsMiddleware from './config/cors.js'; 
 import path from 'path';
 import dotenv from 'dotenv';
 import { connectDB }      from './config/db.js';
@@ -23,13 +24,9 @@ app.use(helmet());
 app.use(hpp());
 app.use(mongoSanitize());
 app.use(express.json());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL?.split(',') ||
-            ['http://localhost:5173'],
-    credentials: true,
-  })
-);
+
+// centralized CORS
+app.use(corsMiddleware);
 
 /* ─────────── rate-limit for bots */
 const apiLimiter = rateLimit({ windowMs: 60_000, max: 150 });
