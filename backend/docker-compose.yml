@@ -2,7 +2,7 @@ services:
   api:
     build: .
     ports:
-      - '5001:5000'
+      - '5000:5000'
     env_file:
       - .env            # relative to this file; if your .env lives in the parent folder, use ../.env
     environment:

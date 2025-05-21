@@ -2,17 +2,14 @@
 FROM node:20-alpine3.19 AS builder
 WORKDIR /app
 
-# Only copy package manifests and lockfile, install deps
+# 1) Install all deps (prod + dev)
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy the rest of the source, so rebuilds only re-run when sources change
+# 2) Copy source (including your seeders)
 COPY . .
 
-# If you have a build step (e.g. TS compile or bundler), run it here:
-# RUN npm run build
-
-# Remove devDependencies, leaving only production deps
+# 3) Remove devDependencies so only prod deps remain
 RUN npm prune --production
 
 
@@ -20,22 +17,22 @@ RUN npm prune --production
 FROM node:20-alpine3.19
 WORKDIR /app
 
-# Set NODE_ENV for production optimizations
 ENV NODE_ENV=production
 
-# Copy production node_modules + source from builder
+# 1) Copy only production node_modules + your source (including scripts/)
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app ./
 
-# Use non-root user for security
+# 2) Fix permissions (alpine + non-root)
+RUN chown -R node:node /app
+
 USER node
 
-# Expose the port your app listens on
 EXPOSE 5000
 
 # ─── healthcheck ────────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
-  CMD wget --quiet --tries=1 --spider http://localhost:5000/api/projects || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:5000/health || exit 1
 
-# Default command
+# ─── default: start the API ─────────────────────────────────────────────────
 CMD ["node", "server.js"]

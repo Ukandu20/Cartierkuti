@@ -29,4 +29,10 @@ projectSchema.index({ featured: 1, date: -1 });
 projectSchema.index({ views: -1 });
 projectSchema.index({ title: 'text', description: 'text' });
 
-export default mongoose.model('Project', projectSchema, 'project_data');
+// pick collection based on NODE_ENV:
+const collectionName =
+  process.env.NODE_ENV === 'production'
+    ? 'project_data_prod'
+    : 'project_data';
+
+export default mongoose.model('Project', projectSchema, collectionName);
