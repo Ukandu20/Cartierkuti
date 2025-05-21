@@ -4,7 +4,7 @@ import cors from 'cors';
 // split CLIENT_URL on commas, or default to localhost
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(',')
-  : ['http://localhost:5173'];
+  : ['http://localhost:5173', 'https://cartierkuti.netlify.app', 'https://cartierkuti.com'];
 
 const corsOptions = {
   origin: (origin, callback) => {
