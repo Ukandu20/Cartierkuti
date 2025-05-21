@@ -73,9 +73,10 @@ jobs:
         run: |
           docker run --rm \
             -e NODE_ENV=production \
-            -e MONGODB_URI=${{ secrets.MONGODB_URI }} \
+            -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
             ghcr.io/ukandu20/backend-api:latest \
             npm run seed:prod
+
 
   # 4) Deploy to Render after seeding
   deploy:
