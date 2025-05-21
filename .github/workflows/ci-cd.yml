@@ -63,8 +63,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: your-github-username
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Pull prod image
         run: docker pull ghcr.io/ukandu20/backend-api:latest
