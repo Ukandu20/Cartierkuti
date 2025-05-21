@@ -78,14 +78,19 @@ jobs:
             npm run seed:prod
 
 
-  # 4) Deploy to Render after seeding
+    # 4) Deploy to Render after seeding
   deploy:
     needs: seed-production
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Render
-        uses: render-examples/deploy-render@v1
-        with:
-          apiKey: ${{ secrets.RENDER_API_KEY }}
-          serviceId: ${{ secrets.RENDER_SERVICE_ID }}
-          image: ghcr.io/ukandu20/backend-api:latest
+      - name: Trigger Render deploy via API
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          curl -X POST "https://api.render.com/deploys" \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"serviceId":"'"$RENDER_SERVICE_ID"'"}'
+
