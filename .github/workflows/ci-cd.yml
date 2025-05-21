@@ -51,8 +51,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/backend-api:latest
-            ghcr.io/${{ github.repository_owner }}/backend-api:${{ github.sha }}
+            ghcr.io/ukandu20/backend-api:latest
+            ghcr.io/ukandu20/backend-api:${{ github.sha }}
 
   # 3) Seed production data (real projects)
   seed-production:
