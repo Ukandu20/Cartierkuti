@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
-    "seed:fake": "node -r dotenv/config scripts/dynamicSeeder.js",
-    "seed:real": "node -r dotenv/config scripts/seeder.js",
+    "seed:dev": "node -r dotenv/config src/scripts/dynamicSeeder.js",
+    "seed:prod": "node -r dotenv/config src/scripts/seeder.js",
     "start": "node server.js"
   },
   "keywords": [
@@ -22,17 +22,21 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "envalid": "^8.0.0",
     "express": "^4.19.2",
-    "nodemailer": "^6.9.13",
     "express-async-errors": "^3.1.1",
     "express-async-handler": "^1.2.0",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
-    "mongoose": "^8.12.1"
+    "mongoose": "^8.12.1",
+    "nodemailer": "^6.9.13",
+    "pino": "^9.7.0",
+    "pino-http": "^10.4.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "pino-pretty": "^13.0.0"
   }
 }

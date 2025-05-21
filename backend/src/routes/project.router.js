@@ -28,84 +28,64 @@ projectRouter.patch('/:id/hit', hitLimiter, asyncHandler(async (req, res) => {
 }));
 
 /* ─────────────── CREATE */
-projectRouter.post("/", async (req, res) => {
-  try {
-    const project = new Project(req.body);
-    await project.save();
-    res.json(project);
-  } catch {
-    res.status(500).json({ message: "Error creating project" });
-  }
-});
+projectRouter.post("/", asyncHandler(async (req, res) => {
+  const project = await Project.create(req.body);
+  res.json(project);
+}));
+
 
 /* ─────────────── UPDATE */
-projectRouter.put("/:id", async (req, res) => {
-  try {
-    const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    }).exec();
-    project
-      ? res.json(project)
-      : res.status(404).json({ message: "Project not found" });
-  } catch {
-    res.status(500).json({ message: "Error updating project" });
-  }
-});
+projectRouter.put(  '/:id',  asyncHandler(async (req, res) => {
+    const project = await Project.findByIdAndUpdate( req.params.id, req.body, 
+      { new: true }
+    );
+    if (!project) { return res.status(404).json({ message: 'Project not found' });
+    }
+    res.json(project);
+  }));
 
 /* ─────────────── DELETE */
-projectRouter.delete("/:id", async (req, res) => {
-  try {
-    await Project.findByIdAndDelete(req.params.id).exec();
-    res.json({ message: "Project deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Error deleting project" });
-  }
-});
+projectRouter.delete( '/:id', asyncHandler(async (req, res) => {
+    const deleted = await Project.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.status(204).send(); 
+  })
+);
 
-/* ─────────────── increment view count (for most-viewed sort) */
-projectRouter.patch("/:id/hit", async (req, res) => {
-  try {
-    const proj = await Project.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { views: 1 } },
-      { new: true }
-    ).select("views");
-    res.json({ views: proj.views });
-  } catch {
-    res.status(500).json({ message: "View increment failed" });
-  }
-});
 
-/* ─────────────── reviews endpoints */
+/* ─────────────── GET all reviews */
+projectRouter.get(
+  '/:id/reviews',
+  asyncHandler(async (req, res) => {
+    const project = await Project.findById(req.params.id).select('ratings');
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.json(project.ratings);
+  })
+);
 
-/* GET all reviews */
-projectRouter.get("/:id/reviews", async (req, res) => {
-  try {
-    const { ratings } = await Project.findById(req.params.id).select("ratings");
-    res.json(ratings);
-  } catch {
-    res.status(500).json({ message: "Error fetching reviews" });
-  }
-});
-
-/* POST new review & recalc avg */
-projectRouter.post("/:id/reviews", async (req, res) => {
-  try {
+/* ─────────────── POST new review & recalc avg */
+projectRouter.post(
+  '/:id/reviews',
+  asyncHandler(async (req, res) => {
     const { stars, comment } = req.body;
-    await Project.findByIdAndUpdate(req.params.id, {
-      $push: { ratings: { stars, comment, date: new Date() } },
-    });
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
 
-    // recompute average stars
-    const proj = await Project.findById(req.params.id).lean();
-    const avg =
-      proj.ratings.reduce((s, r) => s + r.stars, 0) / proj.ratings.length;
+    project.ratings.push({ stars, comment, date: new Date() });
+    project.avgStars =
+      project.ratings.reduce((sum, r) => sum + r.stars, 0) /
+      project.ratings.length;
+    await project.save();
 
-    await Project.findByIdAndUpdate(req.params.id, { avgStars: avg });
-    res.json({ avgStars: avg, total: proj.ratings.length });
-  } catch {
-    res.status(500).json({ message: "Error posting review" });
-  }
-});
+    res.json({ avgStars: project.avgStars, total: project.ratings.length });
+  })
+);
+
 
 export default projectRouter;
