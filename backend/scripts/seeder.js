@@ -11,8 +11,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 import mongoose from 'mongoose';
-import { projectData } from '../assets/data/data.js'; // your curated list
-import Project from '../models/project.model.js';
+import { projectData } from '../src/assets/data/data.js'; // your curated list
+import Project from '../src/models/project.model.js';
 
 async function importData() {
   try {
