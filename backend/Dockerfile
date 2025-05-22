@@ -1,6 +1,6 @@
 # ─── Stage 1: install & prune dev deps ─────────────────────────────────────
 FROM node:20-alpine3.19 AS builder
-WORKDIR /app
+WORKDIR /backend
 
 # 1) Install all deps (prod + dev)
 COPY package.json package-lock.json ./
