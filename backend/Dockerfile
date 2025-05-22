@@ -6,12 +6,11 @@ WORKDIR /backend
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# 2) Copy source (including your seeders)
+# 2) Copy source (including src directory and other necessary files)
 COPY . .
 
-# 3) Remove devDependencies so only prod deps remain
+# 3) Remove devDependencies to retain only production deps
 RUN npm prune --production
-
 
 # ─── Stage 2: runtime image ────────────────────────────────────────────────
 FROM node:20-alpine3.19
@@ -19,11 +18,12 @@ WORKDIR /backend
 
 ENV NODE_ENV=production
 
-# 1) Copy only production node_modules + your source (including scripts/)
+# 1) Copy production node_modules and source files
 COPY --from=builder /backend/node_modules ./node_modules
-COPY --from=builder /backend ./
+COPY --from=builder /backend/src ./src          
+COPY --from=builder /backend/package.json ./
 
-# 2) Fix permissions (alpine + non-root)
+# 2) Set permissions (for non-root access on Alpine)
 RUN chown -R node:node /backend
 
 USER node
@@ -35,4 +35,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
   CMD wget --quiet --tries=1 --spider http://localhost:5000/health || exit 1
 
 # ─── default: start the API ─────────────────────────────────────────────────
-CMD ["node", "server.js"]
+CMD ["node", "src/server.js"]
