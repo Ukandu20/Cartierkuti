@@ -15,16 +15,16 @@ RUN npm prune --production
 
 # ─── Stage 2: runtime image ────────────────────────────────────────────────
 FROM node:20-alpine3.19
-WORKDIR /app
+WORKDIR /backend
 
 ENV NODE_ENV=production
 
 # 1) Copy only production node_modules + your source (including scripts/)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app ./
+COPY --from=builder /backend/node_modules ./node_modules
+COPY --from=builder /backend ./
 
 # 2) Fix permissions (alpine + non-root)
-RUN chown -R node:node /app
+RUN chown -R node:node /backend
 
 USER node
 
