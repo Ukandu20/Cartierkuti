@@ -10,6 +10,7 @@ WORKDIR /backend
 ENV NODE_ENV=production
 COPY --from=builder /backend/node_modules ./node_modules
 COPY --from=builder /backend/src ./src
+COPY --from=builder /backend/scripts ./scripts
 COPY --from=builder /backend/package.json ./
 RUN chown -R node:node /backend
 USER node
