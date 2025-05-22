@@ -15,7 +15,6 @@ services:
     entrypoint: ["npm", "run", "seed:prod"]
     depends_on:
       - api
-    # run once, then exit
     restart: "no"
 
   mongo:
