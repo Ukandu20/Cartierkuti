@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
   "dev": "nodemon src/server.js",
-  "seed:dev": "node -r dotenv/config src/scripts/dynamicseeder.js",
-  "seed:prod": "node -r dotenv/config src/scripts/seeder.js",
+  "seed:dev": "node -r dotenv/config scripts/dynamicseeder.js",
+  "seed:prod": "node -r dotenv/config scripts/seeder.js",
   "start": "node src/server.js"
   },
   "keywords": [
