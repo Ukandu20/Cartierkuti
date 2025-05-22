@@ -47,12 +47,7 @@ app.get('/health', (_req, res) => {
 /* ─────────── routes */
 app.use('/api/projects', projectRouter);
 
-/* ─────────── static & SPA fallback */
-const publicFolder = path.join(__dirname, 'public');
-app.use(express.static(publicFolder));
-app.get('*', (_, res) =>
-  res.sendFile(path.join(publicFolder, 'index.html'))
-);
+
 
 /* ─────────── error funnel */
 app.use(errorHandler);
