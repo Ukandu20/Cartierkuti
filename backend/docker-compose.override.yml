@@ -2,5 +2,5 @@ services:
   api:
     command: npm run dev
     volumes:
-      - ./:/app
-      - ./node_modules:/app/node_modules
+      - ./:/backend
+      - ./node_modules:/backend/node_modules
