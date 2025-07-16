@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === 'production') {
 
 import mongoose from 'mongoose';
 import { faker } from '@faker-js/faker';
-import Project from '../models/project.model.js';
+import Project from '../src/models/project.model.js';
 
 /* ─────────────── helper to build ratings & avg */
 function makeRatings() {
