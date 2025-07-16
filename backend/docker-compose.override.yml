@@ -1,6 +1,13 @@
+version: '3.8'
+
 services:
   api:
     command: npm run dev
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/projects
+      - CLIENT_URL=http://localhost:5173
     volumes:
       - ./:/backend
       - ./node_modules:/backend/node_modules
+    depends_on:
+      - mongo
