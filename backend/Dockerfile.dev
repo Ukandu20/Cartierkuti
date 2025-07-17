@@ -1,0 +1,19 @@
+# Dockerfile.dev
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine3.19
+
+# set working dir
+WORKDIR /backend
+
+# copy package metadata & install everything (including devDeps)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# copy the rest of your source
+COPY . .
+
+# expose your API port
+EXPOSE 5000
+
+# run your dev server (with nodemon, hot-reload, etc)
+CMD ["npm", "run", "dev"]

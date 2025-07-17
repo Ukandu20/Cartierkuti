@@ -1,6 +1,5 @@
-// src/pages/Admin/AdminDashboard.jsx
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import axios from 'axios'
+import apiClient from 'axios'
 import {
   Box,
   Heading,
@@ -11,7 +10,6 @@ import {
   Stack,
   Input,
   Textarea,
-  Checkbox,
   Button,
   Portal,
   CloseButton,
@@ -23,6 +21,7 @@ import {
   FileUpload,
   Float,
   useFileUploadContext,
+  Checkbox,
 } from '@chakra-ui/react'
 
 import { useColorMode } from '../../components/Theme/color-mode'
@@ -36,7 +35,7 @@ import {
   HiPencil,
   HiTrash,
 } from 'react-icons/hi'
-import { RiImageAddLine } from "react-icons/ri";
+import { RiImageAddLine } from 'react-icons/ri'
 
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -75,39 +74,41 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => 
 // Main AdminDashboard
 // ────────────────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  // for <Toaster />
-  // ──────────────────────────────────────────────────────────────────────────────
-  // color mode for background
   const { colorMode } = useColorMode()
   const bg = colorMode === 'light' ? 'gray.100' : 'whiteAlpha.100'
 
-  // auth & session
-  const [isAuth, setIsAuth]     = useState(false)
+  const [isAuth, setIsAuth] = useState(false)
   const [password, setPassword] = useState('')
-
-  // projects & form state
-  const [projects, setProjects]       = useState([])
-  const [loading,  setLoading]        = useState(true)
-  const [error,    setError]          = useState('')
-  const [editMode, setEditMode]       = useState(false)
-  const [current,  setCurrent]        = useState(null)
-  const [formData, setFormData]       = useState({
-    title:'',description:'',externalLink:'',githubLink:'',
-    liveDemoLink:'',imageUrl:'',category:'',languages:'',
-    status:'',tags:'',date:'',featured:false,
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [editMode, setEditMode] = useState(false)
+  const [current, setCurrent] = useState(null)
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    externalLink: '',
+    githubLink: '',
+    liveDemoLink: '',
+    imageUrl: '',
+    category: '',
+    languages: '',
+    status: '',
+    tags: '',
+    date: '',
+    featured: false,
   })
 
-  // dialog state
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [isDeleteOpen, setDeleteOpen] = useState(false)
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
 
-  // ── fetchProjects ─────────────────────────────────────────────────────────────
+  // fetch
   const fetchProjects = async () => {
     setLoading(true)
     try {
-      const { data } = await axios.get('/api/projects')
+      const { data } = await apiClient.get('/api/projects')
       setProjects(Array.isArray(data) ? data : [])
     } catch {
       setError('Could not load projects.')
@@ -116,33 +117,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const FileUploadList = () => {
-  const fileUpload = useFileUploadContext()
-  const files = fileUpload.acceptedFiles
-  if (files.length === 0) return null
-  return (
-    <FileUpload.ItemGroup>
-      {files.map((file) => (
-        <FileUpload.Item
-          w="auto"
-          boxSize="20"
-          p="2"
-          file={file}
-          key={file.name}
-        >
-          <FileUpload.ItemPreviewImage />
-          <Float placement="top-end">
-            <FileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid">
-              <RiImageAddLine />
-            </FileUpload.ItemDeleteTrigger>
-          </Float>
-        </FileUpload.Item>
-      ))}
-    </FileUpload.ItemGroup>
-    )
-  }
-
-  // ── session check on mount ────────────────────────────────────────────────────
   useEffect(() => {
     const auth = sessionStorage.getItem('isAdminAuthenticated')
     const time = sessionStorage.getItem('loginTime')
@@ -154,7 +128,7 @@ export default function AdminDashboard() {
     }
   }, [])
 
-  // ── inactivity timeout (15m) ─────────────────────────────────────────────────
+  // session timeout
   useEffect(() => {
     if (!isAuth) return
     let tid
@@ -175,7 +149,6 @@ export default function AdminDashboard() {
     }
   }, [isAuth])
 
-  // ── form change ───────────────────────────────────────────────────────────────
   const onChange = e => {
     const { name, value, type, checked } = e.target
     setFormData(fd => ({
@@ -184,19 +157,26 @@ export default function AdminDashboard() {
     }))
   }
 
-  // ── open create ───────────────────────────────────────────────────────────────
   const onOpenCreate = () => {
     setEditMode(false)
     setCurrent(null)
     setFormData({
-      title:'',description:'',externalLink:'',githubLink:'',
-      liveDemoLink:'',imageUrl:'',category:'',languages:'',
-      status:'',tags:'',date:'',featured:false,
+      title: '',
+      description: '',
+      externalLink: '',
+      githubLink: '',
+      liveDemoLink: '',
+      imageUrl: '',
+      category: '',
+      languages: '',
+      status: '',
+      tags: '',
+      date: '',
+      featured: false,
     })
     setCreateOpen(true)
   }
 
-  // ── open edit ─────────────────────────────────────────────────────────────────
   const onOpenEdit = proj => {
     setEditMode(true)
     setCurrent(proj)
@@ -217,50 +197,69 @@ export default function AdminDashboard() {
     setCreateOpen(true)
   }
 
-  // ── submit create/update ──────────────────────────────────────────────────────
   const onSubmit = async () => {
     try {
       const payload = {
         ...formData,
-        languages: formData.languages.split(',').map(s=>s.trim()),
-        tags:       formData.tags.split(',').map(s=>s.trim()),
-        date:       new Date(formData.date),
+        languages: formData.languages.split(',').map(s => s.trim()),
+        tags: formData.tags.split(',').map(s => s.trim()),
+        date: new Date(formData.date),
       }
-      const headers = { 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET }
+      const headers = { Authorization: `Bearer ${import.meta.env.VITE_ADMIN_SECRET}` }
       if (editMode) {
-        await axios.put(`/api/projects/${current._id}`, payload, { headers })
-        toaster.create({ title:'Project updated', type:'success', closable:true, duration:3000 })
+        await apiClient.put(`/api/projects/${current._id}`, payload, { headers })
+        toaster.create({ title: 'Project updated', type: 'success', closable: true })
       } else {
-        await axios.post('/api/projects', payload, { headers })
-        toaster.create({ title:'Project created', type:'success', closable:true, duration:3000 })
+        await apiClient.post('/api/projects', payload, { headers })
+        toaster.create({ title: 'Project created', type: 'success', closable: true })
       }
       fetchProjects()
       setCreateOpen(false)
     } catch {
-      toaster.create({ title:'Error saving project', type:'error', closable:true, duration:5000 })
+      toaster.create({ title: 'Error saving project', type: 'error', closable: true })
     }
   }
 
-  // ── delete flows ──────────────────────────────────────────────────────────────
   const confirmDelete = proj => {
     setToDelete(proj)
     setDeleteOpen(true)
   }
   const doDelete = async () => {
     try {
-      await axios.delete(`/api/projects/${toDelete._id}`, {
-        headers: { 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET },
+      await apiClient.delete(`/api/projects/${toDelete._id}`, {
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_AUTH_TOKEN}` }
       })
-      toaster.create({ title:'Project deleted', type:'success', closable:true, duration:3000 })
+      toaster.create({ title: 'Project deleted', type: 'success', closable: true })
       fetchProjects()
     } catch {
-      toaster.create({ title:'Error deleting', type:'error', closable:true, duration:5000 })
+      toaster.create({ title: 'Error deleting', type: 'error', closable: true })
     } finally {
       setDeleteOpen(false)
     }
   }
 
-  // ── KPIs & lists ─────────────────────────────────────────────────────────────
+  // FileUploadList remains same
+  const FileUploadList = () => {
+    const fileUpload = useFileUploadContext()
+    const files = fileUpload.acceptedFiles
+    if (!files.length) return null
+    return (
+      <FileUpload.ItemGroup>
+        {files.map(file => (
+          <FileUpload.Item key={file.name} file={file} boxSize="20" p="2">
+            <FileUpload.ItemPreviewImage />
+            <Float placement="top-end">
+              <FileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid">
+                <RiImageAddLine />
+              </FileUpload.ItemDeleteTrigger>
+            </Float>
+          </FileUpload.Item>
+        ))}
+      </FileUpload.ItemGroup>
+    )
+  }
+
+// ── KPIs & lists ─────────────────────────────────────────────────────────────
   const kpis = useMemo(() => [
     { label:'Total Projects',    value:projects.length,                                desc:'all projects', icon:HiFolderOpen, onClick:() => {} },
     { label:'Active Projects',   value:projects.filter(p=>p.status==='active').length, desc:'in progress', icon:HiPlay,       onClick:() => {} },
@@ -289,6 +288,8 @@ export default function AdminDashboard() {
   // ──────────────────────────────────────────────────────────────────────────────
   // LOGIN SCREEN with Fieldset
   // ──────────────────────────────────────────────────────────────────────────────
+
+  // Auth screen
   if (!isAuth) {
     return (
       <>
@@ -296,11 +297,10 @@ export default function AdminDashboard() {
         <Flex height="100vh" align="center" justify="center">
           <Box p={6} bg={bg} borderRadius="md">
             <Fieldset.Root size="md" maxW="sm">
-              <Stack spaceX={2} spaceY={2} mb={4}>
+              <Stack mb={4} spaceY={2}>
                 <Fieldset.Legend>Admin Login</Fieldset.Legend>
                 <Fieldset.HelperText>Enter your admin password</Fieldset.HelperText>
               </Stack>
-
               <Fieldset.Content>
                 <Field.Root required>
                   <Field.Label>Password</Field.Label>
@@ -309,28 +309,20 @@ export default function AdminDashboard() {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={e=>setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                   />
                 </Field.Root>
               </Fieldset.Content>
-
-              <Button
-                mt={4}
-                w="full"
-                colorScheme="teal"
-                onClick={() => {
-                  if (password === import.meta.env.VITE_ADMIN_SECRET) {
-                    sessionStorage.setItem('isAdminAuthenticated','true')
-                    sessionStorage.setItem('loginTime', String(Date.now()))
-                    setIsAuth(true)
-                    fetchProjects()
-                  } else {
-                    toaster.create({ title:'Wrong password', type:'error', closable:true, duration:3000 })
-                  }
-                }}
-              >
-                Login
-              </Button>
+              <Button mt={4} w="full" colorScheme="teal" onClick={() => {
+                if (password === import.meta.env.VITE_ADMIN_SECRET) {
+                  sessionStorage.setItem('isAdminAuthenticated', 'true')
+                  sessionStorage.setItem('loginTime', `${Date.now()}`)
+                  setIsAuth(true)
+                  fetchProjects()
+                } else {
+                  toaster.create({ title: 'Wrong password', type: 'error', closable: true })
+                }
+              }}>Login</Button>
             </Fieldset.Root>
           </Box>
         </Flex>
@@ -338,15 +330,13 @@ export default function AdminDashboard() {
     )
   }
 
-  // ──────────────────────────────────────────────────────────────────────────────
-  // MAIN DASHBOARD UI
-  // ──────────────────────────────────────────────────────────────────────────────
+  // Main UI
   return (
     <>
       <Toaster />
-
-      <Box p={{ base:4, md:8 }}>
-        <Heading mb={1}>Welcome Back!</Heading>
+      <Box p={{ base: 4, md: 8 }}>
+        <Heading>Welcome Back!</Heading>
+        {/* KPI, Recent, Quick Actions, Listing same as before */}
         <Text mb={6} color="gray.400">Here’s what’s happening with your projects</Text>
 
         {/* KPI Row */}
@@ -427,84 +417,99 @@ export default function AdminDashboard() {
               </Flex>
             ))}
           </Stack>
-        </Box>
+        </Box>        
 
-        {/*Create dialog to add, edit and delete projects */}
-        <Dialog.Root placement="center" open={isCreateOpen} onOpenChange={setCreateOpen} scrollBehavior="inside" px={2}>          
+
+
+        <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>New Project</Button>
+
+        <Dialog.Root placement="center" open={isCreateOpen} onOpenChange={setCreateOpen} scrollBehavior="inside" px={2}>
           <Portal>
-            <Dialog.Backdrop  />
+            <Dialog.Backdrop />
             <Dialog.Positioner>
               <Dialog.Content
-                w={{ base: "90vw", md: "600px" }}
+                w={{ base: '90vw', md: '600px' }}
                 maxH="85vh"
                 overflowY="auto"
-                // theming
-                bg={colorMode === "light" ? "white" : "gray.700"}
-                color={colorMode === "light" ? "gray.800" : "whiteAlpha.900"}
-                // decoration
+                bg={bg}
+                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
                 p={{ base: 4, md: 6 }}
                 rounded="lg"
                 shadow="lg"
                 borderWidth="1px"
-                borderColor={colorMode === "light" ? "gray.200" : "whiteAlpha.300"}
-                >
+                borderColor={colorMode === 'light' ? 'gray.200' : 'whiteAlpha.300'}
+              >
                 <Dialog.Header display="flex" justifyContent="space-between" mb={4}>
-                  <Dialog.Title fontSize="2xl" fontWeight="bold">{editMode ? 'Edit Project' : 'New Project'}</Dialog.Title>
+                  <Dialog.Title fontSize="2xl" fontWeight="bold">
+                    {editMode ? 'Edit Project' : 'New Project'}
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton />
+                  </Dialog.CloseTrigger>
                 </Dialog.Header>
-
 
                 <Dialog.Body px={0}>
                   <Fieldset.Root size="lg" maxW="2xl">
                     <Fieldset.Content>
+                      {/* Title & Description */}
                       <Field.Root required>
                         <Field.Label>Project Title</Field.Label>
-                        <Input name="title" value={formData.title} onChange={onChange} paddingX={2} alignContent="center" />
+                        <Input
+                          name="title"
+                          value={formData.title}
+                          onChange={onChange}
+                          px={2}
+                        />
                       </Field.Root>
                       <Field.Root required>
                         <Field.Label>Project Description</Field.Label>
-                        <Textarea name="description" value={formData.description} onChange={onChange} aria-label="Project Description" paddingX={2} alignContent="center"  />
+                        <Textarea
+                          name="description"
+                          value={formData.description}
+                          onChange={onChange}
+                          px={2}
+                          aria-label="Project Description"
+                        />
                       </Field.Root>
-                      <Flex w="100%" gap={1} wrap="wrap" mb={4}>
-                        <Field.Root required>
+
+                      {/* Links Row */}
+                      <Flex wrap="wrap" gap={2} mb={4}>
+                        <Field.Root flex="1">
                           <Field.Label>External Link</Field.Label>
                           <Input
-                            id="external-link"
-                            type="url"
                             name="externalLink"
-                            aria-label="External Link URL"
+                            type="url"
                             placeholder="https://example.com"
                             value={formData.externalLink}
                             onChange={onChange}
-                            paddingX={2}
-                            alignContent="center"/>
+                            px={2}
+                          />
                         </Field.Root>
-                        <Field.Root required>
-                          <Field.Label>github Link</Field.Label>
+                        <Field.Root flex="1">
+                          <Field.Label>GitHub Link</Field.Label>
                           <Input
-                          id="github-link"
-                            type="url"
                             name="githubLink"
-                            aria-label="github Link URL"
-                            placeholder="https://example.com"
+                            type="url"
+                            placeholder="https://github.com/..."
                             value={formData.githubLink}
                             onChange={onChange}
-                            paddingX={2}
-                            alignContent="center"/>
+                            px={2}
+                          />
                         </Field.Root>
-                        <Field.Root required>
+                        <Field.Root flex="1">
                           <Field.Label>Live Link</Field.Label>
                           <Input
-                            id="live-link"
-                            type="url"
                             name="liveDemoLink"
-                            aria-label="live Link URL"
-                            placeholder="https://example.com"
+                            type="url"
+                            placeholder="https://live-demo.com"
                             value={formData.liveDemoLink}
                             onChange={onChange}
-                            paddingX={2}
-                            alignContent="center"/>
+                            px={2}
+                          />
                         </Field.Root>
                       </Flex>
+
+                      {/* Category, Languages, Tags, Status, Date... same pattern as above */}
                       <Field.Root required>
                         <Field.Label htmlFor="category-select">
                           Category
@@ -546,7 +551,7 @@ export default function AdminDashboard() {
                       <Field.Root required>
                         <Field.Label htmlFor="status-select">Project Status</Field.Label>
                         <NativeSelect.Root>
-                          <NativeSelect.Field id="status-select" name="status" value={formData.status} paddingX={2} alignContent="center">
+                          <NativeSelect.Field id="status-select" name="status" value={formData.status} onChange={onChange} paddingX={2} alignContent="center">
                             <option value="" disabled>
                               Select status…
                             </option>
@@ -563,52 +568,58 @@ export default function AdminDashboard() {
                         <Field.Label>Upload Date</Field.Label>
                         <Input type="date" name="date" value={formData.date} onChange={onChange} paddingX={2} alignContent="center" />
                       </Field.Root>
-                      <Flex>
-                        <Field.Root required paddingX={2} pb={2} >
-                            <FileUpload.Root id="image-upload" accept="image/png">
-                              <FileUpload.HiddenInput
-                                aria-label="Upload Preview Image"
-                                onChange={e => {
-                                  const file = e.target.files?.[0]
-                                  if (!file) return
-                                  const url = URL.createObjectURL(file)
-                                  setFormData(fd => ({ ...fd, imageUrl: url }))
-                                }}
-                              />
-                              <FileUpload.Trigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  aria-label="Upload Preview Image"
-                                  
-                                >
-                                  <RiImageAddLine /> Upload Preview Image
-                                </Button>
-                              </FileUpload.Trigger>
-                              <FileUploadList />
-                            </FileUpload.Root>
+
+
+                      {/* Image Upload & Featured */}
+                      <Flex align="center" gap={4}>
+                        <Field.Root>
+                          <Field.Label>Preview Image</Field.Label>
+                          <FileUpload.Root accept="image/*">
+                            <FileUpload.HiddenInput
+                              aria-label="Select preview image"
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                const url = URL.createObjectURL(file)
+                                setFormData(fd => ({ ...fd, imageUrl: url }))
+                              }}
+                            />
+                            <FileUpload.Trigger asChild>
+                              <Button size="sm" variant="outline" aria-label="Upload image">
+                                <RiImageAddLine />
+                              </Button>
+                            </FileUpload.Trigger>
+                            <FileUploadList />
+                          </FileUpload.Root>
                         </Field.Root>
-                        <Field.Root required mb={4}>
-                          <Checkbox.Root name="featured" isChecked={formData.featured} onChange={onChange} >
+
+                        <Field.Root>
+                          <Checkbox.Root
+                            name="featured"
+                            checked={formData.featured}
+                            onCheckedChange={val => setFormData(fd => ({ ...fd, featured: val }))}
+                          >
                             <Checkbox.HiddenInput />
                             <Checkbox.Control />
-                            <Checkbox.Label>Featured</Checkbox.Label>                                                                                  
+                            <Checkbox.Label>Featured?</Checkbox.Label>
                           </Checkbox.Root>
                         </Field.Root>
                       </Flex>
                     </Fieldset.Content>
                   </Fieldset.Root>
                 </Dialog.Body>
+
                 <Dialog.Footer display="flex" justifyContent="flex-end" mt={4} gap={3}>
                   <Dialog.ActionTrigger asChild>
-                    <Button variant="solid" onClick={onSubmit}>
+                    <Button onClick={onSubmit} variant="solid">
                       {editMode ? 'Update' : 'Create'}
-                    </Button>                    
+                    </Button>
                   </Dialog.ActionTrigger>
-                  <Button variant="solid">Cancel</Button>
+                  <Button onClick={() => setCreateOpen(false)} variant="ghost">Cancel</Button>
                 </Dialog.Footer>
+
                 <Dialog.CloseTrigger asChild>
-                  <CloseButton size="sm" position="absolute" top="4" right="4"/>
+                  <CloseButton position="absolute" top="4" right="4"/>
                 </Dialog.CloseTrigger>
               </Dialog.Content>
             </Dialog.Positioner>

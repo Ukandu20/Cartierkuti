@@ -9,11 +9,9 @@ jobs:
   # 1) CI: install & (eventually) test
   build-test:
     runs-on: ubuntu-latest
-    # ← every `run:` below now happens inside ./backend
     defaults:
       run:
         working-directory: backend
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -41,7 +39,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: your-github-username
+          username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build & push Docker image
@@ -63,7 +61,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: your-github-username
+          username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Pull prod image
@@ -74,11 +72,11 @@ jobs:
           docker run --rm \
             -e NODE_ENV=production \
             -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+            -e ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}" \
             ghcr.io/ukandu20/backend-api:latest \
             npm run seed:prod
 
-
-    # 4) Deploy to Render after seeding
+  # 4) Deploy to Render after seeding
   deploy:
     needs: seed-production
     runs-on: ubuntu-latest
@@ -93,4 +91,3 @@ jobs:
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"serviceId":"'"$RENDER_SERVICE_ID"'"}'
-

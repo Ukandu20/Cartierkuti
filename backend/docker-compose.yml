@@ -1,20 +1,18 @@
+version: '3.8'
+
 services:
   api:
-    build: .
-    command: npm run dev
+    build:
+      context: .
+      dockerfile: Dockerfile           # your multi-stage Dockerfile should CMD “npm start” or similar
     ports:
       - '5050:5000'
     env_file:
-      - .env
+      - .env.production                # keep only PROD env vars here
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - MONGODB_URI=${MONGODB_URI}
-      - CLIENT_URL=${CLIENT_URL}
+      - NODE_ENV=production
     depends_on:
       - mongo
-    volumes:
-      - ./:/backend
-      - /backend/node_modules  # prevents override from local to container
 
   mongo:
     image: mongo:6.0
