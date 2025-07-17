@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6.0
+    volumes:
+      - mongo-data:/data/db
+
+  seed-dev:
+    # use the same Node image you develop against
+    image: node:20-alpine3.19
+    working_dir: /backend
+    volumes:
+      - ./:/backend
+      - /backend/node_modules        # keep container node_modules
+    env_file:
+      - .env.development
+    command: ["npm", "run", "seed:dev"]
+    depends_on:
+      - mongo
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev   # ← point at Dockerfile.dev
+    command: ["npm", "run", "dev"]
+    env_file:
+      - .env.development
+    ports:
+      - '5050:5000'
+    volumes:
+      - ./:/backend
+      - /backend/node_modules
+    depends_on:
+      - mongo
+      - seed-dev                   # ← ensure seeding runs first
+
+volumes:
+  mongo-data:

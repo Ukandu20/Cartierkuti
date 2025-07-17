@@ -1,23 +1,28 @@
 // config/cors.js
 import cors from 'cors';
 
-// split CLIENT_URL on commas, or default to localhost
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',')
-  : ['http://localhost:5173', 'https://cartierkuti.netlify.app', 'https://cartierkuti.com'];
+// Read CLIENT_URL (comma-separated) from env, or fall back to sensible defaults:
+const raw = process.env.CLIENT_URL || ''
+const allowedOrigins = raw
+  .split(',')
+  .map(o => o.trim())
+  .filter(o => o.length > 0)
+  // if you want a default fallback when none is set:
+  .concat(['http://localhost:5173']);
 
+// Build our CORS options
 const corsOptions = {
-  origin: (origin, callback) => {
-    // allow requests with no origin (e.g. mobile apps, curl)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS blocked for origin: ${origin}`));
+  origin: (incomingOrigin, callback) => {
+    // allow non-browser requests (curl, mobile apps)
+    if (!incomingOrigin || allowedOrigins.includes(incomingOrigin)) {
+      return callback(null, true);
     }
+    console.warn(`CORS blocked for origin: ${incomingOrigin}`);
+    callback(new Error(`Not allowed by CORS: ${incomingOrigin}`));
   },
-  credentials: true,
+  credentials: true,  // Access-Control-Allow-Credentials
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  allowedHeaders: ['Content-Type','Authorization'],
 };
 
 export default cors(corsOptions);

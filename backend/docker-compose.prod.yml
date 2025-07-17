@@ -2,7 +2,7 @@ services:
   api:
     image: cartierkuti/backend-api:prod
     env_file:
-      - .env.prod
+      - .env.production
     ports:
       - "5050:5000"
     depends_on:
@@ -11,7 +11,7 @@ services:
   seed:
     image: cartierkuti/backend-api:prod
     env_file:
-      - .env.prod
+      - .env.production
     entrypoint: ["npm", "run", "seed:prod"]
     depends_on:
       - api
@@ -24,3 +24,5 @@ services:
 
 volumes:
   mongo-data:
+
+

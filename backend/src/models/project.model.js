@@ -10,7 +10,7 @@ const reviewSchema = new mongoose.Schema({
   },
   comment: {
     type: String,
-    default: '',      // allow anonymous / empty comments
+    default: '',
   },
   date: {
     type: Date,
