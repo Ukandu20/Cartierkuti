@@ -30,7 +30,8 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
 // ⬇️  react-query for caching / retries
-import axios from 'axios'
+import apiClient from '@/utils/axiosConfig'
+
 
 
 
@@ -61,7 +62,7 @@ export default function Carousel() {
   const [activeIdx, setActiveIdx] = React.useState(0)
 
   React.useEffect(() => {
-    axios.get('/api/projects')
+    apiClient.get('/api/projects')
         .then(r => setProjects(r.data))
         .catch(console.error)
         .finally(() => setLoading(false))

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import apiClient from 'axios'
+import apiClient from '@/utils/axiosConfig'
+
 import {
   Box,
   Heading,

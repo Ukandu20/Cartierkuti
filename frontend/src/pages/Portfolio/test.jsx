@@ -18,7 +18,8 @@ import {
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Helmet } from 'react-helmet'
-import axios from 'axios'
+import apiClient from '@/utils/axiosConfig'
+
 import { useColorMode } from '../../components/Theme/color-mode'
 import classes from './Portfolio.module.css'
 
@@ -40,7 +41,7 @@ export default function Portfolio() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await axios.get('/api/projects')
+      const { data } = await apiClient.get('/api/projects')
       setProjects(data)
     } catch (err) {
       setError(err)

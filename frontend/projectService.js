@@ -1,11 +1,11 @@
-import axios from 'axios';
+import apiClient from '@/utils/axiosConfig'
 
 export const getAll = async () => {
-    const { data } = await axios.get('/api/projects/');
+    const { data } = await apiClient.get('/api/projects/');
     return data;
 };
 
 export const getById = async projectId => {
-    const { data } = await axios.get('/api/projects/' + projectId);
+    const { data } = await apiClient.get('/api/projects/' + projectId);
     return data;
 };

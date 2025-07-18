@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import apiClient from 'axios'
+import apiClient from '@/utils/axiosConfig'
+import { niceDate } from '@/utils/formatDate'
 import {
   Box,
   Heading,
@@ -205,12 +206,11 @@ export default function AdminDashboard() {
         tags: formData.tags.split(',').map(s => s.trim()),
         date: new Date(formData.date),
       }
-      const headers = { Authorization: `Bearer ${import.meta.env.VITE_ADMIN_SECRET}` }
       if (editMode) {
-        await apiClient.put(`/api/projects/${current._id}`, payload, { headers })
+        await apiClient.put(`/api/projects/${current._id}`, payload)
         toaster.create({ title: 'Project updated', type: 'success', closable: true })
       } else {
-        await apiClient.post('/api/projects', payload, { headers })
+        await apiClient.post('/api/projects', payload)
         toaster.create({ title: 'Project created', type: 'success', closable: true })
       }
       fetchProjects()
@@ -226,9 +226,7 @@ export default function AdminDashboard() {
   }
   const doDelete = async () => {
     try {
-      await apiClient.delete(`/api/projects/${toDelete._id}`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_AUTH_TOKEN}` }
-      })
+      await apiClient.delete(`/api/projects/${toDelete._id}`)
       toaster.create({ title: 'Project deleted', type: 'success', closable: true })
       fetchProjects()
     } catch {
@@ -319,6 +317,7 @@ export default function AdminDashboard() {
                   sessionStorage.setItem('loginTime', `${Date.now()}`)
                   setIsAuth(true)
                   fetchProjects()
+                  sessionStorage.setItem('adminSecret', import.meta.env.VITE_ADMIN_SECRET)
                 } else {
                   toaster.create({ title: 'Wrong password', type: 'error', closable: true })
                 }
@@ -357,8 +356,11 @@ export default function AdminDashboard() {
                     <Box key={p._id} p={4} bg={bg} borderRadius="md">
                       <Flex justify="space-between" mb={2}>
                         <Text fontWeight="medium">{p.title}</Text>
+                        <Text>{p.status}</Text>
+                        <Text>Created: {niceDate(p.createdDate)}</Text>
+                        <Text>Last updated: {niceDate(p.lastUpdatedDate)}</Text>
                         <Text fontSize="xs" color="gray.500">
-                          {new Date(p.date).toLocaleString(undefined,{
+                          {new Date(p.createdDate).toLocaleString(undefined,{
                             month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'
                           })}
                         </Text>
@@ -597,7 +599,13 @@ export default function AdminDashboard() {
                           <Checkbox.Root
                             name="featured"
                             checked={formData.featured}
-                            onCheckedChange={val => setFormData(fd => ({ ...fd, featured: val }))}
+                            onCheckedChange={val => {
+                              // Radix/Chakra sometimes gives you { checked: true }
+                              const bool = typeof val === 'boolean'
+                                ? val
+                                : Boolean(val?.checked);
+                              setFormData(fd => ({ ...fd, featured: bool }));
+                            }}
                           >
                             <Checkbox.HiddenInput />
                             <Checkbox.Control />

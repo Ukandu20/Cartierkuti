@@ -4,7 +4,7 @@ import App from './App'
 import { Provider } from './components/Theme/provider'  
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
-import './axiosConfig'
+import './utils/axiosConfig'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

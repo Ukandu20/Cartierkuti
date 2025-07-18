@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import axios from 'axios'
+import apiClient from '@/utils/axiosConfig'
 import {
   Input,
   Portal,
@@ -69,7 +69,7 @@ export default function Portfolio() {
     (async () => {
       setLoading(true)
       try {
-        const { data } = await axios.get('/api/projects')
+        const { data } = await apiClient.get('/api/projects')
         setProjects(Array.isArray(data) ? data : [])
       } catch {
         setError('Error fetching projects.')
@@ -88,7 +88,7 @@ export default function Portfolio() {
 
   const hitAndOpen = (id, url, e) => {
     e?.preventDefault?.()
-    axios.patch(`/api/projects/${id}/hit`)
+    apiClient.patch(`/api/projects/${id}/hit`)
     window.open(url, '_blank')
   }
 

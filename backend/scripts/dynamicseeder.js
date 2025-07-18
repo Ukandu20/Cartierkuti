@@ -1,64 +1,64 @@
 // scripts/dynamicseeder.js
-import dotenv from 'dotenv';
-dotenv.config(); // loads MONGODB_URI & NODE_ENV
+import 'dotenv/config';   // loads MONGODB_URI & NODE_ENV
+import mongoose from 'mongoose';
+import { faker } from '@faker-js/faker';
+import Project from '../src/models/project.model.js';
 
-// NEVER seed prod
 if (process.env.NODE_ENV === 'production') {
   console.warn('⚠️  Dynamic seeder disabled in production');
   process.exit(0);
 }
 
-import mongoose from 'mongoose';
-import { faker } from '@faker-js/faker';
-import Project from '../src/models/project.model.js';
-
-// flag to force wipe
-const shouldWipe = process.argv.includes('--wipe');
-
-function makeRatings() {
-  const list = Array.from(
-    { length: faker.number.int({ min: 4, max: 10 }) }
-  ).map(() => ({
-    stars:   faker.number.int({ min: 1, max: 5 }),
-    comment: faker.lorem.sentence(),
-    date:    faker.date.recent(90),
-  }));
-  const avgStars = list.reduce((sum, r) => sum + r.stars, 0) / list.length;
-  return { list, avgStars };
+function makeReviews() {
+  return Array.from({ length: faker.number.int({ min: 4, max: 10 }) })
+    .map(() => ({
+      stars:   faker.number.int({ min: 1, max: 5 }),
+      comment: faker.lorem.sentence(),
+      date:    faker.date.recent(90),
+    }));
 }
 
 function generateFakeProjects(count = 50) {
   return Array.from({ length: count }).map(() => {
-    const { list: ratings, avgStars } = makeRatings();
+    // Pick a createdDate up to a year ago...
+    const createdDate     = faker.date.past({ years: 1 });
+    // ...and an updated date between createdDate and now
+    const lastUpdatedDate = faker.date.between({
+      from: createdDate,
+      to:   new Date()
+    });
+
     return {
-      category: faker.helpers.arrayElement([
+      category:     faker.helpers.arrayElement([
         'Web Development',
         'Data Analysis',
         'Machine Learning/AI',
         'Data Science',
         'Other',
       ]),
-      title:         faker.commerce.productName(),
-      description:   faker.lorem.paragraph(),
-      languages:     faker.helpers.arrayElements(
+      title:        faker.commerce.productName(),
+      description:  faker.lorem.paragraph(),
+      languages:    faker.helpers.arrayElements(
                        ['React','Node.js','Express','MongoDB','Python','Java','Flutter','Next.js','TypeScript'],
                        faker.number.int({ min: 2, max: 4 })
                      ),
-      status:        faker.helpers.arrayElement(['In Progress','Completed']),
-      tags:          faker.helpers.arrayElements(
+      status:       faker.helpers.arrayElement(['In Progress','Completed']),
+      tags:         faker.helpers.arrayElements(
                        ['Frontend','Backend','Fullstack','Data Analysis','Design'],
                        faker.number.int({ min: 1, max: 3 })
                      ),
-      metadata:      faker.internet.url(),
-      externalLink:  faker.internet.url(),
-      githubLink:    faker.internet.url(),
-      liveDemoLink:  faker.internet.url(),
-      imageUrl:      faker.image.urlLoremFlickr({ category: 'technology' }),
-      date:          faker.date.past(),
-      featured:      faker.datatype.boolean(),
-      views:         faker.number.int({ min: 25, max: 500 }),
-      ratings,
-      avgStars,
+      metadata:     faker.internet.url(),
+      externalLink: faker.internet.url(),
+      githubLink:   faker.internet.url(),
+      liveDemoLink: faker.internet.url(),
+      imageUrl:     faker.image.urlLoremFlickr({ category: 'technology' }),
+      featured:     faker.datatype.boolean(),
+      views:        faker.number.int({ min: 25, max: 500 }),
+      reviews:      makeReviews(),
+
+      // explicit timestamps for Mongoose
+      createdDate,
+      lastUpdatedDate,
     };
   });
 }
@@ -68,27 +68,20 @@ async function seed() {
     serverApi: { version: '1', strict: true, deprecationErrors: true },
   });
 
-  if (shouldWipe) {
-    console.log('🧹  Wiping all existing projects…');
-    await Project.deleteMany({});
-  }
+  console.log('🧹  Clearing existing…');
+  await Project.deleteMany();
 
-  const fakeProjects = generateFakeProjects(50);
-
-  // Bulk upsert: only insert if title missing
-  const ops = fakeProjects.map(p => ({
-    updateOne: {
-      filter: { title: p.title },
-      update: { $setOnInsert: p },
-      upsert: true,
-    }
-  }));
+  const docs = generateFakeProjects(50);
 
   try {
-    const res = await Project.bulkWrite(ops, { ordered: false });
-    console.log(`✅ Upserted ${res.upsertedCount} new projects.`);
+    const inserted = await Project.insertMany(docs, { ordered: false });
+    console.log(`✅ Inserted ${inserted.length}/${docs.length} projects`);
   } catch (err) {
-    console.warn('⚠️ Some inserts failed but were skipped:', err.writeErrors?.length, 'errors');
+    if (err.name === 'BulkWriteError') {
+      console.warn(`⚠️ Skipped ${err.writeErrors.length} bad docs`);
+    } else {
+      console.error(err);
+    }
   }
 
   process.exit(0);

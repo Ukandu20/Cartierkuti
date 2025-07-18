@@ -22,7 +22,7 @@ const corsOptions = {
   },
   credentials: true,  // Access-Control-Allow-Credentials
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
+  allowedHeaders: ['Content-Type','Authorization', 'x-admin-secret'],
 };
 
 export default cors(corsOptions);
