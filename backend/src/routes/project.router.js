@@ -3,8 +3,10 @@ import { Router } from "express";
 import path from "path";
 import multer from "multer";
 import Project from "../models/project.model.js";
+import ArchivedProject from '../models/archive.model.js';
 import asyncHandler from "express-async-handler";
 import rateLimit from "express-rate-limit";
+import checkAdminSecret from "../middleware/auth.js";
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 });
 const projectRouter = Router();
@@ -25,6 +27,7 @@ const upload = multer({ storage });
 /* ──────────── UPLOAD PREVIEW IMAGE ────────────── */
 projectRouter.post(
   "/upload",
+  checkAdminSecret,
   upload.single("image"),
   asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -72,6 +75,7 @@ projectRouter.patch(
 /* CREATE */
 projectRouter.post(
   "/",
+  checkAdminSecret,
   asyncHandler(async (req, res) => {
     const project = await Project.create(req.body);
     res.json(project);
@@ -81,6 +85,7 @@ projectRouter.post(
 /* UPDATE */
 projectRouter.put(
   "/:id",
+  checkAdminSecret,
   asyncHandler(async (req, res) => {
     const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -93,11 +98,39 @@ projectRouter.put(
 
 /* DELETE */
 projectRouter.delete(
-  "/:id",
+  '/:id',
+  checkAdminSecret,
   asyncHandler(async (req, res) => {
-    const deleted = await Project.findByIdAndDelete(req.params.id);
-    if (!deleted)
-      return res.status(404).json({ message: "Project not found" });
+    // 1️⃣ load the project
+    const project = await Project.findById(req.params.id).lean();
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // 2️⃣ pull out _id so Mongo will generate a new one in archive
+    const { _id: originalId, ...rest } = project;
+
+    // 3️⃣ attempt to archive
+    try {
+      await ArchivedProject.create({
+        originalId,
+        ...rest,
+        deletedAt: new Date(),
+        deletedBy: req.user?.id || 'system',
+      });
+    } catch (err) {
+      console.error('❌ Failed to archive project:', err);
+      return res.status(500).json({ message: 'Could not archive project' });
+    }
+
+    // 4️⃣ finally remove it from the live collection
+    try {
+      await Project.findByIdAndDelete(originalId);
+    } catch (err) {
+      console.error('❌ Failed to delete project after archiving:', err);
+      return res.status(500).json({ message: 'Could not delete project' });
+    }
+
     res.status(204).send();
   })
 );
@@ -113,6 +146,28 @@ projectRouter.get(
     res.json(project.ratings);
   })
 );
+
+
+/* Archives */
+projectRouter.get(
+  '/archived',
+  checkAdminSecret,
+  asyncHandler(async (req, res) => {
+    const { projectId, limit = 50, page = 1 } = req.query
+    const filter = {}
+    if (projectId) filter.originalId = projectId
+
+    const skip = (Math.max(page, 1) - 1) * limit
+    const docs = await ArchivedProject.find(filter)
+      .sort({ deletedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit, 10))
+      .lean()
+
+    const total = await ArchivedProject.countDocuments(filter)
+    res.json({ archived: docs, total, page: +page, limit: +limit })
+  })
+)
 
 /* POST new review & recalc avg */
 projectRouter.post(

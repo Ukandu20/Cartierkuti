@@ -23,9 +23,11 @@ import {
   Float,
   useFileUploadContext,
   Checkbox,
+  Select,
 } from '@chakra-ui/react'
 
 import { useColorMode } from '../../components/Theme/color-mode'
+import PaginationControls from '@/components/pagination/pagination'
 import { Toaster, toaster } from '@/components/ui/toaster'
 import {
   HiFolderOpen,
@@ -37,6 +39,7 @@ import {
   HiTrash,
 } from 'react-icons/hi'
 import { RiImageAddLine } from 'react-icons/ri'
+import ActivityCard from './activity'
 
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -44,7 +47,7 @@ import { RiImageAddLine } from 'react-icons/ri'
 // ────────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => {
   const { colorMode } = useColorMode()
-  const accent  = colorMode === 'light' ? 'teal.500'     : 'teal.300'
+  const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
   const bg      = colorMode === 'light' ? 'gray.100'      : 'whiteAlpha.100'
   const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
 
@@ -76,13 +79,28 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => 
 // ────────────────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const { colorMode } = useColorMode()
-  const bg = colorMode === 'light' ? 'gray.100' : 'whiteAlpha.100'
+  const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
+  const bg      = colorMode === 'light' ? 'gray.100'      : 'whiteAlpha.100'
+  const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
 
   const [isAuth, setIsAuth] = useState(false)
   const [password, setPassword] = useState('')
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+   // Activity log state
+  const [activities, setActivities]       = useState([])
+  const [totalActivities, setTotalActivities] = useState(0)
+
+  const [filterType, setFilterType]       = useState('')
+  const [filterStart, setFilterStart]     = useState('') // YYYY-MM-DD
+  const [filterEnd, setFilterEnd]         = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 5
+
+  const pageCount = Math.ceil(totalActivities / PAGE_SIZE)
+
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
   const [formData, setFormData] = useState({
@@ -105,7 +123,22 @@ export default function AdminDashboard() {
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
 
-  // fetch
+  // ---- Fetch Activities ----
+  const fetchActivities = async () => {
+    const params = {
+      page,
+      limit: PAGE_SIZE,
+      ...(filterType  && { type: filterType }),
+      ...(filterStart && { startDate: filterStart }),
+      ...(filterEnd   && { endDate: filterEnd }),
+    }
+    const { data } = await apiClient.get('/api/activities', { params })
+    setActivities(data.activities)
+    setTotalActivities(data.total)
+  }
+  
+  
+  // fetch projects
   const fetchProjects = async () => {
     setLoading(true)
     try {
@@ -118,37 +151,62 @@ export default function AdminDashboard() {
     }
   }
 
-  useEffect(() => {
-    const auth = sessionStorage.getItem('isAdminAuthenticated')
-    const time = sessionStorage.getItem('loginTime')
-    if (auth && time && Date.now() - +time < 30 * 60_000) {
+// ---- initial load & auth check (run once) ----
+   useEffect(() => {
+     const auth = sessionStorage.getItem('isAdminAuthenticated')
+     const time = sessionStorage.getItem('loginTime')
+     const secret = sessionStorage.getItem('adminSecret')
+     const cached = localStorage.getItem('activities')
+     if (cached) {
+       try { setActivities(JSON.parse(cached)) } catch {}
+     }
+
+     const restore = async () => {
+       if (auth && time && secret && Date.now() - +time < 30 * 60_000) {
+         try {
+           await apiClient.get('/api/admin/verify', {
+             headers: { 'x-admin-secret': secret },
+           })
+           setIsAuth(true)
+           fetchProjects()
+         } catch {
+           sessionStorage.clear()
+         }
+       } else {
+         sessionStorage.clear()
+       }
+     }
+
+     restore()
+   }, [])
+ 
+   // ---- whenever we’re authenticated, or page/filters change, re-fetch activities ----
+   useEffect(() => {
+     if (!isAuth) return
+     // whenever isAuth first becomes true, or page/type/date range change:
+     fetchActivities()
+   }, [isAuth, page, filterType, filterStart, filterEnd])
+
+  const handleLogin = async () => {
+    if (!password.trim()) {
+      toaster.create({ title: 'Password required', type: 'error', closable: true })
+      return
+    }
+    try {
+      await apiClient.get('/api/admin/verify', {
+        headers: { 'x-admin-secret': password },
+      })
+      sessionStorage.setItem('isAdminAuthenticated', 'true')
+      sessionStorage.setItem('loginTime', `${Date.now()}`)
+      sessionStorage.setItem('adminSecret', password)
       setIsAuth(true)
       fetchProjects()
-    } else {
-      sessionStorage.clear()
+      setPassword('')
+    } catch (err) {
+      console.error(err)
+      toaster.create({ title: 'Wrong password', type: 'error', closable: true })
     }
-  }, [])
-
-  // session timeout
-  useEffect(() => {
-    if (!isAuth) return
-    let tid
-    const reset = () => {
-      clearTimeout(tid)
-      tid = setTimeout(() => {
-        sessionStorage.clear()
-        setIsAuth(false)
-      }, 15 * 60_000)
-    }
-    window.addEventListener('mousemove', reset)
-    window.addEventListener('keydown', reset)
-    reset()
-    return () => {
-      clearTimeout(tid)
-      window.removeEventListener('mousemove', reset)
-      window.removeEventListener('keydown', reset)
-    }
-  }, [isAuth])
+  }
 
   const onChange = e => {
     const { name, value, type, checked } = e.target
@@ -198,43 +256,93 @@ export default function AdminDashboard() {
     setCreateOpen(true)
   }
 
+  // ---- CRUD handlers with Activity POST ----
   const onSubmit = async () => {
+    // required checks omitted
     try {
-      const payload = {
-        ...formData,
-        languages: formData.languages.split(',').map(s => s.trim()),
-        tags: formData.tags.split(',').map(s => s.trim()),
-        date: new Date(formData.date),
-      }
-      if (editMode) {
-        await apiClient.put(`/api/projects/${current._id}`, payload)
-        toaster.create({ title: 'Project updated', type: 'success', closable: true })
+        const payload = {
+          ...formData,
+          languages: formData.languages.split(',').map(s => s.trim()),
+          tags:      formData.tags.split(',').map(s => s.trim()),
+          date:      new Date(formData.date),
+        };
+
+        if (editMode) {
+        // 1) Update project
+        const { data: updated } = await apiClient.put(
+          `/api/projects/${current._id}`,
+          payload
+        );
+        toaster.create({ title: 'Project updated', type: 'success', closable: true });
+
+        // 2) Compute a simple list of changed fields
+        const changed = Object.keys(payload).filter(key => {
+          // JSON.stringify for arrays/objects
+          return JSON.stringify(payload[key]) !== JSON.stringify(current[key]);
+        });
+
+        // 3) Post an “Updated” activity
+        await apiClient.post('/api/activities', {
+          projectId: updated._id,
+          type:      'Updated',
+          title:     updated.title,
+          detail:    changed.length
+            ? `Changed: ${changed.join(', ')}`
+            : '',
+        });
+
       } else {
-        await apiClient.post('/api/projects', payload)
-        toaster.create({ title: 'Project created', type: 'success', closable: true })
+        // 1) Create project
+        const { data: created } = await apiClient.post('/api/projects', payload);
+        toaster.create({ title: 'Project created', type: 'success', closable: true });
+
+        // 2) Log the creation
+        await apiClient.post('/api/activities', {
+          projectId: created._id,
+          type:      'Created',
+          title:     created.title,
+          detail:    `Added a new project ${created.title}, Category: ${created.category}; Languages: ${created.languages.join(', ')}; Status: ${created.status}`,
+        });
       }
-      fetchProjects()
-      setCreateOpen(false)
-    } catch {
-      toaster.create({ title: 'Error saving project', type: 'error', closable: true })
+
+      // Finally, refresh everything
+      await fetchActivities();
+      await fetchProjects();
+      setCreateOpen(false);
+
+    } catch (err) {
+      console.error(err);
+      toaster.create({ title: 'Error saving project', type: 'error', closable: true });
     }
-  }
+  };
 
   const confirmDelete = proj => {
     setToDelete(proj)
     setDeleteOpen(true)
   }
+  
   const doDelete = async () => {
     try {
       await apiClient.delete(`/api/projects/${toDelete._id}`)
       toaster.create({ title: 'Project deleted', type: 'success', closable: true })
+
+      // record deletion
+      await apiClient.post('/api/activities', {
+        projectId: toDelete._id,
+        type: 'Deleted',
+        title: toDelete.title,
+      })
+
+      fetchActivities()
       fetchProjects()
-    } catch {
+    } catch (err) {
+      console.error(err)
       toaster.create({ title: 'Error deleting', type: 'error', closable: true })
     } finally {
       setDeleteOpen(false)
     }
   }
+
 
   // FileUploadList remains same
   const FileUploadList = () => {
@@ -283,6 +391,7 @@ export default function AdminDashboard() {
     total:    projects.length,
   }
 
+
   // ──────────────────────────────────────────────────────────────────────────────
   // LOGIN SCREEN with Fieldset
   // ──────────────────────────────────────────────────────────────────────────────
@@ -311,17 +420,9 @@ export default function AdminDashboard() {
                   />
                 </Field.Root>
               </Fieldset.Content>
-              <Button mt={4} w="full" colorScheme="teal" onClick={() => {
-                if (password === import.meta.env.VITE_ADMIN_SECRET) {
-                  sessionStorage.setItem('isAdminAuthenticated', 'true')
-                  sessionStorage.setItem('loginTime', `${Date.now()}`)
-                  setIsAuth(true)
-                  fetchProjects()
-                  sessionStorage.setItem('adminSecret', import.meta.env.VITE_ADMIN_SECRET)
-                } else {
-                  toaster.create({ title: 'Wrong password', type: 'error', closable: true })
-                }
-              }}>Login</Button>
+              <Button mt={4} w="full" colorScheme="teal" onClick={handleLogin}>
+                Login
+              </Button>
             </Fieldset.Root>
           </Box>
         </Flex>
@@ -348,30 +449,84 @@ export default function AdminDashboard() {
         {/* Recent & Insights */}
         <SimpleGrid columns={{ base:1, md:2 }} spaceX={6} spaceY={4} mb={8}>
           {/* Recent Activity */}
-          <Box>
-            <Heading size="md" mb={4}>Recent Activity</Heading>
-            <VStack spaceY={4} align="stretch">
-              {recent.length
-                ? recent.map(p=>(
-                    <Box key={p._id} p={4} bg={bg} borderRadius="md">
-                      <Flex justify="space-between" mb={2}>
-                        <Text fontWeight="medium">{p.title}</Text>
-                        <Text>{p.status}</Text>
-                        <Text>Created: {niceDate(p.createdDate)}</Text>
-                        <Text>Last updated: {niceDate(p.lastUpdatedDate)}</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          {new Date(p.createdDate).toLocaleString(undefined,{
-                            month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'
-                          })}
-                        </Text>
-                      </Flex>
-                      <Text fontSize="xs" color="gray.400">{p.description||'No details'}</Text>
-                    </Box>
-                  ))
-                : <Text color="gray.500">No recent activity.</Text>
-              }
-            </VStack>
+          <Box mb={8}>
+            <Heading size="md" mb={4}>Activity Log</Heading>
+              <Flex mb={4} py={3} gap={4} align="center" wrap="wrap">
+                <SimpleGrid columns={{base:1, md:2, lg: 5}} spaceX={3}>
+                  <NativeSelect.Root >
+                  <NativeSelect.Field
+                    placeholder="All"
+                    value={filterType}
+                    onChange={e => setFilterType(e.target.value)}
+                    bg={bg} px={2} borderRadius={4} 
+                    >
+                      {[
+                        'Created',
+                        'Updated',
+                        'Deleted',
+                      ].map(item => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                  </NativeSelect.Field>
+                  <NativeSelect.Indicator/>
+                </NativeSelect.Root>
+                    <Input
+                      type="date"
+                      value={filterStart}
+                      onChange={e => setFilterStart(e.target.value)} bg={bg} px={3} borderRadius={4} height={10}
+                    />
+                    <Input
+                      type="date"
+                      value={filterEnd}
+                      onChange={e => setFilterEnd(e.target.value)} bg={bg} px={3} borderRadius={4} height={10}
+                    />
+                    <Button size="sm" onClick={() => { setPage(1); fetchActivities() }} bg={accent} px={2} borderRadius={4}>
+                    Apply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="solid"
+                      bg={accent} px={2} borderRadius={4}
+                      onClick={() => {
+                        setFilterType(''); setFilterStart(''); setFilterEnd('');
+                        setPage(1); fetchActivities();
+                      }}
+                    >
+                      Clear
+                    </Button>
+                </SimpleGrid>
+              </Flex>
+            <SimpleGrid columns={1} spaceY={2}>
+              {activities.length > 0 ? (
+                activities.map(act => (
+                  <ActivityCard
+                    key={act._id || act.id}
+                    type={act.type}
+                    title={act.title}
+                    timestamp={niceDate(act.timestamp || act.createdAt)}
+                    detail={act.detail}
+                  />
+                ))
+              ) : (
+                <Text color="gray.500">No activity yet.</Text>
+              )}
+            </SimpleGrid>
+
+            {pageCount > 1 && (
+              <Flex justify="center" mt={4}>
+                <PaginationControls
+                  count={totalActivities}
+                  pageSize={PAGE_SIZE}
+                  page={page}
+                  onPageChange={setPage}
+                />
+              </Flex>
+            )}
           </Box>
+
+
 
           {/* Quick Insights */}
           <Box>
@@ -629,6 +784,37 @@ export default function AdminDashboard() {
                 <Dialog.CloseTrigger asChild>
                   <CloseButton position="absolute" top="4" right="4"/>
                 </Dialog.CloseTrigger>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog.Root
+          open={isDeleteOpen}
+          onOpenChange={setDeleteOpen}
+          placement="center"
+          role="alertdialog"
+        >
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content>
+                <Dialog.Header>
+                  <Dialog.Title>Delete Project?</Dialog.Title>
+                </Dialog.Header>
+                <Dialog.Body>
+                  Are you sure you want to delete “{toDelete?.title}”?
+                </Dialog.Body>
+                <Dialog.Footer>
+                  <Dialog.CloseTrigger asChild>
+                    <Button ref={cancelRef}>Cancel</Button>
+                  </Dialog.CloseTrigger>
+                  <Dialog.ActionTrigger asChild>
+                    <Button colorScheme="red" onClick={doDelete}>Delete</Button>
+                  </Dialog.ActionTrigger>
+                </Dialog.Footer>
               </Dialog.Content>
             </Dialog.Positioner>
           </Portal>

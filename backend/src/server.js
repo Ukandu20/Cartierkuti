@@ -25,6 +25,8 @@ import logger from './logger.js';
 import { connectDB } from './config/db.js';
 import projectRouter from './routes/project.router.js';
 import { errorHandler } from './middleware/errorhandler.js';
+import activitiesRouter from './routes/activities.router.js';
+import checkAdminSecret from './middleware/auth.js';
 
 const app = express();
 
@@ -53,6 +55,11 @@ app.get('/health', (_req, res) => {
   res.sendStatus(200);
 });
 
+// ──────────── Admin auth check ───────────────────────────
+app.get('/api/admin/verify', checkAdminSecret, (_req, res) => {
+  res.sendStatus(204);
+});
+
 // ──────────── Serve uploaded preview images ────────────────
 app.use(
   '/uploads',
@@ -61,6 +68,11 @@ app.use(
 
 // ──────────── Main project routes ─────────────────────────
 app.use('/api/projects', projectRouter);
+
+
+// ──────────── Main activities tracking routes ─────────────────────────
+app.use('/api/activities', activitiesRouter);
+
 
 // ──────────── Centralized error handler ───────────────────
 app.use(errorHandler);
