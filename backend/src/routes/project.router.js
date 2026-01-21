@@ -48,6 +48,27 @@ projectRouter.get(
   })
 );
 
+/* Archives */
+projectRouter.get(
+  '/archived',
+  checkAdminSecret,
+  asyncHandler(async (req, res) => {
+    const { projectId, limit = 50, page = 1 } = req.query
+    const filter = {}
+    if (projectId) filter.originalId = projectId
+
+    const skip = (Math.max(page, 1) - 1) * limit
+    const docs = await ArchivedProject.find(filter)
+      .sort({ deletedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit, 10))
+      .lean()
+
+    const total = await ArchivedProject.countDocuments(filter)
+    res.json({ archived: docs, total, page: +page, limit: +limit })
+  })
+)
+
 /* READ one */
 projectRouter.get(
   "/:id",
@@ -147,27 +168,6 @@ projectRouter.get(
   })
 );
 
-
-/* Archives */
-projectRouter.get(
-  '/archived',
-  checkAdminSecret,
-  asyncHandler(async (req, res) => {
-    const { projectId, limit = 50, page = 1 } = req.query
-    const filter = {}
-    if (projectId) filter.originalId = projectId
-
-    const skip = (Math.max(page, 1) - 1) * limit
-    const docs = await ArchivedProject.find(filter)
-      .sort({ deletedAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit, 10))
-      .lean()
-
-    const total = await ArchivedProject.countDocuments(filter)
-    res.json({ archived: docs, total, page: +page, limit: +limit })
-  })
-)
 
 /* POST new review & recalc avg */
 projectRouter.post(
