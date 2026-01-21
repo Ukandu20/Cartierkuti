@@ -30,7 +30,7 @@ const tokens = {
 
     /* hard-coded surfaces */
     background: {
-      light: { value: '#ffffff' },
+      light: { value: '#E4E4E4' },
       dark:  { value: '#1D242D' },
     },
 
