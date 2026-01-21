@@ -8,7 +8,7 @@ const allowedOrigins = raw
   .map(o => o.trim())
   .filter(o => o.length > 0)
   // if you want a default fallback when none is set:
-  .concat(['http://localhost:5173']);
+  .concat(['http://localhost:5173', 'http://127.0.0.1:5173']);
 
 // Build our CORS options
 const corsOptions = {
