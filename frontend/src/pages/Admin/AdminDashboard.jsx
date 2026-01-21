@@ -123,6 +123,13 @@ export default function AdminDashboard() {
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
 
+  const normalizeStatus = value => (value || '').toString().trim().toLowerCase()
+  const isInProgress = value => {
+    const normalized = normalizeStatus(value)
+    return normalized === 'in progress' || normalized === 'in-progress' || normalized === 'active'
+  }
+  const isCompleted = value => normalizeStatus(value) === 'completed'
+
   // ---- Fetch Activities ----
   const fetchActivities = async () => {
     const params = {
@@ -368,7 +375,7 @@ export default function AdminDashboard() {
 // ── KPIs & lists ─────────────────────────────────────────────────────────────
   const kpis = useMemo(() => [
     { label:'Total Projects',    value:projects.length,                                desc:'all projects', icon:HiFolderOpen, onClick:() => {} },
-    { label:'Active Projects',   value:projects.filter(p=>p.status==='active').length, desc:'in progress', icon:HiPlay,       onClick:() => {} },
+    { label:'Active Projects',   value:projects.filter(p=>isInProgress(p.status)).length, desc:'in progress', icon:HiPlay,       onClick:() => {} },
     { label:'Most Viewed',       value:projects.length?Math.max(...projects.map(p=>p.views||0)):0, desc:'peak views', icon:HiEye, onClick:() => {} },
     { label:'Featured Projects', value:projects.filter(p=>p.featured).length,         desc:'your best',    icon:HiStar,      onClick:() => {} },
   ], [projects])
@@ -386,8 +393,8 @@ export default function AdminDashboard() {
   )
 
   const counts = {
-    started:  projects.filter(p=>p.status==='active').length,
-    finished: projects.filter(p=>p.status==='completed').length,
+    started:  projects.filter(p=>isInProgress(p.status)).length,
+    finished: projects.filter(p=>isCompleted(p.status)).length,
     total:    projects.length,
   }
 
