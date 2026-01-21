@@ -1,9 +1,16 @@
 // scripts/dynamicseeder.js
-import 'dotenv/config'
+import path from 'path'
+import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import { faker } from '@faker-js/faker'
 import Project from '../src/models/project.model.js'
 import Activity from '../src/models/activity.model.js'
+
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? '.env.production'
+    : '.env.development'
+dotenv.config({ path: path.resolve(process.cwd(), envFile) })
 
 if (process.env.NODE_ENV === 'production') {
   console.warn('⚠️  Dynamic seeder disabled in production')
