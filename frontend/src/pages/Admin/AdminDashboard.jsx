@@ -74,6 +74,58 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => 
   )
 }
 
+const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => {
+  const { colorMode } = useColorMode()
+  const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
+  const bg      = colorMode === 'light' ? 'white'         : 'gray.900'
+  const border  = colorMode === 'light' ? 'gray.200'      : 'whiteAlpha.300'
+  const idleTxt = colorMode === 'light' ? 'gray.600'      : 'whiteAlpha.700'
+
+  return (
+    <Box
+      p={5}
+      bg={bg}
+      borderWidth="1px"
+      borderColor={border}
+      borderRadius="lg"
+      boxShadow="sm"
+      role="button"
+      _hover={{
+        borderColor: accent,
+        boxShadow: 'lg',
+        transform: 'translateY(-2px)',
+      }}
+      transition="all 0.15s ease"
+      onClick={!disabled ? onClick : undefined}
+      opacity={disabled ? 0.6 : 1}
+      cursor={disabled ? 'not-allowed' : 'pointer'}
+    >
+      <Flex align="center" justify="space-between">
+        <Box>
+          <Text fontSize="md" fontWeight="bold" mb={1}>{label}</Text>
+          <Text fontSize="sm" color={idleTxt}>{desc}</Text>
+        </Box>
+        <Box
+          display="grid"
+          placeItems="center"
+          boxSize="40px"
+          borderRadius="md"
+          bg={colorMode === 'light' ? 'gray.50' : 'whiteAlpha.100'}
+          borderWidth="1px"
+          borderColor={border}
+        >
+          <IconComp size="1.25rem" color={accent} />
+        </Box>
+      </Flex>
+      {value !== '' && value != null && (
+        <Text mt={3} fontSize="xs" color={idleTxt} letterSpacing="0.08em" textTransform="uppercase">
+          {value} total
+        </Text>
+      )}
+    </Box>
+  )
+}
+
 // ────────────────────────────────────────────────────────────────────────────────
 // Main AdminDashboard
 // ────────────────────────────────────────────────────────────────────────────────
@@ -82,6 +134,9 @@ export default function AdminDashboard() {
   const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
   const bg      = colorMode === 'light' ? 'gray.100'      : 'whiteAlpha.100'
   const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
+  const dialogBg = colorMode === 'light' ? 'white' : 'gray.900'
+  const dialogBorder = colorMode === 'light' ? 'gray.200' : 'whiteAlpha.300'
+  const closeHoverBg = colorMode === 'light' ? 'gray.100' : 'whiteAlpha.200'
 
   const [isAuth, setIsAuth] = useState(false)
   const [password, setPassword] = useState('')
@@ -120,6 +175,9 @@ export default function AdminDashboard() {
 
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [isDeleteOpen, setDeleteOpen] = useState(false)
+  const [isQuickEditOpen, setQuickEditOpen] = useState(false)
+  const [isQuickDeleteOpen, setQuickDeleteOpen] = useState(false)
+  const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -383,9 +441,9 @@ export default function AdminDashboard() {
 
   const quickActions = [
     { label:'Add Project',    value:'',              desc:'create new', icon:HiPlus,   onClick:onOpenCreate },
-    { label:'Edit Project',   value:projects.length, desc:'modify',     icon:HiPencil, onClick:()=>{} },
-    { label:'Delete Project', value:projects.length, desc:'remove',     icon:HiTrash,  onClick:()=>{} },
-    { label:'View Analytics', value:'',              desc:'charts',     icon:HiEye,    onClick:()=>{} },
+    { label:'Edit Project',   value:projects.length, desc:'modify',     icon:HiPencil, onClick:() => setQuickEditOpen(true) },
+    { label:'Delete Project', value:projects.length, desc:'remove',     icon:HiTrash,  onClick:() => setQuickDeleteOpen(true) },
+    { label:'View Analytics', value:'',              desc:'charts',     icon:HiEye,    onClick:() => setAnalyticsOpen(true) },
   ]
 
   const recent = useMemo(
@@ -398,6 +456,16 @@ export default function AdminDashboard() {
     finished: projects.filter(p=>isCompleted(p.status)).length,
     total:    projects.length,
   }
+
+  const analytics = useMemo(() => {
+    const totalViews = projects.reduce((sum, p) => sum + (p.views || 0), 0)
+    const avgViews = projects.length ? Math.round(totalViews / projects.length) : 0
+    const featured = projects.filter(p => p.featured).length
+    const topViewed = [...projects]
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 5)
+    return { totalViews, avgViews, featured, topViewed }
+  }, [projects])
 
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -552,7 +620,7 @@ export default function AdminDashboard() {
         {/* Quick Actions */}
         <SimpleGrid columns={{ base:1, md:2, lg:4 }} spaceX={6} spaceY={4} mb={8}>
           {quickActions.map(a => (
-            <StatCard key={a.label} {...a} />
+            <ActionCard key={a.label} {...a} disabled={!projects.length && a.label !== 'Add Project'} />
           ))}
         </SimpleGrid>
 
@@ -588,28 +656,299 @@ export default function AdminDashboard() {
 
         <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>New Project</Button>
 
-        <Dialog.Root placement="center" open={isCreateOpen} onOpenChange={setCreateOpen} scrollBehavior="inside" px={2}>
+        {/* Quick Edit Dialog */}
+        <Dialog.Root
+          placement="center"
+          open={isQuickEditOpen}
+          onOpenChange={details => setQuickEditOpen(details.open)}
+        >
           <Portal>
-            <Dialog.Backdrop />
+            <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
+            <Dialog.Positioner>
+              <Dialog.Content
+                w={{ base: '90vw', md: '600px' }}
+                maxH="80vh"
+                overflowY="auto"
+                bg={dialogBg}
+                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                p={{ base: 4, md: 6 }}
+                rounded="lg"
+                shadow="xl"
+                borderWidth="1px"
+                borderColor={dialogBorder}
+              >
+                <Dialog.Header
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={4}
+                  pb={3}
+                  borderBottomWidth="1px"
+                  borderColor={dialogBorder}
+                >
+                  <Dialog.Title fontSize="xl" fontWeight="bold">
+                    Choose a Project to Edit
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton
+                      size="sm"
+                      borderWidth="1px"
+                      borderColor={dialogBorder}
+                      _hover={{ bg: closeHoverBg }}
+                    />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+
+                <Dialog.Body px={0}>
+                  <Stack spaceY={3}>
+                    {projects.length ? (
+                      projects.map(p => (
+                        <Flex key={p._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
+                          <Box>
+                            <Text fontWeight="bold">{p.title}</Text>
+                            <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                          </Box>
+                          <Button size="sm" leftIcon={<HiPencil />} onClick={() => {
+                            onOpenEdit(p)
+                            setQuickEditOpen(false)
+                          }}>
+                            Edit
+                          </Button>
+                        </Flex>
+                      ))
+                    ) : (
+                      <Text color="gray.500">No projects available.</Text>
+                    )}
+                  </Stack>
+                </Dialog.Body>
+
+                <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+                  <Button variant="ghost" onClick={() => setQuickEditOpen(false)}>Close</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+
+        {/* Quick Delete Dialog */}
+        <Dialog.Root
+          placement="center"
+          open={isQuickDeleteOpen}
+          onOpenChange={details => setQuickDeleteOpen(details.open)}
+        >
+          <Portal>
+            <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
+            <Dialog.Positioner>
+              <Dialog.Content
+                w={{ base: '90vw', md: '600px' }}
+                maxH="80vh"
+                overflowY="auto"
+                bg={dialogBg}
+                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                p={{ base: 4, md: 6 }}
+                rounded="lg"
+                shadow="xl"
+                borderWidth="1px"
+                borderColor={dialogBorder}
+              >
+                <Dialog.Header
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={4}
+                  pb={3}
+                  borderBottomWidth="1px"
+                  borderColor={dialogBorder}
+                >
+                  <Dialog.Title fontSize="xl" fontWeight="bold">
+                    Choose a Project to Delete
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton
+                      size="sm"
+                      borderWidth="1px"
+                      borderColor={dialogBorder}
+                      _hover={{ bg: closeHoverBg }}
+                    />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+
+                <Dialog.Body px={0}>
+                  <Stack spaceY={3}>
+                    {projects.length ? (
+                      projects.map(p => (
+                        <Flex key={p._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
+                          <Box>
+                            <Text fontWeight="bold">{p.title}</Text>
+                            <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                          </Box>
+                          <Button
+                            size="sm"
+                            leftIcon={<HiTrash />}
+                            colorScheme="red"
+                            onClick={() => {
+                              confirmDelete(p)
+                              setQuickDeleteOpen(false)
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </Flex>
+                      ))
+                    ) : (
+                      <Text color="gray.500">No projects available.</Text>
+                    )}
+                  </Stack>
+                </Dialog.Body>
+
+                <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+                  <Button variant="ghost" onClick={() => setQuickDeleteOpen(false)}>Close</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+
+        {/* Analytics Dialog */}
+        <Dialog.Root
+          placement="center"
+          open={isAnalyticsOpen}
+          onOpenChange={details => setAnalyticsOpen(details.open)}
+        >
+          <Portal>
+            <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
+            <Dialog.Positioner>
+              <Dialog.Content
+                w={{ base: '90vw', md: '700px' }}
+                maxH="80vh"
+                overflowY="auto"
+                bg={dialogBg}
+                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                p={{ base: 4, md: 6 }}
+                rounded="lg"
+                shadow="xl"
+                borderWidth="1px"
+                borderColor={dialogBorder}
+              >
+                <Dialog.Header
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={4}
+                  pb={3}
+                  borderBottomWidth="1px"
+                  borderColor={dialogBorder}
+                >
+                  <Dialog.Title fontSize="xl" fontWeight="bold">
+                    Project Analytics
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton
+                      size="sm"
+                      borderWidth="1px"
+                      borderColor={dialogBorder}
+                      _hover={{ bg: closeHoverBg }}
+                    />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+
+                <Dialog.Body px={0}>
+                  {projects.length ? (
+                    <>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spaceX={4} spaceY={4} mb={6}>
+                        <Box p={4} bg={bg} borderRadius="md">
+                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                            Total Views
+                          </Text>
+                          <Text fontSize="2xl" fontWeight="bold">{analytics.totalViews}</Text>
+                        </Box>
+                        <Box p={4} bg={bg} borderRadius="md">
+                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                            Average Views
+                          </Text>
+                          <Text fontSize="2xl" fontWeight="bold">{analytics.avgViews}</Text>
+                        </Box>
+                        <Box p={4} bg={bg} borderRadius="md">
+                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                            Featured Projects
+                          </Text>
+                          <Text fontSize="2xl" fontWeight="bold">{analytics.featured}</Text>
+                        </Box>
+                        <Box p={4} bg={bg} borderRadius="md">
+                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                            Total Projects
+                          </Text>
+                          <Text fontSize="2xl" fontWeight="bold">{projects.length}</Text>
+                        </Box>
+                      </SimpleGrid>
+
+                      <Heading size="sm" mb={3}>Top Viewed Projects</Heading>
+                      <Stack spaceY={2}>
+                        {analytics.topViewed.map(p => (
+                          <Flex key={p._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
+                            <Box>
+                              <Text fontWeight="bold">{p.title}</Text>
+                              <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                            </Box>
+                            <Text fontWeight="bold" color={accent}>{p.views || 0}</Text>
+                          </Flex>
+                        ))}
+                      </Stack>
+                    </>
+                  ) : (
+                    <Text color="gray.500">No projects available.</Text>
+                  )}
+                </Dialog.Body>
+
+                <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+                  <Button variant="ghost" onClick={() => setAnalyticsOpen(false)}>Close</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+
+        <Dialog.Root
+          placement="center"
+          open={isCreateOpen}
+          onOpenChange={details => setCreateOpen(details.open)}
+          scrollBehavior="inside"
+          px={2}
+        >
+          <Portal>
+            <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
             <Dialog.Positioner>
               <Dialog.Content
                 w={{ base: '90vw', md: '600px' }}
                 maxH="85vh"
                 overflowY="auto"
-                bg={bg}
+                bg={dialogBg}
                 color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
                 p={{ base: 4, md: 6 }}
                 rounded="lg"
-                shadow="lg"
+                shadow="xl"
                 borderWidth="1px"
-                borderColor={colorMode === 'light' ? 'gray.200' : 'whiteAlpha.300'}
+                borderColor={dialogBorder}
               >
-                <Dialog.Header display="flex" justifyContent="space-between" mb={4}>
+                <Dialog.Header
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={4}
+                  pb={3}
+                  borderBottomWidth="1px"
+                  borderColor={dialogBorder}
+                >
                   <Dialog.Title fontSize="2xl" fontWeight="bold">
                     {editMode ? 'Edit Project' : 'New Project'}
                   </Dialog.Title>
                   <Dialog.CloseTrigger asChild>
-                    <CloseButton />
+                    <CloseButton
+                      size="sm"
+                      borderWidth="1px"
+                      borderColor={dialogBorder}
+                      _hover={{ bg: closeHoverBg }}
+                    />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
 
@@ -806,9 +1145,6 @@ export default function AdminDashboard() {
                   <Button onClick={() => setCreateOpen(false)} variant="ghost">Cancel</Button>
                 </Dialog.Footer>
 
-                <Dialog.CloseTrigger asChild>
-                  <CloseButton position="absolute" top="4" right="4"/>
-                </Dialog.CloseTrigger>
               </Dialog.Content>
             </Dialog.Positioner>
           </Portal>
@@ -818,12 +1154,12 @@ export default function AdminDashboard() {
         {/* Delete Confirmation Dialog */}
         <Dialog.Root
           open={isDeleteOpen}
-          onOpenChange={setDeleteOpen}
+          onOpenChange={details => setDeleteOpen(details.open)}
           placement="center"
           role="alertdialog"
         >
           <Portal>
-            <Dialog.Backdrop />
+            <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
             <Dialog.Positioner>
               <Dialog.Content>
                 <Dialog.Header>
