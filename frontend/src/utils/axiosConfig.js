@@ -16,20 +16,34 @@ const apiClient = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
-// 3. Only force JSON Content-Type on mutating methods
-apiClient.defaults.headers.post['Content-Type']   = 'application/json';
-apiClient.defaults.headers.put['Content-Type']    = 'application/json';
-apiClient.defaults.headers.patch['Content-Type']  = 'application/json';
-apiClient.defaults.headers.delete['Content-Type'] = 'application/json';
-
-// 4. Request interceptor: inject admin secret on writes
+// 3. Request interceptor: inject admin secret on writes
 apiClient.interceptors.request.use(
   config => {
     const secret = sessionStorage.getItem('adminSecret');
+    const method = config.method?.toLowerCase();
+    const needsAuth = ['post', 'put', 'patch', 'delete'].includes(method);
+    const isFormData =
+      typeof FormData !== 'undefined' && config.data instanceof FormData;
+    const headers = config.headers ?? {};
+
     // only attach the secret for methods that modify data
-    if (secret && ['post','put','patch','delete'].includes(config.method)) {
-      config.headers['x-admin-secret'] = secret;
+    if (secret && needsAuth) {
+      headers['x-admin-secret'] = secret;
     }
+    // ensure JSON content-type for non-FormData writes
+    if (needsAuth) {
+      if (isFormData) {
+        if (typeof headers.delete === 'function') {
+          headers.delete('Content-Type');
+        } else if (headers['Content-Type']) {
+          delete headers['Content-Type'];
+        }
+      } else if (!headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+    }
+
+    config.headers = headers;
     console.debug('[API Request]', config.method?.toUpperCase(), config.url, config);
     return config;
   },

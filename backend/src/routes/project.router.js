@@ -1,28 +1,18 @@
 // src/routes/project.router.js
 import { Router } from "express";
-import path from "path";
 import multer from "multer";
 import Project from "../models/project.model.js";
 import ArchivedProject from '../models/archive.model.js';
 import asyncHandler from "express-async-handler";
 import rateLimit from "express-rate-limit";
 import checkAdminSecret from "../middleware/auth.js";
+import cloudinary from "../config/cloudinary.js";
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 });
 const projectRouter = Router();
 
 /* ──────────── MULTER SETUP ───────────────────── */
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Uploads go to <project-root>/public/uploads
-    cb(null, path.join(process.cwd(), "public", "uploads"));
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}${ext}`);
-  },
-});
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 /* ──────────── UPLOAD PREVIEW IMAGE ────────────── */
 projectRouter.post(
@@ -33,8 +23,26 @@ projectRouter.post(
     if (!req.file) {
       return res.status(400).json({ message: "No file received" });
     }
-    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    res.json({ imageUrl });
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      return res.status(500).json({ message: "Cloudinary is not configured" });
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "cartierkuti", resource_type: "image" },
+        (error, uploadResult) => {
+          if (error) return reject(error);
+          return resolve(uploadResult);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    res.json({ imageUrl: result.secure_url });
   })
 );
 

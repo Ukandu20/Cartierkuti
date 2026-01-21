@@ -122,6 +122,7 @@ export default function AdminDashboard() {
   const [isDeleteOpen, setDeleteOpen] = useState(false)
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const normalizeStatus = value => (value || '').toString().trim().toLowerCase()
   const isInProgress = value => {
@@ -739,13 +740,30 @@ export default function AdminDashboard() {
                         <Field.Root>
                           <Field.Label>Preview Image</Field.Label>
                           <FileUpload.Root accept="image/*">
-                            <FileUpload.HiddenInput
+                          <FileUpload.HiddenInput
                               aria-label="Select preview image"
-                              onChange={e => {
+                              onChange={async e => {
                                 const file = e.target.files?.[0]
                                 if (!file) return
-                                const url = URL.createObjectURL(file)
-                                setFormData(fd => ({ ...fd, imageUrl: url }))
+                                setIsUploading(true)
+                                try {
+                                  const body = new FormData()
+                                  body.append('image', file)
+                                  const { data } = await apiClient.post('/api/projects/upload', body)
+                                  if (!data?.imageUrl) {
+                                    throw new Error('Missing imageUrl from upload')
+                                  }
+                                  setFormData(fd => ({ ...fd, imageUrl: data.imageUrl }))
+                                } catch (err) {
+                                  console.error(err)
+                                  toaster.create({
+                                    title: 'Image upload failed',
+                                    type: 'error',
+                                    closable: true,
+                                  })
+                                } finally {
+                                  setIsUploading(false)
+                                }
                               }}
                             />
                             <FileUpload.Trigger asChild>
@@ -781,7 +799,7 @@ export default function AdminDashboard() {
 
                 <Dialog.Footer display="flex" justifyContent="flex-end" mt={4} gap={3}>
                   <Dialog.ActionTrigger asChild>
-                    <Button onClick={onSubmit} variant="solid">
+                    <Button onClick={onSubmit} variant="solid" isDisabled={isUploading}>
                       {editMode ? 'Update' : 'Create'}
                     </Button>
                   </Dialog.ActionTrigger>
