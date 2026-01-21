@@ -155,6 +155,8 @@ export default function AdminDashboard() {
   const PAGE_SIZE = 5
 
   const pageCount = Math.ceil(totalActivities / PAGE_SIZE)
+  const [projectPage, setProjectPage] = useState(1)
+  const PROJECT_PAGE_SIZE = 8
 
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
@@ -252,6 +254,13 @@ export default function AdminDashboard() {
      // whenever isAuth first becomes true, or page/type/date range change:
      fetchActivities()
    }, [isAuth, page, filterType, filterStart, filterEnd])
+
+   useEffect(() => {
+     const maxPage = Math.max(1, Math.ceil(projects.length / PROJECT_PAGE_SIZE))
+     if (projectPage > maxPage) {
+       setProjectPage(maxPage)
+     }
+   }, [projects.length, projectPage, PROJECT_PAGE_SIZE])
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -467,6 +476,12 @@ export default function AdminDashboard() {
     return { totalViews, avgViews, featured, topViewed }
   }, [projects])
 
+  const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_PAGE_SIZE))
+  const paginatedProjects = projects.slice(
+    (projectPage - 1) * PROJECT_PAGE_SIZE,
+    projectPage * PROJECT_PAGE_SIZE
+  )
+
 
   // ──────────────────────────────────────────────────────────────────────────────
   // LOGIN SCREEN with Fieldset
@@ -522,58 +537,91 @@ export default function AdminDashboard() {
           ))}
         </SimpleGrid>
 
-        {/* Recent & Insights */}
-        <SimpleGrid columns={{ base:1, md:2 }} spaceX={6} spaceY={4} mb={8}>
-          {/* Recent Activity */}
-          <Box mb={8}>
-            <Heading size="md" mb={4}>Activity Log</Heading>
-              <Flex mb={4} py={3} gap={4} align="center" wrap="wrap">
-                <SimpleGrid columns={{base:1, md:2, lg: 5}} spaceX={3}>
-                  <NativeSelect.Root >
-                  <NativeSelect.Field
-                    placeholder="All"
-                    value={filterType}
-                    onChange={e => setFilterType(e.target.value)}
-                    bg={bg} px={2} borderRadius={4} 
-                    >
-                      {[
-                        'Created',
-                        'Updated',
-                        'Deleted',
-                      ].map(item => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator/>
-                </NativeSelect.Root>
-                    <Input
-                      type="date"
-                      value={filterStart}
-                      onChange={e => setFilterStart(e.target.value)} bg={bg} px={3} borderRadius={4} height={10}
-                    />
-                    <Input
-                      type="date"
-                      value={filterEnd}
-                      onChange={e => setFilterEnd(e.target.value)} bg={bg} px={3} borderRadius={4} height={10}
-                    />
-                    <Button size="sm" onClick={() => { setPage(1); fetchActivities() }} bg={accent} px={2} borderRadius={4}>
-                    Apply
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="solid"
-                      bg={accent} px={2} borderRadius={4}
-                      onClick={() => {
-                        setFilterType(''); setFilterStart(''); setFilterEnd('');
-                        setPage(1); fetchActivities();
-                      }}
-                    >
-                      Clear
-                    </Button>
-                </SimpleGrid>
-              </Flex>
+        {/* Activity, Insights, Actions */}
+        <SimpleGrid columns={{ base:1, lg:2 }} spaceX={6} spaceY={6} mb={8}>
+          {/* Activity Log */}
+          <Box
+            p={{ base: 4, md: 5 }}
+            bg={dialogBg}
+            borderWidth="1px"
+            borderColor={dialogBorder}
+            borderRadius="lg"
+            shadow="sm"
+          >
+            <Flex justify="space-between" align="center" mb={4}>
+              <Heading size="md">Activity Log</Heading>
+              <Text fontSize="xs" color="gray.500">{totalActivities} events</Text>
+            </Flex>
+            <Flex mb={4} py={2} gap={3} align="center" wrap="wrap">
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  placeholder="All"
+                  value={filterType}
+                  onChange={e => setFilterType(e.target.value)}
+                  bg={bg}
+                  px={2}
+                  borderRadius={4}
+                  height={10}
+                  minW={{ base: '100%', md: '160px' }}
+                >
+                  {[
+                    'Created',
+                    'Updated',
+                    'Deleted',
+                  ].map(item => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </NativeSelect.Field>
+                <NativeSelect.Indicator/>
+              </NativeSelect.Root>
+              <Input
+                type="date"
+                value={filterStart}
+                onChange={e => setFilterStart(e.target.value)}
+                bg={bg}
+                px={3}
+                borderRadius={4}
+                height={10}
+                minW={{ base: '100%', md: '170px' }}
+              />
+              <Input
+                type="date"
+                value={filterEnd}
+                onChange={e => setFilterEnd(e.target.value)}
+                bg={bg}
+                px={3}
+                borderRadius={4}
+                height={10}
+                minW={{ base: '100%', md: '170px' }}
+              />
+              <Stack direction="row" spaceX={3} w={{ base: '100%', md: 'auto' }}>
+                <Button
+                  size="sm"
+                  onClick={() => { setPage(1); fetchActivities() }}
+                  bg={accent}
+                  px={6}
+                  borderRadius={4}
+                >
+                  Apply
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderColor={accent}
+                  color={accent}
+                  px={6}
+                  borderRadius={4}
+                  onClick={() => {
+                    setFilterType(''); setFilterStart(''); setFilterEnd('');
+                    setPage(1); fetchActivities();
+                  }}
+                >
+                  Clear
+                </Button>
+              </Stack>
+            </Flex>
             <SimpleGrid columns={1} spaceY={2}>
               {activities.length > 0 ? (
                 activities.map(act => (
@@ -602,59 +650,101 @@ export default function AdminDashboard() {
             )}
           </Box>
 
-
-
-          {/* Quick Insights */}
-          <Box>
-            <Heading size="md" mb={4}>Quick Insights</Heading>
-            <Box p={4} bg={bg} borderRadius="md">
-              <Stack spaceX={3}>
+          {/* Insights + Actions */}
+          <Stack spaceY={6}>
+            <Box
+              p={{ base: 4, md: 5 }}
+              bg={dialogBg}
+              borderWidth="1px"
+              borderColor={dialogBorder}
+              borderRadius="lg"
+              shadow="sm"
+            >
+              <Heading size="md" mb={4}>Quick Insights</Heading>
+              <Stack spaceY={3}>
                 <Flex justify="space-between"><Text>Started</Text><Text fontWeight="bold">{counts.started}</Text></Flex>
                 <Flex justify="space-between"><Text>Finished</Text><Text fontWeight="bold">{counts.finished}</Text></Flex>
                 <Flex justify="space-between"><Text>Total</Text><Text fontWeight="bold">{counts.total}</Text></Flex>
               </Stack>
             </Box>
-          </Box>
-        </SimpleGrid>
 
-        {/* Quick Actions */}
-        <SimpleGrid columns={{ base:1, md:2, lg:4 }} spaceX={6} spaceY={4} mb={8}>
-          {quickActions.map(a => (
-            <ActionCard key={a.label} {...a} disabled={!projects.length && a.label !== 'Add Project'} />
-          ))}
+            <Box
+              p={{ base: 4, md: 5 }}
+              bg={dialogBg}
+              borderWidth="1px"
+              borderColor={dialogBorder}
+              borderRadius="lg"
+              shadow="sm"
+            >
+              <Heading size="md" mb={4}>Quick Actions</Heading>
+              <SimpleGrid columns={{ base:1, sm:2 }} spaceX={4} spaceY={4}>
+                {quickActions.map(a => (
+                  <ActionCard key={a.label} {...a} disabled={!projects.length && a.label !== 'Add Project'} />
+                ))}
+              </SimpleGrid>
+            </Box>
+          </Stack>
         </SimpleGrid>
 
         {/* Project Listing */}
-        <Box mb={6}>
-          <Flex justify="space-between" mb={4}>
-            <Heading size="lg">Existing Projects</Heading>
+        <Box
+          mb={6}
+          p={{ base: 4, md: 5 }}
+          bg={dialogBg}
+          borderWidth="1px"
+          borderColor={dialogBorder}
+          borderRadius="lg"
+          shadow="sm"
+        >
+          <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={3}>
+            <Box>
+              <Heading size="lg">Existing Projects</Heading>
+              <Text fontSize="sm" color="gray.500">
+                {projects.length} total · Page {projectPage} of {projectPageCount}
+              </Text>
+            </Box>
             <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>New Project</Button>
           </Flex>
           <Stack spaceY={3}>
-            {projects.map(p=>(
-              <Flex
-                key={p._id}
-                p={4}
-                bg={bg}
-                borderRadius="md"
-                justify="space-between"
-              >
-                <Box>
-                  <Text fontWeight="bold">{p.title}</Text>
-                  <Text fontSize="sm" color="gray.500">{p.category}</Text>
-                </Box>
-                <Stack direction="row" spaceX={2} spaceY={2}>
-                  <Button size="sm" leftIcon={<HiPencil />} onClick={()=>onOpenEdit(p)}>Edit</Button>
-                  <Button size="sm" leftIcon={<HiTrash />} colorScheme="red" onClick={()=>confirmDelete(p)}>Delete</Button>
-                </Stack>
-              </Flex>
-            ))}
+            {paginatedProjects.length ? (
+              paginatedProjects.map(p=>(
+                <Flex
+                  key={p._id}
+                  p={4}
+                  bg={bg}
+                  borderRadius="md"
+                  borderWidth="1px"
+                  borderColor={dialogBorder}
+                  justify="space-between"
+                  align="center"
+                  wrap="wrap"
+                  gap={3}
+                >
+                  <Box>
+                    <Text fontWeight="bold">{p.title}</Text>
+                    <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                  </Box>
+                  <Stack direction="row" spaceX={2} spaceY={2}>
+                    <Button size="sm" leftIcon={<HiPencil />} onClick={()=>onOpenEdit(p)}>Edit</Button>
+                    <Button size="sm" leftIcon={<HiTrash />} colorScheme="red" onClick={()=>confirmDelete(p)}>Delete</Button>
+                  </Stack>
+                </Flex>
+              ))
+            ) : (
+              <Text color="gray.500">No projects yet.</Text>
+            )}
           </Stack>
+          {projectPageCount > 1 && (
+            <Flex justify="center" mt={5}>
+              <PaginationControls
+                count={projects.length}
+                pageSize={PROJECT_PAGE_SIZE}
+                page={projectPage}
+                onPageChange={setProjectPage}
+              />
+            </Flex>
+          )}
         </Box>        
-
-
-
-        <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>New Project</Button>
 
         {/* Quick Edit Dialog */}
         <Dialog.Root
