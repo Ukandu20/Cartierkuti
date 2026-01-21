@@ -140,10 +140,10 @@ projectRouter.delete(
 projectRouter.get(
   "/:id/reviews",
   asyncHandler(async (req, res) => {
-    const project = await Project.findById(req.params.id).select("ratings");
+    const project = await Project.findById(req.params.id).select("reviews");
     if (!project)
       return res.status(404).json({ message: "Project not found" });
-    res.json(project.ratings);
+    res.json(project.reviews);
   })
 );
 
@@ -178,13 +178,10 @@ projectRouter.post(
     if (!project)
       return res.status(404).json({ message: "Project not found" });
 
-    project.ratings.push({ stars, comment, date: new Date() });
-    project.avgStars =
-      project.ratings.reduce((sum, r) => sum + r.stars, 0) /
-      project.ratings.length;
+    project.reviews.push({ stars, comment, date: new Date() });
     await project.save();
 
-    res.json({ avgStars: project.avgStars, total: project.ratings.length });
+    res.json({ avgStars: project.avgStars, total: project.reviews.length });
   })
 );
 

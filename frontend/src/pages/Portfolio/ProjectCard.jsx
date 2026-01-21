@@ -113,7 +113,7 @@ export default function ProjectCard({
                     />
                   ))}
                   <Text fontSize="xs" color="whiteAlpha.800">
-                    ({project.ratings?.length || 0})
+                    ({project.reviews?.length || 0})
                   </Text>
                 </HStack>
               )}

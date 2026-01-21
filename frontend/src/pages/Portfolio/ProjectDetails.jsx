@@ -16,6 +16,7 @@ import {
 import { FaStar, FaHeart, FaRegStar, FaHeartBroken } from "react-icons/fa";
 import { useColorMode } from "../../components/Theme/color-mode";
 import { toaster }   from "../../components/ui/toaster";             // ← use your custom toaster
+import apiClient from "@/utils/axiosConfig";
 
 
 export default function ProjectDetails({
@@ -32,6 +33,7 @@ export default function ProjectDetails({
   const [isHoveringFav, setIsHoveringFav] = useState(false);
 
   const { colorMode } = useColorMode();
+  const projectId = project?._id ?? project?.id;
 
   /* palette */
   const palette = useMemo(
@@ -53,13 +55,12 @@ export default function ProjectDetails({
 
   /* fetch reviews */
   useEffect(() => {
-    if (!project?.id) return;
+    if (!projectId) return;
     const load = async () => {
       setLoadingRv(true);
       try {
-        const res = await fetch(`/api/projects/${project.id}/reviews`);
-        if (!res.ok) throw new Error();
-        setReviews(await res.json());
+        const { data } = await apiClient.get(`/api/projects/${projectId}/reviews`);
+        setReviews(Array.isArray(data) ? data : []);
       } catch {
         setReviews([]);
       } finally {
@@ -67,10 +68,11 @@ export default function ProjectDetails({
       }
     };
     load();
-  }, [project?.id]);
+  }, [projectId]);
 
   /* submit review */
   const submitReview = async () => {
+    if (!projectId) return;
     try {
       const newReview = {
         stars: tempStars,
@@ -83,11 +85,7 @@ export default function ProjectDetails({
       setTempStars(0);
       setComment("");
 
-      await fetch(`/api/projects/${project.id}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newReview),
-      });
+      await apiClient.post(`/api/projects/${projectId}/reviews`, newReview);
 
       toaster({
         description: "Thanks for the review!",
