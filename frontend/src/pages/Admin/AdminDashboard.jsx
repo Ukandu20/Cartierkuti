@@ -45,18 +45,21 @@ import ActivityCard from './activity'
 // ────────────────────────────────────────────────────────────────────────────────
 // StatCard now uses useColorMode to compute its colors
 // ────────────────────────────────────────────────────────────────────────────────
-const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => {
+const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra }) => {
   const { colorMode } = useColorMode()
   const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
-  const bg      = colorMode === 'light' ? 'gray.100'      : 'whiteAlpha.100'
+  const bg      = colorMode === 'light' ? 'white'         : 'gray.900'
+  const border  = colorMode === 'light' ? 'gray.200'      : 'whiteAlpha.300'
   const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
 
   return (
     <Box
-      p={4}
+      p={5}
       bg={bg}
       boxShadow="sm"
-      borderRadius="md"
+      borderRadius="lg"
+      borderWidth="1px"
+      borderColor={border}
       _hover={{
         boxShadow: !disabled ? 'md' : undefined,
         cursor:    !disabled ? 'pointer' : undefined,
@@ -64,12 +67,29 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => 
       onClick={!disabled ? onClick : undefined}
       opacity={disabled ? 0.6 : 1}
     >
-      <Text fontSize="md" fontWeight="bold" mb={2}>{label}</Text>
-      <Flex align="center" justify="space-between" mb={2}>
-        <IconComp size="1.75rem" color={accent} />
-        <Text fontSize="2xl" fontWeight="bold" color={accent}>{value}</Text>
+      <Flex align="center" justify="space-between" mb={3}>
+        <Box>
+          <Text fontSize="md" fontWeight="bold" mb={1}>{label}</Text>
+          <Text fontSize="xs" color={idleTxt} opacity={0.7}>{desc}</Text>
+        </Box>
+        <Box
+          display="grid"
+          placeItems="center"
+          boxSize="40px"
+          borderRadius="md"
+          bg={colorMode === 'light' ? 'gray.50' : 'whiteAlpha.100'}
+          borderWidth="1px"
+          borderColor={border}
+        >
+          <IconComp size="1.2rem" color={accent} />
+        </Box>
       </Flex>
-      <Text fontSize="xs" color={idleTxt} opacity={0.7}>{desc}</Text>
+      <Text fontSize="3xl" fontWeight="bold" color={accent}>{value}</Text>
+      {extra && (
+        <Text mt={1} fontSize="xs" color={idleTxt} opacity={0.75}>
+          {extra}
+        </Text>
+      )}
     </Box>
   )
 }
@@ -157,6 +177,7 @@ export default function AdminDashboard() {
   const pageCount = Math.ceil(totalActivities / PAGE_SIZE)
   const [projectPage, setProjectPage] = useState(1)
   const PROJECT_PAGE_SIZE = 8
+  const [projectFilter, setProjectFilter] = useState('all')
 
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
@@ -180,9 +201,14 @@ export default function AdminDashboard() {
   const [isQuickEditOpen, setQuickEditOpen] = useState(false)
   const [isQuickDeleteOpen, setQuickDeleteOpen] = useState(false)
   const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
+  const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [projectAnalyticsTarget, setProjectAnalyticsTarget] = useState(null)
+  const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
+  const [projectAnalyticsLoading, setProjectAnalyticsLoading] = useState(false)
+  const listRef = useRef(null)
 
   const normalizeStatus = value => (value || '').toString().trim().toLowerCase()
   const isInProgress = value => {
@@ -256,11 +282,21 @@ export default function AdminDashboard() {
    }, [isAuth, page, filterType, filterStart, filterEnd])
 
    useEffect(() => {
-     const maxPage = Math.max(1, Math.ceil(projects.length / PROJECT_PAGE_SIZE))
+     setProjectPage(1)
+   }, [projectFilter])
+
+   useEffect(() => {
+     const filteredLength = projectFilter === 'active'
+       ? projects.filter(p => isInProgress(p.status)).length
+       : projectFilter === 'featured'
+         ? projects.filter(p => p.featured).length
+         : projects.length
+
+     const maxPage = Math.max(1, Math.ceil(filteredLength / PROJECT_PAGE_SIZE))
      if (projectPage > maxPage) {
        setProjectPage(maxPage)
      }
-   }, [projects.length, projectPage, PROJECT_PAGE_SIZE])
+   }, [projects, projectFilter, projectPage, PROJECT_PAGE_SIZE])
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -329,6 +365,32 @@ export default function AdminDashboard() {
       featured: proj.featured || false,
     })
     setCreateOpen(true)
+  }
+
+  const handleProjectFilter = filter => {
+    setProjectFilter(filter)
+    setProjectPage(1)
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const openProjectAnalytics = async proj => {
+    if (!proj) return
+    setProjectAnalyticsTarget(proj)
+    setProjectAnalyticsOpen(true)
+    const projectId = proj._id || proj.id
+    if (!projectId) return
+    setProjectAnalyticsLoading(true)
+    try {
+      const { data } = await apiClient.get('/api/activities', {
+        params: { projectId, page: 1, limit: 5 },
+      })
+      setProjectAnalyticsActivities(Array.isArray(data.activities) ? data.activities : [])
+    } catch (err) {
+      console.error(err)
+      setProjectAnalyticsActivities([])
+    } finally {
+      setProjectAnalyticsLoading(false)
+    }
   }
 
   // ---- CRUD handlers with Activity POST ----
@@ -441,12 +503,21 @@ export default function AdminDashboard() {
   }
 
 // ── KPIs & lists ─────────────────────────────────────────────────────────────
+  const mostViewedProject = useMemo(() => {
+    if (!projects.length) return null
+    return [...projects].sort((a, b) => (b.views || 0) - (a.views || 0))[0]
+  }, [projects])
+
+  const mostViewedMeta = mostViewedProject
+    ? `${mostViewedProject.title || 'Untitled'}${mostViewedProject.category ? ` · ${mostViewedProject.category}` : ''}`
+    : 'No views yet'
+
   const kpis = useMemo(() => [
-    { label:'Total Projects',    value:projects.length,                                desc:'all projects', icon:HiFolderOpen, onClick:() => {} },
-    { label:'Active Projects',   value:projects.filter(p=>isInProgress(p.status)).length, desc:'in progress', icon:HiPlay,       onClick:() => {} },
-    { label:'Most Viewed',       value:projects.length?Math.max(...projects.map(p=>p.views||0)):0, desc:'peak views', icon:HiEye, onClick:() => {} },
-    { label:'Featured Projects', value:projects.filter(p=>p.featured).length,         desc:'your best',    icon:HiStar,      onClick:() => {} },
-  ], [projects])
+    { label:'Total Projects',    value:projects.length,                                   desc:'all projects', icon:HiFolderOpen, onClick:() => handleProjectFilter('all') },
+    { label:'Active Projects',   value:projects.filter(p=>isInProgress(p.status)).length, desc:'in progress', icon:HiPlay,       onClick:() => handleProjectFilter('active') },
+    { label:'Most Viewed',       value:mostViewedProject?.views || 0,                     desc:'peak views',   icon:HiEye,       onClick:() => openProjectAnalytics(mostViewedProject), extra: mostViewedMeta },
+    { label:'Featured Projects', value:projects.filter(p=>p.featured).length,             desc:'your best',    icon:HiStar,      onClick:() => handleProjectFilter('featured') },
+  ], [projects, mostViewedProject, mostViewedMeta, handleProjectFilter, openProjectAnalytics])
 
   const quickActions = [
     { label:'Add Project',    value:'',              desc:'create new', icon:HiPlus,   onClick:onOpenCreate },
@@ -466,6 +537,17 @@ export default function AdminDashboard() {
     total:    projects.length,
   }
 
+  const getAvgStars = proj => {
+    if (!proj) return 0
+    if (typeof proj.avgStars === 'number') return proj.avgStars
+    const reviews = Array.isArray(proj.reviews) ? proj.reviews : []
+    if (!reviews.length) return 0
+    const sum = reviews.reduce((acc, r) => acc + (r.stars || 0), 0)
+    return Math.round((sum / reviews.length) * 10) / 10
+  }
+
+  const formatDate = value => (value ? new Date(value).toLocaleDateString() : '—')
+
   const analytics = useMemo(() => {
     const totalViews = projects.reduce((sum, p) => sum + (p.views || 0), 0)
     const avgViews = projects.length ? Math.round(totalViews / projects.length) : 0
@@ -476,8 +558,23 @@ export default function AdminDashboard() {
     return { totalViews, avgViews, featured, topViewed }
   }, [projects])
 
-  const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_PAGE_SIZE))
-  const paginatedProjects = projects.slice(
+  const filteredProjects = useMemo(() => {
+    if (projectFilter === 'active') {
+      return projects.filter(p => isInProgress(p.status))
+    }
+    if (projectFilter === 'featured') {
+      return projects.filter(p => p.featured)
+    }
+    return projects
+  }, [projects, projectFilter])
+
+  const projectFilterLabel =
+    projectFilter === 'active' ? 'Active' :
+    projectFilter === 'featured' ? 'Featured' :
+    'All'
+
+  const projectPageCount = Math.max(1, Math.ceil(filteredProjects.length / PROJECT_PAGE_SIZE))
+  const paginatedProjects = filteredProjects.slice(
     (projectPage - 1) * PROJECT_PAGE_SIZE,
     projectPage * PROJECT_PAGE_SIZE
   )
@@ -526,9 +623,33 @@ export default function AdminDashboard() {
     <>
       <Toaster />
       <Box p={{ base: 4, md: 8 }}>
-        <Heading>Welcome Back!</Heading>
-        {/* KPI, Recent, Quick Actions, Listing same as before */}
-        <Text mb={6} color="gray.400">Here’s what’s happening with your projects</Text>
+        <Box
+          mb={6}
+          p={{ base: 4, md: 5 }}
+          bg={dialogBg}
+          borderWidth="1px"
+          borderColor={dialogBorder}
+          borderRadius="lg"
+          shadow="sm"
+        >
+          <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+            <Box>
+              <Text fontSize="xs" letterSpacing="0.12em" textTransform="uppercase" color="gray.500">
+                Admin Overview
+              </Text>
+              <Heading size="lg">Welcome Back!</Heading>
+              <Text mt={1} color="gray.400">Here’s what’s happening with your projects</Text>
+            </Box>
+            <Stack direction="row" spaceX={3}>
+              <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>
+                New Project
+              </Button>
+              <Button variant="outline" borderColor={accent} color={accent} onClick={() => setAnalyticsOpen(true)}>
+                View Analytics
+              </Button>
+            </Stack>
+          </Flex>
+        </Box>
 
         {/* KPI Row */}
         <SimpleGrid columns={{ base:1, md:2, lg:4 }} spaceX={6} spaceY={4} mb={8}>
