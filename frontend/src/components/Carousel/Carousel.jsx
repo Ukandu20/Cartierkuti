@@ -29,6 +29,7 @@ import 'swiper/css/pagination'
 
 // ⬇️  react-query for caching / retries
 import apiClient from '@/utils/axiosConfig'
+import { normalizeProjects } from '@/utils/projectNormalizer'
 
 
 
@@ -78,8 +79,11 @@ export default function Carousel() {
 
   React.useEffect(() => {
     apiClient.get('/api/projects')
-        .then(r => setProjects(r.data))
-        .catch(console.error)
+        .then(r => setProjects(normalizeProjects(r.data)))
+        .catch((err) => {
+          if (import.meta.env.DEV) console.error(err)
+          setProjects([])
+        })
         .finally(() => setLoading(false))
   }, [])
 
@@ -189,7 +193,9 @@ export default function Carousel() {
             }}
             onSwiper={(sw) => (swiperRef.current = sw)}
             onSlideChange={(sw) => {
-              liveRef.current.textContent = projects[sw.realIndex].title
+              if (liveRef.current) {
+                liveRef.current.textContent = projects[sw.realIndex].title
+              }
               setActiveIdx(sw.realIndex)
             }}
             autoplay={
@@ -354,7 +360,7 @@ function SlideCard({ project, tokens, eager }) {
             isExternal
             bg={tokens.accentData}
             color="white"
-            px={4}
+            size="md"
             fontFamily={editorialFonts.body}
             _hover={{ bg: '#0B5D56' }}
           >
@@ -367,7 +373,7 @@ function SlideCard({ project, tokens, eager }) {
             variant="outline"
             borderColor={tokens.ink}
             color={tokens.ink}
-            px={4}
+            size="md"
             fontFamily={editorialFonts.body}
             _hover={{ bg: tokens.surfaceAlt }}
           >

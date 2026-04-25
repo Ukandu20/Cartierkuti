@@ -16,19 +16,22 @@ const apiClient = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
-// 3. Request interceptor: inject admin secret on writes
+// 3. Request interceptor: inject admin bearer token on writes
 apiClient.interceptors.request.use(
   config => {
-    const secret = sessionStorage.getItem('adminSecret');
+    const token = sessionStorage.getItem('adminToken');
     const method = config.method?.toLowerCase();
     const needsAuth = ['post', 'put', 'patch', 'delete'].includes(method);
+    const protectedRead =
+      config.url?.includes('/api/admin/verify') ||
+      config.url?.includes('/api/projects/archived');
     const isFormData =
       typeof FormData !== 'undefined' && config.data instanceof FormData;
     const headers = config.headers ?? {};
 
-    // only attach the secret for methods that modify data
-    if (secret && needsAuth) {
-      headers['x-admin-secret'] = secret;
+    // only attach the token for methods that modify data
+    if (token && (needsAuth || protectedRead)) {
+      headers.Authorization = `Bearer ${token}`;
     }
     // ensure JSON content-type for non-FormData writes
     if (needsAuth) {
@@ -44,7 +47,9 @@ apiClient.interceptors.request.use(
     }
 
     config.headers = headers;
-    console.debug('[API Request]', config.method?.toUpperCase(), config.url, config);
+    if (import.meta.env.DEV) {
+      console.debug('[API Request]', config.method?.toUpperCase(), config.url);
+    }
     return config;
   },
   error => Promise.reject(error)
@@ -53,7 +58,9 @@ apiClient.interceptors.request.use(
 // 5. Response interceptor: log and unwrap data
 apiClient.interceptors.response.use(
   response => {
-    console.debug('[API Response]', response.status, response.config.url, response.data);
+    if (import.meta.env.DEV) {
+      console.debug('[API Response]', response.status, response.config.url);
+    }
     return response;
   },
   error => {

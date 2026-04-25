@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import apiClient from '@/utils/axiosConfig'
 import { niceDate } from '@/utils/formatDate'
+import { normalizeProject, normalizeProjects } from '@/utils/projectNormalizer'
 import {
   Box,
   Heading,
@@ -26,7 +27,6 @@ import {
   Select,
 } from '@chakra-ui/react'
 
-import { useColorMode } from '../../components/Theme/color-mode'
 import PaginationControls from '@/components/pagination/pagination'
 import { Toaster, toaster } from '@/components/ui/toaster'
 import {
@@ -37,20 +37,72 @@ import {
   HiPlus,
   HiPencil,
   HiTrash,
+  HiDocumentText,
 } from 'react-icons/hi'
 import { RiImageAddLine } from 'react-icons/ri'
 import ActivityCard from './activity'
 
+const AdminLoginPanel = ({ username, setUsername, password, setPassword, handleLogin }) => (
+  <Box
+    minH="100vh"
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    bg="bg.canvas"
+    px={4}
+  >
+    <Box
+      w="full"
+      maxW="sm"
+      bg="bg.surface"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      borderRadius="lg"
+      p={6}
+      boxShadow="md"
+    >
+      <Heading size="md" mb={2}>Admin Login</Heading>
+      <Text color="fg.muted" mb={4}>Sign in with your admin credentials.</Text>
+      <Input
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Username"
+        px={3}
+        mb={3}
+      />
+      <Input
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        type="password"
+        placeholder="Password"
+        px={3}
+        mb={4}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleLogin()
+        }}
+      />
+      <Button w="full" onClick={handleLogin}>Sign In</Button>
+    </Box>
+  </Box>
+)
+
+const DashboardStats = ({ statCards }) => (
+  <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spaceX={4} spaceY={4}>
+    {statCards.map((card) => (
+      <StatCard key={card.label} {...card} />
+    ))}
+  </SimpleGrid>
+)
+
 
 // ────────────────────────────────────────────────────────────────────────────────
-// StatCard now uses useColorMode to compute its colors
+// StatCard uses semantic tokens for theming
 // ────────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra }) => {
-  const { colorMode } = useColorMode()
-  const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
-  const bg      = colorMode === 'light' ? 'white'         : 'gray.900'
-  const border  = colorMode === 'light' ? 'gray.200'      : 'whiteAlpha.300'
-  const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
+  const accent  = 'brand.600'
+  const bg      = 'bg.surface'
+  const border  = 'border.subtle'
+  const idleTxt = 'fg.muted'
 
   return (
     <Box
@@ -77,7 +129,7 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
           placeItems="center"
           boxSize="40px"
           borderRadius="md"
-          bg={colorMode === 'light' ? 'gray.50' : 'whiteAlpha.100'}
+          bg="bg.subtle"
           borderWidth="1px"
           borderColor={border}
         >
@@ -95,11 +147,10 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
 }
 
 const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => {
-  const { colorMode } = useColorMode()
-  const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
-  const bg      = colorMode === 'light' ? 'white'         : 'gray.900'
-  const border  = colorMode === 'light' ? 'gray.200'      : 'whiteAlpha.300'
-  const idleTxt = colorMode === 'light' ? 'gray.600'      : 'whiteAlpha.700'
+  const accent  = 'brand.600'
+  const bg      = 'bg.surface'
+  const border  = 'border.subtle'
+  const idleTxt = 'fg.muted'
 
   return (
     <Box
@@ -130,7 +181,7 @@ const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) =
           placeItems="center"
           boxSize="40px"
           borderRadius="md"
-          bg={colorMode === 'light' ? 'gray.50' : 'whiteAlpha.100'}
+          bg="bg.subtle"
           borderWidth="1px"
           borderColor={border}
         >
@@ -146,19 +197,115 @@ const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) =
   )
 }
 
+const emptyResumeForm = {
+  headline: '',
+  summary: '',
+  highlightsText: '',
+  metrics: [],
+  experience: [],
+  education: [],
+  certifications: [],
+  skillsPrimaryText: '',
+  skillsSecondaryText: '',
+  skillsToolsText: '',
+}
+
+const splitLines = (value) =>
+  (value || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+const normalizeResumeForm = (data = {}) => {
+  const safeArray = (value) => (Array.isArray(value) ? value : [])
+  return {
+    headline: data.headline || '',
+    summary: data.summary || '',
+    highlightsText: safeArray(data.highlights).join('\n'),
+    metrics: safeArray(data.metrics).map((metric) => ({
+      label: metric?.label || '',
+      value: metric?.value || '',
+      note: metric?.note || '',
+    })),
+    experience: safeArray(data.experience).map((item) => ({
+      role: item?.role || '',
+      company: item?.company || '',
+      location: item?.location || '',
+      period: item?.period || '',
+      bulletsText: safeArray(item?.bullets).join('\n'),
+    })),
+    education: safeArray(data.education).map((item) => ({
+      school: item?.school || '',
+      degree: item?.degree || '',
+      period: item?.period || '',
+      bulletsText: safeArray(item?.bullets).join('\n'),
+    })),
+    certifications: safeArray(data.certifications).map((item) => ({
+      name: item?.name || '',
+      issuer: item?.issuer || '',
+      year: item?.year || '',
+    })),
+    skillsPrimaryText: safeArray(data?.skills?.primary).join('\n'),
+    skillsSecondaryText: safeArray(data?.skills?.secondary).join('\n'),
+    skillsToolsText: safeArray(data?.skills?.tools).join('\n'),
+  }
+}
+
+const buildResumePayload = (form) => ({
+  headline: form.headline?.trim() || '',
+  summary: form.summary?.trim() || '',
+  highlights: splitLines(form.highlightsText),
+  metrics: (form.metrics || [])
+    .filter((item) => item.label || item.value || item.note)
+    .map((item) => ({
+      label: item.label?.trim() || '',
+      value: item.value?.trim() || '',
+      note: item.note?.trim() || '',
+    })),
+  experience: (form.experience || [])
+    .filter((item) => item.role || item.company || item.period || item.bulletsText)
+    .map((item) => ({
+      role: item.role?.trim() || '',
+      company: item.company?.trim() || '',
+      location: item.location?.trim() || '',
+      period: item.period?.trim() || '',
+      bullets: splitLines(item.bulletsText),
+    })),
+  education: (form.education || [])
+    .filter((item) => item.school || item.degree || item.period || item.bulletsText)
+    .map((item) => ({
+      school: item.school?.trim() || '',
+      degree: item.degree?.trim() || '',
+      period: item.period?.trim() || '',
+      bullets: splitLines(item.bulletsText),
+    })),
+  certifications: (form.certifications || [])
+    .filter((item) => item.name || item.issuer || item.year)
+    .map((item) => ({
+      name: item.name?.trim() || '',
+      issuer: item.issuer?.trim() || '',
+      year: item.year?.trim() || '',
+    })),
+  skills: {
+    primary: splitLines(form.skillsPrimaryText),
+    secondary: splitLines(form.skillsSecondaryText),
+    tools: splitLines(form.skillsToolsText),
+  },
+})
+
 // ────────────────────────────────────────────────────────────────────────────────
 // Main AdminDashboard
 // ────────────────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const { colorMode } = useColorMode()
-  const accent  = colorMode === 'light' ? 'brand.700'     : 'brand.500'
-  const bg      = colorMode === 'light' ? 'gray.100'      : 'whiteAlpha.100'
-  const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
-  const dialogBg = colorMode === 'light' ? 'white' : 'gray.900'
-  const dialogBorder = colorMode === 'light' ? 'gray.200' : 'whiteAlpha.300'
-  const closeHoverBg = colorMode === 'light' ? 'gray.100' : 'whiteAlpha.200'
+  const accent  = 'brand.600'
+  const bg      = 'bg.subtle'
+  const idleTxt = 'fg.muted'
+  const dialogBg = 'bg.surface'
+  const dialogBorder = 'border.subtle'
+  const closeHoverBg = 'bg.subtle'
 
   const [isAuth, setIsAuth] = useState(false)
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
@@ -202,6 +349,7 @@ export default function AdminDashboard() {
   const [isQuickDeleteOpen, setQuickDeleteOpen] = useState(false)
   const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
   const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
+  const [isResumeOpen, setResumeOpen] = useState(false)
   const cancelRef = useRef()
   const [toDelete, setToDelete] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -209,6 +357,8 @@ export default function AdminDashboard() {
   const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
   const [projectAnalyticsLoading, setProjectAnalyticsLoading] = useState(false)
   const listRef = useRef(null)
+  const [resumeForm, setResumeForm] = useState(emptyResumeForm)
+  const [resumeLoading, setResumeLoading] = useState(false)
 
   const normalizeStatus = value => (value || '').toString().trim().toLowerCase()
   const isInProgress = value => {
@@ -237,7 +387,7 @@ export default function AdminDashboard() {
     setLoading(true)
     try {
       const { data } = await apiClient.get('/api/projects')
-      setProjects(Array.isArray(data) ? data : [])
+      setProjects(normalizeProjects(data))
     } catch {
       setError('Could not load projects.')
     } finally {
@@ -245,24 +395,51 @@ export default function AdminDashboard() {
     }
   }
 
+  const fetchResume = async () => {
+    setResumeLoading(true)
+    try {
+      const { data } = await apiClient.get('/api/resume')
+      setResumeForm(normalizeResumeForm(data))
+    } catch (err) {
+      console.error(err)
+      toaster.create({ title: 'Error loading resume', type: 'error', closable: true })
+      setResumeForm(emptyResumeForm)
+    } finally {
+      setResumeLoading(false)
+    }
+  }
+
+  const saveResume = async () => {
+    try {
+      const payload = buildResumePayload(resumeForm)
+      await apiClient.put('/api/resume', payload)
+      toaster.create({ title: 'Resume updated', type: 'success', closable: true })
+      setResumeOpen(false)
+    } catch (err) {
+      console.error(err)
+      toaster.create({ title: 'Error saving resume', type: 'error', closable: true })
+    }
+  }
+
 // ---- initial load & auth check (run once) ----
    useEffect(() => {
      const auth = sessionStorage.getItem('isAdminAuthenticated')
      const time = sessionStorage.getItem('loginTime')
-     const secret = sessionStorage.getItem('adminSecret')
+     const token = sessionStorage.getItem('adminToken')
      const cached = localStorage.getItem('activities')
      if (cached) {
        try { setActivities(JSON.parse(cached)) } catch {}
      }
 
      const restore = async () => {
-       if (auth && time && secret && Date.now() - +time < 30 * 60_000) {
+       if (auth && time && token && Date.now() - +time < 30 * 60_000) {
          try {
            await apiClient.get('/api/admin/verify', {
-             headers: { 'x-admin-secret': secret },
+             headers: { Authorization: `Bearer ${token}` },
            })
            setIsAuth(true)
            fetchProjects()
+           fetchResume()
          } catch {
            sessionStorage.clear()
          }
@@ -299,20 +476,24 @@ export default function AdminDashboard() {
    }, [projects, projectFilter, projectPage, PROJECT_PAGE_SIZE])
 
   const handleLogin = async () => {
-    if (!password.trim()) {
-      toaster.create({ title: 'Password required', type: 'error', closable: true })
+    if (!username.trim() || !password.trim()) {
+      toaster.create({ title: 'Username and password required', type: 'error', closable: true })
       return
     }
     try {
-      await apiClient.get('/api/admin/verify', {
-        headers: { 'x-admin-secret': password },
+      const { data } = await apiClient.post('/api/admin/login', {
+        username: username.trim(),
+        password,
       })
+      if (!data?.token) throw new Error('Missing token')
       sessionStorage.setItem('isAdminAuthenticated', 'true')
       sessionStorage.setItem('loginTime', `${Date.now()}`)
-      sessionStorage.setItem('adminSecret', password)
+      sessionStorage.setItem('adminToken', data.token)
       setIsAuth(true)
       fetchProjects()
+      fetchResume()
       setPassword('')
+      setUsername('')
     } catch (err) {
       console.error(err)
       toaster.create({ title: 'Wrong password', type: 'error', closable: true })
@@ -361,7 +542,7 @@ export default function AdminDashboard() {
       languages: (proj.languages || []).join(', '),
       status: proj.status || '',
       tags: (proj.tags || []).join(', '),
-      date: proj.date ? new Date(proj.date).toISOString().slice(0,10) : '',
+      date: proj.createdDate ? new Date(proj.createdDate).toISOString().slice(0,10) : '',
       featured: proj.featured || false,
     })
     setCreateOpen(true)
@@ -377,7 +558,7 @@ export default function AdminDashboard() {
     if (!proj) return
     setProjectAnalyticsTarget(proj)
     setProjectAnalyticsOpen(true)
-    const projectId = proj._id || proj.id
+    const projectId = proj.id || proj._id
     if (!projectId) return
     setProjectAnalyticsLoading(true)
     try {
@@ -393,6 +574,88 @@ export default function AdminDashboard() {
     }
   }
 
+  const addMetric = () =>
+    setResumeForm(prev => ({
+      ...prev,
+      metrics: [...prev.metrics, { label: '', value: '', note: '' }],
+    }))
+
+  const updateMetric = (index, key, value) =>
+    setResumeForm(prev => {
+      const next = [...prev.metrics]
+      next[index] = { ...next[index], [key]: value }
+      return { ...prev, metrics: next }
+    })
+
+  const removeMetric = index =>
+    setResumeForm(prev => ({
+      ...prev,
+      metrics: prev.metrics.filter((_, idx) => idx !== index),
+    }))
+
+  const addExperience = () =>
+    setResumeForm(prev => ({
+      ...prev,
+      experience: [
+        ...prev.experience,
+        { role: '', company: '', location: '', period: '', bulletsText: '' },
+      ],
+    }))
+
+  const updateExperience = (index, key, value) =>
+    setResumeForm(prev => {
+      const next = [...prev.experience]
+      next[index] = { ...next[index], [key]: value }
+      return { ...prev, experience: next }
+    })
+
+  const removeExperience = index =>
+    setResumeForm(prev => ({
+      ...prev,
+      experience: prev.experience.filter((_, idx) => idx !== index),
+    }))
+
+  const addEducation = () =>
+    setResumeForm(prev => ({
+      ...prev,
+      education: [
+        ...prev.education,
+        { school: '', degree: '', period: '', bulletsText: '' },
+      ],
+    }))
+
+  const updateEducation = (index, key, value) =>
+    setResumeForm(prev => {
+      const next = [...prev.education]
+      next[index] = { ...next[index], [key]: value }
+      return { ...prev, education: next }
+    })
+
+  const removeEducation = index =>
+    setResumeForm(prev => ({
+      ...prev,
+      education: prev.education.filter((_, idx) => idx !== index),
+    }))
+
+  const addCertification = () =>
+    setResumeForm(prev => ({
+      ...prev,
+      certifications: [...prev.certifications, { name: '', issuer: '', year: '' }],
+    }))
+
+  const updateCertification = (index, key, value) =>
+    setResumeForm(prev => {
+      const next = [...prev.certifications]
+      next[index] = { ...next[index], [key]: value }
+      return { ...prev, certifications: next }
+    })
+
+  const removeCertification = index =>
+    setResumeForm(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter((_, idx) => idx !== index),
+    }))
+
   // ---- CRUD handlers with Activity POST ----
   const onSubmit = async () => {
     // required checks omitted
@@ -401,15 +664,15 @@ export default function AdminDashboard() {
           ...formData,
           languages: formData.languages.split(',').map(s => s.trim()),
           tags:      formData.tags.split(',').map(s => s.trim()),
-          date:      new Date(formData.date),
         };
 
         if (editMode) {
         // 1) Update project
         const { data: updated } = await apiClient.put(
-          `/api/projects/${current._id}`,
+          `/api/projects/${current.id}`,
           payload
         );
+        const normalizedUpdated = normalizeProject(updated);
         toaster.create({ title: 'Project updated', type: 'success', closable: true });
 
         // 2) Compute a simple list of changed fields
@@ -420,9 +683,9 @@ export default function AdminDashboard() {
 
         // 3) Post an “Updated” activity
         await apiClient.post('/api/activities', {
-          projectId: updated._id,
+          projectId: normalizedUpdated.id,
           type:      'Updated',
-          title:     updated.title,
+          title:     normalizedUpdated.title,
           detail:    changed.length
             ? `Changed: ${changed.join(', ')}`
             : '',
@@ -431,14 +694,15 @@ export default function AdminDashboard() {
       } else {
         // 1) Create project
         const { data: created } = await apiClient.post('/api/projects', payload);
+        const normalizedCreated = normalizeProject(created);
         toaster.create({ title: 'Project created', type: 'success', closable: true });
 
         // 2) Log the creation
         await apiClient.post('/api/activities', {
-          projectId: created._id,
+          projectId: normalizedCreated.id,
           type:      'Created',
-          title:     created.title,
-          detail:    `Added a new project ${created.title}, Category: ${created.category}; Languages: ${created.languages.join(', ')}; Status: ${created.status}`,
+          title:     normalizedCreated.title,
+          detail:    `Added a new project ${normalizedCreated.title}, Category: ${normalizedCreated.category}; Languages: ${normalizedCreated.languages.join(', ')}; Status: ${normalizedCreated.status}`,
         });
       }
 
@@ -460,12 +724,12 @@ export default function AdminDashboard() {
   
   const doDelete = async () => {
     try {
-      await apiClient.delete(`/api/projects/${toDelete._id}`)
+      await apiClient.delete(`/api/projects/${toDelete.id}`)
       toaster.create({ title: 'Project deleted', type: 'success', closable: true })
 
       // record deletion
       await apiClient.post('/api/activities', {
-        projectId: toDelete._id,
+        projectId: toDelete.id,
         type: 'Deleted',
         title: toDelete.title,
       })
@@ -524,10 +788,20 @@ export default function AdminDashboard() {
     { label:'Edit Project',   value:projects.length, desc:'modify',     icon:HiPencil, onClick:() => setQuickEditOpen(true) },
     { label:'Delete Project', value:projects.length, desc:'remove',     icon:HiTrash,  onClick:() => setQuickDeleteOpen(true) },
     { label:'View Analytics', value:'',              desc:'charts',     icon:HiEye,    onClick:() => setAnalyticsOpen(true) },
+    {
+      label:'Edit Resume',
+      value:'',
+      desc:'about page',
+      icon:HiDocumentText,
+      onClick:() => {
+        fetchResume()
+        setResumeOpen(true)
+      },
+    },
   ]
 
   const recent = useMemo(
-    () => [...projects].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5),
+    () => [...projects].sort((a,b)=>new Date(b.createdDate || 0)-new Date(a.createdDate || 0)).slice(0,5),
     [projects],
   )
 
@@ -594,9 +868,18 @@ export default function AdminDashboard() {
             <Fieldset.Root size="md" maxW="sm">
               <Stack mb={4} spaceY={2}>
                 <Fieldset.Legend>Admin Login</Fieldset.Legend>
-                <Fieldset.HelperText>Enter your admin password</Fieldset.HelperText>
+                <Fieldset.HelperText>Enter your admin username and password</Fieldset.HelperText>
               </Stack>
               <Fieldset.Content>
+                <Field.Root required>
+                  <Field.Label>Username</Field.Label>
+                  <Input
+                    name="username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    px={2}
+                  />
+                </Field.Root>
                 <Field.Root required>
                   <Field.Label>Password</Field.Label>
                   <Input
@@ -634,11 +917,11 @@ export default function AdminDashboard() {
         >
           <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
             <Box>
-              <Text fontSize="xs" letterSpacing="0.12em" textTransform="uppercase" color="gray.500">
+              <Text fontSize="xs" letterSpacing="0.12em" textTransform="uppercase" color="fg.muted">
                 Admin Overview
               </Text>
               <Heading size="lg">Welcome Back!</Heading>
-              <Text mt={1} color="gray.400">Here’s what’s happening with your projects</Text>
+              <Text mt={1} color="fg.muted">Here’s what’s happening with your projects</Text>
             </Box>
             <Stack direction="row" spaceX={3}>
               <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>
@@ -652,11 +935,9 @@ export default function AdminDashboard() {
         </Box>
 
         {/* KPI Row */}
-        <SimpleGrid columns={{ base:1, md:2, lg:4 }} spaceX={6} spaceY={4} mb={8}>
-          {kpis.map(k => (
-            <StatCard key={k.label} {...k} disabled={!k.onClick} />
-          ))}
-        </SimpleGrid>
+        <Box mb={8}>
+          <DashboardStats statCards={kpis.map(k => ({ ...k, disabled: !k.onClick }))} />
+        </Box>
 
         {/* Activity, Insights, Actions */}
         <SimpleGrid columns={{ base:1, lg:2 }} spaceX={6} spaceY={6} mb={8}>
@@ -671,7 +952,7 @@ export default function AdminDashboard() {
           >
             <Flex justify="space-between" align="center" mb={4}>
               <Heading size="md">Activity Log</Heading>
-              <Text fontSize="xs" color="gray.500">{totalActivities} events</Text>
+              <Text fontSize="xs" color="fg.muted">{totalActivities} events</Text>
             </Flex>
             <Flex mb={4} py={2} gap={3} align="center" wrap="wrap">
               <NativeSelect.Root>
@@ -722,7 +1003,6 @@ export default function AdminDashboard() {
                   size="sm"
                   onClick={() => { setPage(1); fetchActivities() }}
                   bg={accent}
-                  px={6}
                   borderRadius={4}
                 >
                   Apply
@@ -732,7 +1012,6 @@ export default function AdminDashboard() {
                   variant="outline"
                   borderColor={accent}
                   color={accent}
-                  px={6}
                   borderRadius={4}
                   onClick={() => {
                     setFilterType(''); setFilterStart(''); setFilterEnd('');
@@ -755,7 +1034,7 @@ export default function AdminDashboard() {
                   />
                 ))
               ) : (
-                <Text color="gray.500">No activity yet.</Text>
+                <Text color="fg.muted">No activity yet.</Text>
               )}
             </SimpleGrid>
 
@@ -800,7 +1079,11 @@ export default function AdminDashboard() {
               <Heading size="md" mb={4}>Quick Actions</Heading>
               <SimpleGrid columns={{ base:1, sm:2 }} spaceX={4} spaceY={4}>
                 {quickActions.map(a => (
-                  <ActionCard key={a.label} {...a} disabled={!projects.length && a.label !== 'Add Project'} />
+                  <ActionCard
+                    key={a.label}
+                    {...a}
+                    disabled={!projects.length && !['Add Project', 'Edit Resume'].includes(a.label)}
+                  />
                 ))}
               </SimpleGrid>
             </Box>
@@ -820,7 +1103,7 @@ export default function AdminDashboard() {
           <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={3}>
             <Box>
               <Heading size="lg">Existing Projects</Heading>
-              <Text fontSize="sm" color="gray.500">
+              <Text fontSize="sm" color="fg.muted">
                 {projects.length} total · Page {projectPage} of {projectPageCount}
               </Text>
             </Box>
@@ -843,16 +1126,25 @@ export default function AdminDashboard() {
                 >
                   <Box>
                     <Text fontWeight="bold">{p.title}</Text>
-                    <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                    <Text fontSize="sm" color="fg.muted">{p.category}</Text>
                   </Box>
                   <Stack direction="row" spaceX={2} spaceY={2}>
                     <Button size="sm" leftIcon={<HiPencil />} onClick={()=>onOpenEdit(p)}>Edit</Button>
-                    <Button size="sm" leftIcon={<HiTrash />} colorScheme="red" onClick={()=>confirmDelete(p)}>Delete</Button>
+                    <Button
+                      size="sm"
+                      leftIcon={<HiTrash />}
+                      bg="status.error"
+                      color="white"
+                      _hover={{ bg: 'fg.error', color: 'bg.canvas' }}
+                      onClick={()=>confirmDelete(p)}
+                    >
+                      Delete
+                    </Button>
                   </Stack>
                 </Flex>
               ))
             ) : (
-              <Text color="gray.500">No projects yet.</Text>
+              <Text color="fg.muted">No projects yet.</Text>
             )}
           </Stack>
           {projectPageCount > 1 && (
@@ -881,7 +1173,7 @@ export default function AdminDashboard() {
                 maxH="80vh"
                 overflowY="auto"
                 bg={dialogBg}
-                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                color="fg.default"
                 p={{ base: 4, md: 6 }}
                 rounded="lg"
                 shadow="xl"
@@ -917,7 +1209,7 @@ export default function AdminDashboard() {
                         <Flex key={p._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
                           <Box>
                             <Text fontWeight="bold">{p.title}</Text>
-                            <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                            <Text fontSize="sm" color="fg.muted">{p.category}</Text>
                           </Box>
                           <Button size="sm" leftIcon={<HiPencil />} onClick={() => {
                             onOpenEdit(p)
@@ -928,7 +1220,7 @@ export default function AdminDashboard() {
                         </Flex>
                       ))
                     ) : (
-                      <Text color="gray.500">No projects available.</Text>
+                      <Text color="fg.muted">No projects available.</Text>
                     )}
                   </Stack>
                 </Dialog.Body>
@@ -955,7 +1247,7 @@ export default function AdminDashboard() {
                 maxH="80vh"
                 overflowY="auto"
                 bg={dialogBg}
-                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                color="fg.default"
                 p={{ base: 4, md: 6 }}
                 rounded="lg"
                 shadow="xl"
@@ -991,12 +1283,14 @@ export default function AdminDashboard() {
                         <Flex key={p._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
                           <Box>
                             <Text fontWeight="bold">{p.title}</Text>
-                            <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                            <Text fontSize="sm" color="fg.muted">{p.category}</Text>
                           </Box>
                           <Button
                             size="sm"
                             leftIcon={<HiTrash />}
-                            colorScheme="red"
+                            bg="status.error"
+                            color="white"
+                            _hover={{ bg: 'fg.error', color: 'bg.canvas' }}
                             onClick={() => {
                               confirmDelete(p)
                               setQuickDeleteOpen(false)
@@ -1007,13 +1301,363 @@ export default function AdminDashboard() {
                         </Flex>
                       ))
                     ) : (
-                      <Text color="gray.500">No projects available.</Text>
+                      <Text color="fg.muted">No projects available.</Text>
                     )}
                   </Stack>
                 </Dialog.Body>
 
                 <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
                   <Button variant="ghost" onClick={() => setQuickDeleteOpen(false)}>Close</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+
+        {/* Resume Dialog */}
+        <Dialog.Root
+          placement="center"
+          open={isResumeOpen}
+          onOpenChange={details => setResumeOpen(details.open)}
+          scrollBehavior="inside"
+        >
+          <Portal>
+            <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
+            <Dialog.Positioner>
+              <Dialog.Content
+                w={{ base: '98vw', md: '1100px', lg: '1200px' }}
+                maxW="none"
+                minW={{ md: '900px' }}
+                maxH="88vh"
+                overflowY="auto"
+                bg={dialogBg}
+                color="fg.default"
+                p={{ base: 5, md: 8 }}
+                rounded="lg"
+                shadow="xl"
+                borderWidth="1px"
+                borderColor={dialogBorder}
+              >
+                <Dialog.Header
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={4}
+                  pb={3}
+                  borderBottomWidth="1px"
+                  borderColor={dialogBorder}
+                >
+                  <Dialog.Title fontSize="2xl" fontWeight="bold">
+                    Resume Editor
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton
+                      size="sm"
+                      borderWidth="1px"
+                      borderColor={dialogBorder}
+                      _hover={{ bg: closeHoverBg }}
+                    />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+
+                <Dialog.Body px={0}>
+                  {resumeLoading ? (
+                    <Text color="fg.muted">Loading resume...</Text>
+                  ) : (
+                    <Fieldset.Root size="lg">
+                      <Fieldset.Content gap={4}>
+                        <Field.Root>
+                          <Field.Label>Headline</Field.Label>
+                          <Input
+                            value={resumeForm.headline}
+                            onChange={(e) =>
+                              setResumeForm(prev => ({ ...prev, headline: e.target.value }))
+                            }
+                            px={3}
+                            py={2}
+                          />
+                        </Field.Root>
+
+                        <Field.Root>
+                          <Field.Label>Summary</Field.Label>
+                          <Textarea
+                            value={resumeForm.summary}
+                            onChange={(e) =>
+                              setResumeForm(prev => ({ ...prev, summary: e.target.value }))
+                            }
+                            px={3}
+                            py={2}
+                          />
+                        </Field.Root>
+
+                        <Field.Root>
+                          <Field.Label>Highlights (one per line)</Field.Label>
+                          <Textarea
+                            value={resumeForm.highlightsText}
+                            onChange={(e) =>
+                              setResumeForm(prev => ({ ...prev, highlightsText: e.target.value }))
+                            }
+                            px={3}
+                            py={2}
+                          />
+                        </Field.Root>
+
+                        <Box>
+                          <Flex justify="space-between" align="center" mb={3}>
+                            <Text fontWeight="bold">Metrics</Text>
+                            <Button size="xs" onClick={addMetric}>Add</Button>
+                          </Flex>
+                          <Stack spaceY={4}>
+                            {resumeForm.metrics.map((metric, idx) => (
+                              <Box key={`metric-${idx}`} p={4} bg={bg} borderRadius="md">
+                                <SimpleGrid columns={{ base: 1, md: 4 }} gap={5} alignItems="center">
+                                  <Input
+                                    placeholder="Label"
+                                    value={metric.label}
+                                    onChange={(e) => updateMetric(idx, 'label', e.target.value)}
+                                    px={3}
+                                    py={2}
+                                  />
+                                  <Input
+                                    placeholder="Value"
+                                    value={metric.value}
+                                    onChange={(e) => updateMetric(idx, 'value', e.target.value)}
+                                    px={3}
+                                    py={2}
+                                  />
+                                  <Input
+                                    placeholder="Note"
+                                    value={metric.note}
+                                    onChange={(e) => updateMetric(idx, 'note', e.target.value)}
+                                    px={3}
+                                    py={2}
+                                  />
+                                  <Button
+                                    size="xs"
+                                    variant="outline"
+                                    onClick={() => removeMetric(idx)}
+                                  >
+                                    Remove
+                                  </Button>
+                                </SimpleGrid>
+                              </Box>
+                            ))}
+                          </Stack>
+                        </Box>
+
+                        <Box>
+                          <Flex justify="space-between" align="center" mb={3}>
+                            <Text fontWeight="bold">Experience</Text>
+                            <Button size="xs" onClick={addExperience}>Add</Button>
+                          </Flex>
+                          <Stack spaceY={5}>
+                            {resumeForm.experience.map((item, idx) => (
+                              <Box key={`exp-${idx}`} p={5} bg={bg} borderRadius="md">
+                                <Flex justify="space-between" align="center" mb={3}>
+                                  <Text fontWeight="bold">Entry {idx + 1}</Text>
+                                  <Button size="xs" variant="ghost" onClick={() => removeExperience(idx)}>
+                                    Remove
+                                  </Button>
+                                </Flex>
+                                <SimpleGrid columns={{ base: 1, md: 2 }} gap={5}>
+                                  <Field.Root>
+                                    <Field.Label>Role</Field.Label>
+                                    <Input
+                                      value={item.role}
+                                      onChange={(e) => updateExperience(idx, 'role', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                  <Field.Root>
+                                    <Field.Label>Company</Field.Label>
+                                    <Input
+                                      value={item.company}
+                                      onChange={(e) => updateExperience(idx, 'company', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                  <Field.Root>
+                                    <Field.Label>Location</Field.Label>
+                                    <Input
+                                      value={item.location}
+                                      onChange={(e) => updateExperience(idx, 'location', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                  <Field.Root>
+                                    <Field.Label>Period</Field.Label>
+                                    <Input
+                                      value={item.period}
+                                      onChange={(e) => updateExperience(idx, 'period', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                </SimpleGrid>
+                                <Field.Root mt={3}>
+                                  <Field.Label>Highlights (one per line)</Field.Label>
+                                  <Textarea
+                                    value={item.bulletsText}
+                                    onChange={(e) =>
+                                      updateExperience(idx, 'bulletsText', e.target.value)
+                                    }
+                                    px={3}
+                                    py={2}
+                                  />
+                                </Field.Root>
+                              </Box>
+                            ))}
+                          </Stack>
+                        </Box>
+
+                        <Box>
+                          <Flex justify="space-between" align="center" mb={3}>
+                            <Text fontWeight="bold">Education</Text>
+                            <Button size="xs" onClick={addEducation}>Add</Button>
+                          </Flex>
+                          <Stack spaceY={5}>
+                            {resumeForm.education.map((item, idx) => (
+                              <Box key={`edu-${idx}`} p={5} bg={bg} borderRadius="md">
+                                <Flex justify="space-between" align="center" mb={3}>
+                                  <Text fontWeight="bold">Entry {idx + 1}</Text>
+                                  <Button size="xs" variant="ghost" onClick={() => removeEducation(idx)}>
+                                    Remove
+                                  </Button>
+                                </Flex>
+                                <SimpleGrid columns={{ base: 1, md: 2 }} gap={5}>
+                                  <Field.Root>
+                                    <Field.Label>School</Field.Label>
+                                    <Input
+                                      value={item.school}
+                                      onChange={(e) => updateEducation(idx, 'school', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                  <Field.Root>
+                                    <Field.Label>Degree</Field.Label>
+                                    <Input
+                                      value={item.degree}
+                                      onChange={(e) => updateEducation(idx, 'degree', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                  <Field.Root>
+                                    <Field.Label>Period</Field.Label>
+                                    <Input
+                                      value={item.period}
+                                      onChange={(e) => updateEducation(idx, 'period', e.target.value)}
+                                      px={3}
+                                      py={2}
+                                    />
+                                  </Field.Root>
+                                </SimpleGrid>
+                                <Field.Root mt={3}>
+                                  <Field.Label>Highlights (one per line)</Field.Label>
+                                  <Textarea
+                                    value={item.bulletsText}
+                                    onChange={(e) =>
+                                      updateEducation(idx, 'bulletsText', e.target.value)
+                                    }
+                                    px={3}
+                                    py={2}
+                                  />
+                                </Field.Root>
+                              </Box>
+                            ))}
+                          </Stack>
+                        </Box>
+
+                        <Box>
+                          <Flex justify="space-between" align="center" mb={3}>
+                            <Text fontWeight="bold">Certifications</Text>
+                            <Button size="xs" onClick={addCertification}>Add</Button>
+                          </Flex>
+                          <Stack spaceY={4}>
+                            {resumeForm.certifications.map((item, idx) => (
+                              <Box key={`cert-${idx}`} p={4} bg={bg} borderRadius="md">
+                                <SimpleGrid columns={{ base: 1, md: 4 }} gap={5} alignItems="center">
+                                  <Input
+                                    placeholder="Name"
+                                    value={item.name}
+                                    onChange={(e) => updateCertification(idx, 'name', e.target.value)}
+                                    px={3}
+                                    py={2}
+                                  />
+                                  <Input
+                                    placeholder="Issuer"
+                                    value={item.issuer}
+                                    onChange={(e) => updateCertification(idx, 'issuer', e.target.value)}
+                                    px={3}
+                                    py={2}
+                                  />
+                                  <Input
+                                    placeholder="Year"
+                                    value={item.year}
+                                    onChange={(e) => updateCertification(idx, 'year', e.target.value)}
+                                    px={3}
+                                    py={2}
+                                  />
+                                  <Button
+                                    size="xs"
+                                    variant="outline"
+                                    onClick={() => removeCertification(idx)}
+                                  >
+                                    Remove
+                                  </Button>
+                                </SimpleGrid>
+                              </Box>
+                            ))}
+                          </Stack>
+                        </Box>
+
+                        <Field.Root>
+                          <Field.Label>Primary Skills (one per line)</Field.Label>
+                          <Textarea
+                            value={resumeForm.skillsPrimaryText}
+                            onChange={(e) =>
+                              setResumeForm(prev => ({ ...prev, skillsPrimaryText: e.target.value }))
+                            }
+                            px={3}
+                            py={2}
+                          />
+                        </Field.Root>
+                        <Field.Root>
+                          <Field.Label>Secondary Skills (one per line)</Field.Label>
+                          <Textarea
+                            value={resumeForm.skillsSecondaryText}
+                            onChange={(e) =>
+                              setResumeForm(prev => ({ ...prev, skillsSecondaryText: e.target.value }))
+                            }
+                            px={3}
+                            py={2}
+                          />
+                        </Field.Root>
+                        <Field.Root>
+                          <Field.Label>Tools (one per line)</Field.Label>
+                          <Textarea
+                            value={resumeForm.skillsToolsText}
+                            onChange={(e) =>
+                              setResumeForm(prev => ({ ...prev, skillsToolsText: e.target.value }))
+                            }
+                            px={3}
+                            py={2}
+                          />
+                        </Field.Root>
+                      </Fieldset.Content>
+                    </Fieldset.Root>
+                  )}
+                </Dialog.Body>
+
+                <Dialog.Footer display="flex" justifyContent="flex-end" mt={4} gap={3}>
+                  <Button variant="solid" onClick={saveResume}>
+                    Save Resume
+                  </Button>
+                  <Button variant="ghost" onClick={() => setResumeOpen(false)}>Cancel</Button>
                 </Dialog.Footer>
               </Dialog.Content>
             </Dialog.Positioner>
@@ -1034,7 +1678,7 @@ export default function AdminDashboard() {
                 maxH="80vh"
                 overflowY="auto"
                 bg={dialogBg}
-                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                color="fg.default"
                 p={{ base: 4, md: 6 }}
                 rounded="lg"
                 shadow="xl"
@@ -1068,25 +1712,25 @@ export default function AdminDashboard() {
                     <>
                       <SimpleGrid columns={{ base: 1, md: 2 }} spaceX={4} spaceY={4} mb={6}>
                         <Box p={4} bg={bg} borderRadius="md">
-                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                          <Text fontSize="xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.08em">
                             Total Views
                           </Text>
                           <Text fontSize="2xl" fontWeight="bold">{analytics.totalViews}</Text>
                         </Box>
                         <Box p={4} bg={bg} borderRadius="md">
-                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                          <Text fontSize="xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.08em">
                             Average Views
                           </Text>
                           <Text fontSize="2xl" fontWeight="bold">{analytics.avgViews}</Text>
                         </Box>
                         <Box p={4} bg={bg} borderRadius="md">
-                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                          <Text fontSize="xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.08em">
                             Featured Projects
                           </Text>
                           <Text fontSize="2xl" fontWeight="bold">{analytics.featured}</Text>
                         </Box>
                         <Box p={4} bg={bg} borderRadius="md">
-                          <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="0.08em">
+                          <Text fontSize="xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.08em">
                             Total Projects
                           </Text>
                           <Text fontSize="2xl" fontWeight="bold">{projects.length}</Text>
@@ -1099,7 +1743,7 @@ export default function AdminDashboard() {
                           <Flex key={p._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
                             <Box>
                               <Text fontWeight="bold">{p.title}</Text>
-                              <Text fontSize="sm" color="gray.500">{p.category}</Text>
+                              <Text fontSize="sm" color="fg.muted">{p.category}</Text>
                             </Box>
                             <Text fontWeight="bold" color={accent}>{p.views || 0}</Text>
                           </Flex>
@@ -1107,7 +1751,7 @@ export default function AdminDashboard() {
                       </Stack>
                     </>
                   ) : (
-                    <Text color="gray.500">No projects available.</Text>
+                    <Text color="fg.muted">No projects available.</Text>
                   )}
                 </Dialog.Body>
 
@@ -1134,7 +1778,7 @@ export default function AdminDashboard() {
                 maxH="85vh"
                 overflowY="auto"
                 bg={dialogBg}
-                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
+                color="fg.default"
                 p={{ base: 4, md: 6 }}
                 rounded="lg"
                 shadow="xl"
@@ -1384,7 +2028,14 @@ export default function AdminDashboard() {
                     <Button ref={cancelRef}>Cancel</Button>
                   </Dialog.CloseTrigger>
                   <Dialog.ActionTrigger asChild>
-                    <Button colorScheme="red" onClick={doDelete}>Delete</Button>
+                  <Button
+                    bg="status.error"
+                    color="white"
+                    _hover={{ bg: 'fg.error', color: 'bg.canvas' }}
+                    onClick={doDelete}
+                  >
+                    Delete
+                  </Button>
                   </Dialog.ActionTrigger>
                 </Dialog.Footer>
               </Dialog.Content>

@@ -37,4 +37,9 @@ export default defineConfig({
       "react-icons/lu",       // ← and this (for LuSun / LuMoon)
     ]
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+    globals: true,
+  },
 });

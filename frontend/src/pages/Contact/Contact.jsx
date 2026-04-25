@@ -21,18 +21,16 @@ import {
   Link,
   Flex,
 } from '@chakra-ui/react'
-import { useColorMode as useThemeColorMode } from '@/components/Theme/color-mode'
 import { toaster } from '@/components/ui/toaster'
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
 import emailjs from 'emailjs-com'
+import { absoluteUrl, siteName } from '@/utils/siteConfig'
 
 const MotionBox = motion(Box)
 
 export default function ContactPage() {
-  const { colorMode } = useThemeColorMode()
-
   // EmailJS ids via env vars
   const SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID
   const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
@@ -43,11 +41,10 @@ export default function ContactPage() {
 
   /* theme tokens */
   const accent   = 'brand.500'
-  const bgPage   = colorMode === 'light' ? 'gray.50'   : 'gray.900'
-  const bgCard   = colorMode === 'light' ? 'white'     : 'gray.800'
-  const bgField  = colorMode === 'light' ? 'gray.100'  : 'gray.700'
-  const border   = colorMode === 'light' ? 'gray.300'  : 'gray.600'
-  const txtSec   = colorMode === 'light' ? 'gray.600'  : 'gray.300'
+  const bgCard   = 'bg.surface'
+  const bgField  = 'bg.subtle'
+  const border   = 'border.subtle'
+  const txtSec   = 'fg.muted'
 
   const cols = useBreakpointValue({ base: 1, md: 2 })
 
@@ -82,11 +79,11 @@ export default function ContactPage() {
   }
 
   return (
-    <Box as="main"  py={{ base: 16, md: 24 }} px={4}>
+    <Box as="main"  py={{ base: 16, md: 24 }} px={4} bg="bg.canvas">
       <Helmet>
-        <title>Contact | Your Name</title>
-        <meta name="description" content="Contact Your Name for freelance work, collaborations, or general inquiries." />
-        <link rel="canonical" href="https://your-domain.com/contact" />
+        <title>Contact | {siteName}</title>
+        <meta name="description" content={`Contact ${siteName} for analytics, security-minded data work, collaborations, or general inquiries.`} />
+        <link rel="canonical" href={absoluteUrl('/contact')} />
       </Helmet>
 
       <SimpleGrid columns={cols} spacing={{ base: 10, md: 16 }} maxW="6xl" mx="auto">

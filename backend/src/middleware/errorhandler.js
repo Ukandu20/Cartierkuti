@@ -32,6 +32,17 @@ export function errorHandler(err, req, res, next) {
   else if (/Not allowed by CORS/.test(err.message)) {
     status = 403
   }
+  else if (err.code === 'LIMIT_FILE_SIZE') {
+    status = 400
+    payload.message = 'Uploaded file is too large'
+  }
+  else if (/Only image uploads/.test(err.message)) {
+    status = 400
+  }
+
+  if (err.details) {
+    payload.errors = err.details
+  }
 
   // Include stack trace in dev only
   if (process.env.NODE_ENV !== 'production') {

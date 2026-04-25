@@ -14,7 +14,6 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 import { FaStar, FaHeart, FaRegStar, FaHeartBroken } from "react-icons/fa";
-import { useColorMode } from "../../components/Theme/color-mode";
 import { toaster }   from "../../components/ui/toaster";             // ← use your custom toaster
 import apiClient from "@/utils/axiosConfig";
 
@@ -32,7 +31,6 @@ export default function ProjectDetails({
   const [loadingRv, setLoadingRv] = useState(false);
   const [isHoveringFav, setIsHoveringFav] = useState(false);
 
-  const { colorMode } = useColorMode();
   const projectId = project?._id ?? project?.id;
 
   /* palette */
@@ -40,17 +38,17 @@ export default function ProjectDetails({
     () => ({
       accent      : "brand.500",
       hover       : "brand.600",
-      tagBg       : colorMode === "light" ? "gray.100" : "gray.700",
-      tagColor    : colorMode === "light" ? "black"    : "white",
-      txtMuted    : colorMode === "light" ? "gray.400" : "gray.500",
-      txtSecondary: colorMode === "light" ? "gray.600" : "gray.400",
-      txtPrimary  : colorMode === "light" ? "gray.800" : "gray.100",
-      starIdle    : colorMode === "light" ? "gray.300" : "gray.600",
-      textareaBg  : colorMode === "light" ? "white"    : "gray.700",
-      textareaCol : colorMode === "light" ? "black"    : "white",
-      textareaBd  : colorMode === "light" ? "gray.300" : "gray.600",
+      tagBg       : "bg.subtle",
+      tagColor    : "fg.default",
+      txtMuted    : "fg.muted",
+      txtSecondary: "fg.muted",
+      txtPrimary  : "fg.default",
+      starIdle    : "fg.muted",
+      textareaBg  : "bg.subtle",
+      textareaCol : "fg.default",
+      textareaBd  : "border.subtle",
     }),
-    [colorMode]
+    []
   );
 
   /* fetch reviews */
@@ -122,10 +120,9 @@ export default function ProjectDetails({
       <HStack spacing={4} mb={4}>
         <Button
           bg={palette.accent}
-          color="black"
+          color="bg.canvas"
           _hover={{ bg: palette.hover }}
-          px={2}
-          py={1}
+          size="xs"
           onClick={(e) => openLink(project.externalLink, e)}
         >
           Live Demo
@@ -134,9 +131,8 @@ export default function ProjectDetails({
           variant="outline"
           borderColor={palette.accent}
           color={palette.accent}
-          _hover={{ bg: palette.hover, color: "black" }}
-          px={2}
-          py={1}
+          _hover={{ bg: palette.hover, color: "bg.canvas" }}
+          size="xs"
           onClick={(e) => openLink(project.githubLink, e)}
         >
           GitHub
@@ -173,11 +169,11 @@ export default function ProjectDetails({
             : "Add to favourites"
         }
         cursor="pointer"
-        color={isFavorite ? "red.500" : palette.txtMuted}
-        _hover={{ color: "red.500" }}
+        color={isFavorite ? "fg.error" : palette.txtMuted}
+        _hover={{ color: "fg.error" }}
         onMouseEnter={() => setIsHoveringFav(true)}
         onMouseLeave={() => setIsHoveringFav(false)}
-        onClick={() => handleFavorite(project.id)}
+        onClick={() => handleFavorite(projectId)}
         transition="color 0.15s ease"
       />
 
@@ -233,7 +229,7 @@ export default function ProjectDetails({
               aria-label={`${i + 1} star`}
               variant="ghost"
               icon={i < tempStars ? <FaStar /> : <FaRegStar />}   // ← outline when idle
-              color={i < tempStars ? "yellow.400" : "gray.500"}   // ← darker idle color
+              color={i < tempStars ? "yellow.400" : "fg.muted"}   // ← darker idle color
               onClick={() => setTempStars(i + 1)}
             />
           ))}
@@ -253,8 +249,8 @@ export default function ProjectDetails({
         <Button
           onClick={submitReview}
           bg={palette.accent}
-          color="black"
-          px={4}
+          color="bg.canvas"
+          size="sm"
           _hover={{ bg: palette.hover }}
           isDisabled={!tempStars || comment.trim() === ""}
         >

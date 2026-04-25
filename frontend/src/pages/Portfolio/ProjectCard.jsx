@@ -20,7 +20,6 @@ import {
   FaHeartBroken,  // ← for the favourite toggle
   FaTimes,
 } from "react-icons/fa";
-import { useColorMode } from "@/components/Theme/color-mode";
 import ProjectDetails   from "./ProjectDetails";
 import styles           from "./ProjectCard.module.css";
 
@@ -32,7 +31,6 @@ export default function ProjectCard({
   handleFavorite,
   hitAndOpen,
 }) {
-  const { colorMode } = useColorMode();
   const isFav       = favorites.includes(project.id);
   const stripeColor = "brand.500";
 
@@ -48,7 +46,7 @@ export default function ProjectCard({
           cursor="pointer"
         >
           {/* featured ribbon */}
-          {project.isFeatured && (
+          {project.featured && (
             <Box
               className={styles.stripe}
               bg={stripeColor}
@@ -173,7 +171,7 @@ export default function ProjectCard({
             borderRadius={8}
             boxShadow="lg"
             p={4}
-            bg={colorMode === "light" ? "white" : "gray.800"}
+            bg="bg.surface"
           >
             <Dialog.Header>
               <Dialog.Title>{project.title}</Dialog.Title>

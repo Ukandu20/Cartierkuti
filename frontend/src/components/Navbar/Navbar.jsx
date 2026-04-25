@@ -13,22 +13,18 @@ import {
 } from '@chakra-ui/react'
 import { FaDownload } from 'react-icons/fa'
 import ThemeToggle      from '../Theme/ThemeToggle'
-import { useColorMode } from '../Theme/color-mode'
 import logo from './CARTIERKUTI.svg'
 
 const navLinks = [
   { href: '/',          label: 'Home'      },
   { href: '/about',     label: 'About'     },
   { href: '/portfolio', label: 'Portfolio' },
-  { href: '/blog',      label: 'Blog'      },
   { href: '/contact',   label: 'Contact'   },
 ]
 
 export default function Navbar() {
   const { pathname } = useLocation()
-  const { colorMode } = useColorMode()
 
-  const linkColor   = colorMode === 'light' ? '#1D242D' : '#FFFFFF'
   const activeStyle = { fontWeight: 'bold', color: 'brand.600' }
 
   return (
@@ -41,7 +37,9 @@ export default function Navbar() {
       gap={6}
       position="sticky"
       top="0"
-      bg={colorMode === 'light' ? 'white' : '#1D242D'}
+      bg="bg.canvas"
+      borderBottom="1px solid"
+      borderColor="border.subtle"
       zIndex="banner"
     >
       {/* logo ====================================================== */}
@@ -73,7 +71,7 @@ export default function Navbar() {
             as={RouterLink}
             to={href}
             aria-label={`Navigate to ${label}`}
-            {...(pathname === href ? activeStyle : { color: linkColor })}
+            {...(pathname === href ? activeStyle : { color: 'fg.default' })}
             _hover={{ color: 'brand.500' }}
           >
             {label}
@@ -86,7 +84,7 @@ export default function Navbar() {
         as="a"
         href="/resume.pdf"
         download
-        px={2}
+        size="sm"
         variant="solid"
         colorScheme="teal"
         aria-label="Download résumé (PDF)"

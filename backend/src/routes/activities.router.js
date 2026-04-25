@@ -3,7 +3,9 @@ import { Router } from 'express';
 import asyncHandler from 'express-async-handler';
 import rateLimit from 'express-rate-limit';
 import Activity from '../models/activity.model.js';
-import checkAdminSecret from '../middleware/auth.js';
+import requireAdmin from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { activityWriteSchema } from '../validation/schemas.js';
 
 const activitiesRouter = Router();
 
@@ -14,14 +16,10 @@ const writeLimiter = rateLimit({ windowMs: 60_000, max: 20 });
 activitiesRouter.post(
   '/',
   writeLimiter,
-  checkAdminSecret,
+  requireAdmin,
+  validate({ body: activityWriteSchema }),
   asyncHandler(async (req, res) => {
     const { projectId, type, title, detail, userId } = req.body;
-    if (!projectId || !type || !title) {
-      return res
-        .status(400)
-        .json({ message: 'projectId, type & title are required' });
-    }
     const activity = await Activity.create({ projectId, type, title, detail, userId });
     res.status(201).json(activity);
   })

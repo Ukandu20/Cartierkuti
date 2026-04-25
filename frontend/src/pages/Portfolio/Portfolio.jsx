@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import apiClient from '@/utils/axiosConfig'
+import { normalizeProjects } from '@/utils/projectNormalizer'
 import {
   Input,
   Portal,
@@ -18,11 +19,10 @@ import {
   Pagination,
 } from '@chakra-ui/react'
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
-import { Helmet, HelmetProvider } from 'react-helmet-async'
+import { Helmet } from 'react-helmet-async'
 
 import ProjectList from './ProjectList'
 import classes from './Portfolio.module.css'
-import { useColorMode } from '../../components/Theme/color-mode'
 
 /* ───────────────── constants ───────────────── */
 const TABS      = ['All', 'Data Science', 'Data Analysis', 'Web Development', 'AI/ML', 'Others']
@@ -30,16 +30,15 @@ const PAGE_SIZE = 9
 
 /* ───────────────── component ───────────────── */
 export default function Portfolio() {
-  const { colorMode } = useColorMode()
-  const accent = '#05e2d7'
+  const accent = 'brand.500'
 
   /* palette */
-  const idleTxt    = colorMode === 'light' ? 'gray.700'    : 'whiteAlpha.800'
-  const fieldBg    = colorMode === 'light' ? 'gray.100'    : 'whiteAlpha.100'
-  const fieldBd    = colorMode === 'light' ? 'gray.300'    : 'whiteAlpha.300'
-  const fieldTx    = colorMode === 'light' ? 'gray.800'    : 'whiteAlpha.900'
-  const phColor    = colorMode === 'light' ? 'gray.500'    : 'gray.400'
-  const skeletonBg = colorMode === 'light' ? 'white'       : 'gray.800'
+  const idleTxt    = 'fg.muted'
+  const fieldBg    = 'bg.subtle'
+  const fieldBd    = 'border.subtle'
+  const fieldTx    = 'fg.default'
+  const phColor    = 'fg.muted'
+  const skeletonBg = 'bg.surface'
 
   /* sort-list collection (for headless Select) */
   const sortOptions = useMemo(
@@ -70,7 +69,7 @@ export default function Portfolio() {
       setLoading(true)
       try {
         const { data } = await apiClient.get('/api/projects')
-        setProjects(Array.isArray(data) ? data : [])
+        setProjects(normalizeProjects(data))
       } catch {
         setError('Error fetching projects.')
       } finally {
@@ -127,7 +126,7 @@ export default function Portfolio() {
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      if (sort === 'date')  return new Date(b.date) - new Date(a.date)
+      if (sort === 'date')  return new Date(b.createdDate || 0) - new Date(a.createdDate || 0)
       if (sort === 'views') return (b.views ?? 0)  - (a.views ?? 0)
       return a.title.localeCompare(b.title)
     })
@@ -138,8 +137,7 @@ export default function Portfolio() {
 
   /* ───────────── UI ───────────── */
   return (
-    <HelmetProvider>
-      <div className={classes.container}>
+    <div className={classes.container}>
         <Helmet>
           <title>Portfolio | Preston</title>
         </Helmet>
@@ -251,7 +249,7 @@ export default function Portfolio() {
                 ))}
               </Flex>
             ) : error ? (
-              <Text color="red.500">{error}</Text>
+              <Text color="fg.error">{error}</Text>
             ) : (
               <ProjectList
                 searchedProjects={paginated}
@@ -310,7 +308,6 @@ export default function Portfolio() {
 
           </Tabs.Content>
         </Tabs.Root>
-      </div>
-    </HelmetProvider>
+    </div>
   )
 }

@@ -12,7 +12,6 @@ import {
   Stack,
   useBreakpointValue,
 } from '@chakra-ui/react'
-import { useColorMode as useThemeColorMode } from '@/components/Theme/color-mode'
 import { FaLinkedin, FaGithub, FaBehance } from 'react-icons/fa'
 
 /**
@@ -20,14 +19,12 @@ import { FaLinkedin, FaGithub, FaBehance } from 'react-icons/fa'
  * Uses design tokens + responsive props instead of inline styles.
  */
 export default function Contact() {
-  const { colorMode } = useThemeColorMode()
-
   // Responsive tweak: larger button on desktop, smaller on mobile
   const btnSize = useBreakpointValue({ base: 'md', md: 'lg' })
 
   /* design tokens */
   const accent = 'brand.500'
-  const accentHover = colorMode === 'light' ? 'brand.600' : 'brand.300'
+  const accentHover = 'brand.600'
 
   return (
     <Box
@@ -45,8 +42,7 @@ export default function Contact() {
         maxW="2xl"
         mx="auto"
         fontSize="lg"
-        color="gray.600"
-        _dark={{ color: 'gray.300' }}
+        color="fg.muted"
         mb={8}
       >
         I&#39;m always open to discussing exciting ideas, collaborations, or new
@@ -60,7 +56,6 @@ export default function Contact() {
         bg={accent}
         _hover={{ bg: accentHover }}
         color="white"
-        px={8}
         rounded="full"
         boxShadow="md"
         fontWeight="semibold"
@@ -71,8 +66,7 @@ export default function Contact() {
       <Text
         mt={6}
         fontSize="sm"
-        color="gray.600"
-        _dark={{ color: 'gray.400' }}
+        color="fg.muted"
       >
         or email me directly at{' '}
         <Link href="mailto:cartierkuti@gmail.com" color={accent} fontWeight="medium">

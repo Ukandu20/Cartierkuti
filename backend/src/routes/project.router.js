@@ -5,19 +5,36 @@ import Project from "../models/project.model.js";
 import ArchivedProject from '../models/archive.model.js';
 import asyncHandler from "express-async-handler";
 import rateLimit from "express-rate-limit";
-import checkAdminSecret from "../middleware/auth.js";
+import requireAdmin from "../middleware/auth.js";
+import { validate } from "../middleware/validate.js";
+import {
+  objectIdSchema,
+  projectUpdateSchema,
+  projectWriteSchema,
+  reviewWriteSchema,
+} from "../validation/schemas.js";
 import cloudinary from "../config/cloudinary.js";
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 });
+const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 });
 const projectRouter = Router();
 
 /* ──────────── MULTER SETUP ───────────────────── */
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype?.startsWith('image/')) {
+      return cb(new Error('Only image uploads are allowed'));
+    }
+    return cb(null, true);
+  },
+});
 
 /* ──────────── UPLOAD PREVIEW IMAGE ────────────── */
 projectRouter.post(
   "/upload",
-  checkAdminSecret,
+  requireAdmin,
   upload.single("image"),
   asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -59,7 +76,7 @@ projectRouter.get(
 /* Archives */
 projectRouter.get(
   '/archived',
-  checkAdminSecret,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const { projectId, limit = 50, page = 1 } = req.query
     const filter = {}
@@ -80,6 +97,7 @@ projectRouter.get(
 /* READ one */
 projectRouter.get(
   "/:id",
+  validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: "Not found" });
@@ -91,20 +109,23 @@ projectRouter.get(
 projectRouter.patch(
   "/:id/hit",
   hitLimiter,
+  validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
-    const { views } = await Project.findByIdAndUpdate(
+    const project = await Project.findByIdAndUpdate(
       req.params.id,
       { $inc: { views: 1 } },
       { new: true, select: "views" }
     );
-    res.json({ views });
+    if (!project) return res.status(404).json({ message: "Project not found" });
+    res.json({ views: project.views });
   })
 );
 
 /* CREATE */
 projectRouter.post(
   "/",
-  checkAdminSecret,
+  requireAdmin,
+  validate({ body: projectWriteSchema }),
   asyncHandler(async (req, res) => {
     const project = await Project.create(req.body);
     res.json(project);
@@ -114,10 +135,12 @@ projectRouter.post(
 /* UPDATE */
 projectRouter.put(
   "/:id",
-  checkAdminSecret,
+  requireAdmin,
+  validate({ params: objectIdSchema, body: projectUpdateSchema }),
   asyncHandler(async (req, res) => {
     const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
+      runValidators: true,
     });
     if (!project)
       return res.status(404).json({ message: "Project not found" });
@@ -128,7 +151,8 @@ projectRouter.put(
 /* DELETE */
 projectRouter.delete(
   '/:id',
-  checkAdminSecret,
+  requireAdmin,
+  validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
     // 1️⃣ load the project
     const project = await Project.findById(req.params.id).lean();
@@ -168,6 +192,7 @@ projectRouter.delete(
 /* GET all reviews */
 projectRouter.get(
   "/:id/reviews",
+  validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
     const project = await Project.findById(req.params.id).select("reviews");
     if (!project)
@@ -180,6 +205,8 @@ projectRouter.get(
 /* POST new review & recalc avg */
 projectRouter.post(
   "/:id/reviews",
+  reviewLimiter,
+  validate({ params: objectIdSchema, body: reviewWriteSchema }),
   asyncHandler(async (req, res) => {
     const { stars, comment } = req.body;
     const project = await Project.findById(req.params.id);

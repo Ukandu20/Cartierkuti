@@ -16,10 +16,11 @@ import {
   Text,
   useBreakpointValue,
 } from '@chakra-ui/react'
-import { Helmet } from 'react-helmet'
+import { Helmet } from 'react-helmet-async'
 import { FaArrowRight, FaDownload } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { useColorMode } from '@/components/Theme/color-mode'
+import { absoluteUrl, siteTitle } from '@/utils/siteConfig'
 
 const editorialFonts = {
   heading: "'Playfair Display', serif",
@@ -425,19 +426,19 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <title>Preston | Data Analyst and Cybersecurity-minded Scientist</title>
+        <title>{siteTitle}</title>
         <meta
           name="description"
           content="Portfolio of Preston, a data analyst and cybersecurity-minded scientist delivering analytics, risk insights, and decision intelligence."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Preston | Data Analyst and Cybersecurity-minded Scientist" />
+        <meta property="og:title" content={siteTitle} />
         <meta
           property="og:description"
           content="Explore analytics projects, security-minded insights, and data science capabilities."
         />
-        <meta property="og:url" content="https://your-domain.com/" />
-        <meta property="og:image" content="https://your-domain.com/og-cover.png" />
+        <meta property="og:url" content={absoluteUrl('/')} />
+        <meta property="og:image" content={absoluteUrl('/personalportfolio.png')} />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
