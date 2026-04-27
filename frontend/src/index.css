@@ -10,8 +10,6 @@
 /* ================== */
 *, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html {
@@ -52,20 +50,6 @@ small {
 /* ================== */
 /* 🔘 Button Reset */
 /* ================== */
-button {
-  font-family: inherit;
-  font-size: inherit;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: inherit;
-}
-
-button:focus {
-  outline: 2px solid #05e2d7;
-  outline-offset: 2px;
-}
-
 /* ================== */
 /* ✨ Spacing Utils     */
 /* ================== */

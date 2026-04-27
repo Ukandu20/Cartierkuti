@@ -1,7 +1,5 @@
-// src/utils/axiosConfig.js
 import axios from 'axios';
 
-// 1. Read and validate our API base URL
 const API_URL = import.meta.env.VITE_API_URL;
 if (!API_URL) {
   throw new Error(
@@ -10,13 +8,11 @@ if (!API_URL) {
   );
 }
 
-// 2. Create a dedicated axios instance
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000, // 10 second timeout
+  timeout: 10000,
 });
 
-// 3. Request interceptor: inject admin bearer token on writes
 apiClient.interceptors.request.use(
   config => {
     const token = sessionStorage.getItem('adminToken');
@@ -29,11 +25,9 @@ apiClient.interceptors.request.use(
       typeof FormData !== 'undefined' && config.data instanceof FormData;
     const headers = config.headers ?? {};
 
-    // only attach the token for methods that modify data
     if (token && (needsAuth || protectedRead)) {
       headers.Authorization = `Bearer ${token}`;
     }
-    // ensure JSON content-type for non-FormData writes
     if (needsAuth) {
       if (isFormData) {
         if (typeof headers.delete === 'function') {
@@ -55,7 +49,6 @@ apiClient.interceptors.request.use(
   error => Promise.reject(error)
 );
 
-// 5. Response interceptor: log and unwrap data
 apiClient.interceptors.response.use(
   response => {
     if (import.meta.env.DEV) {
@@ -64,12 +57,14 @@ apiClient.interceptors.response.use(
     return response;
   },
   error => {
-    console.error(
-      '[API Error]',
-      error.config?.url,
-      error.response?.status,
-      error.response?.data || error.message
-    );
+    if (import.meta.env.DEV) {
+      console.error(
+        '[API Error]',
+        error.config?.url,
+        error.response?.status,
+        error.response?.data || error.message
+      );
+    }
     return Promise.reject(error);
   }
 );

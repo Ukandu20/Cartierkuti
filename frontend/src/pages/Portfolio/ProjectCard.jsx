@@ -9,16 +9,17 @@ import {
   HStack,
   Stack,
   Icon,
-  Button,          // ✅ recipe-driven core Button
+  IconButton,
+  Button,
   Portal,
   Dialog,
+  CloseButton,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import {
   FaStar,
   FaHeart,
-  FaHeartBroken,  // ← for the favourite toggle
-  FaTimes,
+  FaHeartBroken,
 } from "react-icons/fa";
 import ProjectDetails   from "./ProjectDetails";
 import styles           from "./ProjectCard.module.css";
@@ -135,10 +136,10 @@ export default function ProjectCard({
                   GitHub
                 </Button>
 
-                {/* recipe-driven favourite toggle */}
-                <Button
-                  size="icon"
-                  variant="favourite"
+                {/* favourite toggle */}
+                <IconButton
+                  variant="ghost"
+                  colorPalette="red"
                   aria-label={
                     isFav ? "Unfavourite project" : "Add to favourites"
                   }
@@ -148,7 +149,7 @@ export default function ProjectCard({
                     as={isFav ? FaHeartBroken : FaHeart}
                     boxSize={4}
                   />
-                </Button>
+                </IconButton>
               </Stack>
             </Stack>
           </Card.Body>
@@ -176,11 +177,9 @@ export default function ProjectCard({
             <Dialog.Header>
               <Dialog.Title>{project.title}</Dialog.Title>
               <Dialog.CloseTrigger asChild>
-                <Icon
-                  as={FaTimes}
+                <CloseButton
                   aria-label="Close"
                   size={6}
-                  variant="ghost"
                   position="absolute"
                   top="4"
                   right="4"

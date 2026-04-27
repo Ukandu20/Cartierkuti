@@ -1,28 +1,43 @@
-// config/cors.js
-import cors from 'cors';
+import cors from 'cors'
+import logger from '../logger.js'
 
-// Read CLIENT_URL (comma-separated) from env, or fall back to sensible defaults:
-const raw = process.env.CLIENT_URL || ''
-const allowedOrigins = raw
-  .split(',')
-  .map(o => o.trim())
-  .filter(o => o.length > 0)
-  // if you want a default fallback when none is set:
-  .concat(['http://localhost:5173', 'http://127.0.0.1:5173']);
+const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173']
 
-// Build our CORS options
-const corsOptions = {
-  origin: (incomingOrigin, callback) => {
-    // allow non-browser requests (curl, mobile apps)
-    if (!incomingOrigin || allowedOrigins.includes(incomingOrigin)) {
-      return callback(null, true);
+export const parseAllowedOrigins = (clientUrl = '', nodeEnv = process.env.NODE_ENV) => {
+  const configured = clientUrl
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
+  if (nodeEnv === 'production') {
+    if (!configured.length) {
+      throw new Error('CLIENT_URL is required in production for CORS')
     }
-    console.warn(`CORS blocked for origin: ${incomingOrigin}`);
-    callback(new Error(`Not allowed by CORS: ${incomingOrigin}`));
-  },
-  credentials: true,  // Access-Control-Allow-Credentials
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
+    return [...new Set(configured)]
+  }
 
-export default cors(corsOptions);
+  return [...new Set([...configured, ...DEV_ORIGINS])]
+}
+
+export const createCorsMiddleware = ({
+  clientUrl = process.env.CLIENT_URL || '',
+  nodeEnv = process.env.NODE_ENV,
+} = {}) => {
+  const allowedOrigins = parseAllowedOrigins(clientUrl, nodeEnv)
+
+  return cors({
+    origin: (incomingOrigin, callback) => {
+      if (!incomingOrigin || allowedOrigins.includes(incomingOrigin)) {
+        return callback(null, true)
+      }
+
+      logger.warn({ origin: incomingOrigin }, 'CORS blocked origin')
+      return callback(new Error(`Not allowed by CORS: ${incomingOrigin}`))
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+}
+
+export default createCorsMiddleware()

@@ -6,7 +6,7 @@ import Portfolio from './pages/Portfolio/Portfolio';
 import About from './pages/About/About';
 import Error404 from './components/Error/Error404';
 import AdminDashboard from './pages/Admin/AdminDashboard'; 
-import Contact from './pages/Contact/Contact'; // Import the Contact component
+import Contact from './pages/Contact/Contact';
 
 const AppRoutes = () => {
   return (

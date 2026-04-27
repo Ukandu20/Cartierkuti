@@ -205,10 +205,10 @@ export default function ContactPage() {
               <Flex gridColumn={{ md: '1 / -1' }}>
                 <Button
                   type="submit"
-                  colorScheme="brand"
+                  colorPalette="brand"
                   size="lg"
                   ml="auto"
-                  isLoading={loading}
+                  loading={loading}
                   loadingText="Sending"
                 >
                   Send Message

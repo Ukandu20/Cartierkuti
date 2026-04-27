@@ -355,29 +355,25 @@ function SlideCard({ project, tokens, eager }) {
 
         <HStack pt={3} justify={{ base: 'center', md: 'flex-start' }}>
           <Button
-            as={ChakraLink}
-            href={project.externalLink}
-            isExternal
-            bg={tokens.accentData}
-            color="white"
+            asChild
+            colorPalette="teal"
             size="md"
             fontFamily={editorialFonts.body}
-            _hover={{ bg: '#0B5D56' }}
           >
-            Live Demo
+            <ChakraLink href={project.externalLink} isExternal>
+              Live Demo
+            </ChakraLink>
           </Button>
           <Button
-            as={ChakraLink}
-            href={project.githubLink}
-            isExternal
+            asChild
             variant="outline"
-            borderColor={tokens.ink}
-            color={tokens.ink}
+            colorPalette="teal"
             size="md"
             fontFamily={editorialFonts.body}
-            _hover={{ bg: tokens.surfaceAlt }}
           >
-            GitHub
+            <ChakraLink href={project.githubLink} isExternal>
+              GitHub
+            </ChakraLink>
           </Button>
         </HStack>
       </Stack>

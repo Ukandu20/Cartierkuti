@@ -81,16 +81,16 @@ export default function Navbar() {
 
       {/* right-hand tools ========================================= */}
       <Button
-        as="a"
-        href="/resume.pdf"
-        download
+        asChild
         size="sm"
         variant="solid"
-        colorScheme="teal"
-        aria-label="Download résumé (PDF)"
+        colorPalette="teal"
+        aria-label="Download resume (PDF)"
       >
-        <Icon as={FaDownload} boxSize={4} mr={2} aria-hidden="true" />
-        Resume
+        <a href="/resume.pdf" download>
+          <Icon as={FaDownload} boxSize={4} aria-hidden="true" />
+          Resume
+        </a>
       </Button>
 
       <ThemeToggle aria-label="Toggle light or dark mode" />

@@ -116,30 +116,27 @@ const Hero = () => {
 
           <HStack spacing={4} pt={4} flexWrap="wrap" justify={{ base: 'center', lg: 'flex-start' }}>
             <Button
-              as={Link}
-              to="/portfolio"
+              asChild
               size="lg"
-              bg={tokens.accentData}
-              color="white"
+              colorPalette="teal"
               fontFamily={editorialFonts.body}
-              rightIcon={<Icon as={FaArrowRight} aria-hidden="true" />}
-              _hover={{ bg: '#0B5D56' }}
             >
-              View Projects
+              <Link to="/portfolio">
+                View Projects
+                <Icon as={FaArrowRight} aria-hidden="true" />
+              </Link>
             </Button>
             <Button
-              as="a"
-              href="/resume.pdf"
-              download
+              asChild
               size="lg"
               variant="outline"
-              borderColor={tokens.ink}
-              color={tokens.ink}
+              colorPalette="teal"
               fontFamily={editorialFonts.body}
-              leftIcon={<Icon as={FaDownload} aria-hidden="true" />}
-              _hover={{ bg: tokens.surfaceAlt }}
             >
-              Download Resume
+              <a href="/resume.pdf" download>
+                <Icon as={FaDownload} aria-hidden="true" />
+                Download Resume
+              </a>
             </Button>
           </HStack>
         </Stack>
@@ -404,16 +401,15 @@ const ContactCTA = () => {
             Open to analyst and security-focused roles, consulting, and project collaborations.
           </Text>
           <Button
-            as={Link}
-            to="/contact"
+            asChild
             size="lg"
-            bg={tokens.accentSecurity}
-            color="white"
+            colorPalette="red"
             fontFamily={editorialFonts.body}
-            rightIcon={<Icon as={FaArrowRight} aria-hidden="true" />}
-            _hover={{ bg: '#5C2310' }}
           >
-            Say Hello
+            <Link to="/contact">
+              Say Hello
+              <Icon as={FaArrowRight} aria-hidden="true" />
+            </Link>
           </Button>
         </Stack>
       </Box>

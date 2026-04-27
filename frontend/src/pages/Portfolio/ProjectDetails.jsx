@@ -119,9 +119,7 @@ export default function ProjectDetails({
       {/* links */}
       <HStack spacing={4} mb={4}>
         <Button
-          bg={palette.accent}
-          color="bg.canvas"
-          _hover={{ bg: palette.hover }}
+          colorPalette="teal"
           size="xs"
           onClick={(e) => openLink(project.externalLink, e)}
         >
@@ -129,9 +127,7 @@ export default function ProjectDetails({
         </Button>
         <Button
           variant="outline"
-          borderColor={palette.accent}
-          color={palette.accent}
-          _hover={{ bg: palette.hover, color: "bg.canvas" }}
+          colorPalette="teal"
           size="xs"
           onClick={(e) => openLink(project.githubLink, e)}
         >
@@ -156,11 +152,9 @@ export default function ProjectDetails({
       </HStack>
 
       {/* favorite */}
-      <Icon
-        /* show 💔 only while hovering a saved favourite */
-        as={isFavorite && isHoveringFav ? FaHeartBroken : FaHeart}
-        boxSize={4}
-        role="button"
+      <IconButton
+        variant="ghost"
+        colorPalette="red"
         aria-label={
           isFavorite
             ? isHoveringFav
@@ -168,14 +162,15 @@ export default function ProjectDetails({
               : "Favourite project"
             : "Add to favourites"
         }
-        cursor="pointer"
-        color={isFavorite ? "fg.error" : palette.txtMuted}
-        _hover={{ color: "fg.error" }}
         onMouseEnter={() => setIsHoveringFav(true)}
         onMouseLeave={() => setIsHoveringFav(false)}
         onClick={() => handleFavorite(projectId)}
-        transition="color 0.15s ease"
-      />
+      >
+        <Icon
+          as={isFavorite && isHoveringFav ? FaHeartBroken : FaHeart}
+          boxSize={4}
+        />
+      </IconButton>
 
       {/* reviews */}
       <Text fontWeight="bold" mb={2} color={palette.txtPrimary}>
@@ -222,16 +217,18 @@ export default function ProjectDetails({
 
         <HStack mb={2}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Icon
-              as={FaStar}
-              boxSize={3.5}
+            <IconButton
               key={i}
               aria-label={`${i + 1} star`}
               variant="ghost"
-              icon={i < tempStars ? <FaStar /> : <FaRegStar />}   // ← outline when idle
-              color={i < tempStars ? "yellow.400" : "fg.muted"}   // ← darker idle color
               onClick={() => setTempStars(i + 1)}
-            />
+            >
+              <Icon
+                as={i < tempStars ? FaStar : FaRegStar}
+                boxSize={3.5}
+                color={i < tempStars ? "yellow.400" : "fg.muted"}
+              />
+            </IconButton>
           ))}
         </HStack>
 
@@ -248,11 +245,9 @@ export default function ProjectDetails({
 
         <Button
           onClick={submitReview}
-          bg={palette.accent}
-          color="bg.canvas"
+          colorPalette="teal"
           size="sm"
-          _hover={{ bg: palette.hover }}
-          isDisabled={!tempStars || comment.trim() === ""}
+          disabled={!tempStars || comment.trim() === ""}
         >
           Submit
         </Button>

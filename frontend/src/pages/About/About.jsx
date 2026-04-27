@@ -172,29 +172,24 @@ export default function About() {
 
             <HStack spacing={4} flexWrap="wrap">
               <Button
-                as="a"
-                href="/resume.pdf"
-                download
+                asChild
                 size="lg"
-                bg={tokens.accentData}
-                color="white"
+                colorPalette="teal"
                 fontFamily={editorialFonts.body}
-                leftIcon={<Icon as={FaDownload} aria-hidden="true" />}
-                _hover={{ bg: '#0B5D56' }}
               >
-                Download Resume
+                <a href="/resume.pdf" download>
+                  <Icon as={FaDownload} aria-hidden="true" />
+                  Download Resume
+                </a>
               </Button>
               <Button
-                as={Link}
-                to="/contact"
+                asChild
                 size="lg"
                 variant="outline"
-                borderColor={tokens.ink}
-                color={tokens.ink}
+                colorPalette="teal"
                 fontFamily={editorialFonts.body}
-                _hover={{ bg: tokens.surfaceAlt }}
               >
-                Contact Me
+                <Link to="/contact">Contact Me</Link>
               </Button>
             </HStack>
           </Stack>
@@ -430,16 +425,13 @@ export default function About() {
             I am open to analytics, security-minded data work, and collaborative research projects.
           </Text>
           <Button
-            as={Link}
-            to="/contact"
+            asChild
             size="lg"
             mt={6}
-            bg={tokens.accentSecurity}
-            color="white"
+            colorPalette="red"
             fontFamily={editorialFonts.body}
-            _hover={{ bg: '#5C2310' }}
           >
-            Say Hello
+            <Link to="/contact">Say Hello</Link>
           </Button>
         </Box>
       </Box>

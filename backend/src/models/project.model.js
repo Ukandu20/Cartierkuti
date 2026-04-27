@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import Activity from './activity.model.js'
+import logger from '../logger.js'
 
 const reviewSchema = new mongoose.Schema({
   stars:   { type: Number, required: true, min: 1, max: 5 },
@@ -53,7 +54,7 @@ projectSchema.post('save', async function(doc) {
         detail:    `Project "${doc.title}" was created.`
       })
     } catch (err) {
-      console.error('Activity hook error (create):', err)
+      logger.error({ err, projectId: doc._id }, 'Activity hook error on project create')
     }
   }
 })
@@ -69,7 +70,7 @@ projectSchema.post('findOneAndUpdate', async function(doc) {
         detail:    'Project details were updated.'
       })
     } catch (err) {
-      console.error('Activity hook error (update):', err)
+      logger.error({ err, projectId: doc._id }, 'Activity hook error on project update')
     }
   }
 })

@@ -50,17 +50,12 @@ export default function Contact() {
       </Text>
 
       <Button
-        as={Link}
-        href="mailto:cartierkuti@gmail.com"
+        asChild
         size={btnSize}
-        bg={accent}
-        _hover={{ bg: accentHover }}
-        color="white"
-        rounded="full"
-        boxShadow="md"
+        colorPalette="teal"
         fontWeight="semibold"
       >
-        Say Hello
+        <a href="mailto:cartierkuti@gmail.com">Say Hello</a>
       </Button>
 
       <Text

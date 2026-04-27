@@ -3,11 +3,10 @@ import react from "@vitejs/plugin-react";
 import svgrPlugin from "vite-plugin-svgr";
 import { fileURLToPath, URL } from "node:url";
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  envPrefix: 'VITE_',  // ✅ updated
+  envPrefix: 'VITE_',
   build: {
-    outDir: "build", 
+    outDir: "build",
   },
   plugins: [
     react(),
@@ -33,9 +32,9 @@ export default defineConfig({
       "@emotion/react",
       "@emotion/styled",
       "framer-motion",
-      "next-themes",          // ← add this
-      "react-icons/lu",       // ← and this (for LuSun / LuMoon)
-    ]
+      "next-themes",
+      "react-icons/lu",
+    ],
   },
   test: {
     environment: 'jsdom',

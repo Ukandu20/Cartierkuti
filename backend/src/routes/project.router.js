@@ -14,6 +14,7 @@ import {
   reviewWriteSchema,
 } from "../validation/schemas.js";
 import cloudinary from "../config/cloudinary.js";
+import logger from "../logger.js";
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 });
 const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 });
@@ -172,7 +173,7 @@ projectRouter.delete(
         deletedBy: req.user?.id || 'system',
       });
     } catch (err) {
-      console.error('❌ Failed to archive project:', err);
+      logger.error({ err, projectId: req.params.id }, 'Failed to archive project');
       return res.status(500).json({ message: 'Could not archive project' });
     }
 
@@ -180,7 +181,7 @@ projectRouter.delete(
     try {
       await Project.findByIdAndDelete(originalId);
     } catch (err) {
-      console.error('❌ Failed to delete project after archiving:', err);
+      logger.error({ err, projectId: req.params.id }, 'Failed to delete project after archiving');
       return res.status(500).json({ message: 'Could not delete project' });
     }
 
