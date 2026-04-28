@@ -21,6 +21,7 @@ import apiClient from '@/utils/axiosConfig'
 import { normalizeProject } from '@/utils/projectNormalizer'
 import {
   buildProjectPayload,
+  emptyProjectErrors,
   emptyProjectForm,
   getAvgStars,
   getFilteredProjects,
@@ -29,6 +30,7 @@ import {
   getProjectFilterLabel,
   isInProgress,
   projectToFormData,
+  validateProjectForm,
 } from './adminDashboardUtils'
 import ActivityAnalyticsDialog from './components/ActivityAnalyticsDialog'
 import AdminLoginPanel from './components/AdminLoginPanel'
@@ -65,6 +67,18 @@ const getApiErrorMessage = (error, fallback) => {
   if (data?.error) return data.error
 
   return fallback
+}
+
+const getApiFieldErrors = (error) => {
+  const errors = error?.response?.data?.errors
+  if (!Array.isArray(errors)) return {}
+
+  return errors.reduce((acc, item) => {
+    if (item?.path && item?.message) {
+      acc[item.path] = item.message
+    }
+    return acc
+  }, {})
 }
 
 export default function AdminDashboard() {
@@ -121,6 +135,7 @@ export default function AdminDashboard() {
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
   const [formData, setFormData] = useState(emptyProjectForm)
+  const [projectErrors, setProjectErrors] = useState(emptyProjectErrors)
 
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [isDeleteOpen, setDeleteOpen] = useState(false)
@@ -130,6 +145,9 @@ export default function AdminDashboard() {
   const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
   const [isResumeOpen, setResumeOpen] = useState(false)
   const [toDelete, setToDelete] = useState(null)
+  const [isSavingProject, setIsSavingProject] = useState(false)
+  const [isDeletingProject, setIsDeletingProject] = useState(false)
+  const [isSavingResume, setIsSavingResume] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [projectAnalyticsTarget, setProjectAnalyticsTarget] = useState(null)
   const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
@@ -140,9 +158,15 @@ export default function AdminDashboard() {
   const pageCount = Math.ceil(totalActivities / ACTIVITY_PAGE_SIZE)
 
   const saveResume = async () => {
-    const saved = await persistResume()
-    if (saved) {
-      setResumeOpen(false)
+    if (isSavingResume) return
+    setIsSavingResume(true)
+    try {
+      const saved = await persistResume()
+      if (saved) {
+        setResumeOpen(false)
+      }
+    } finally {
+      setIsSavingResume(false)
     }
   }
 
@@ -162,12 +186,20 @@ export default function AdminDashboard() {
       ...current,
       [name]: type === 'checkbox' ? checked : value,
     }))
+    if (projectErrors[name]) {
+      setProjectErrors((current) => {
+        const next = { ...current }
+        delete next[name]
+        return next
+      })
+    }
   }
 
   const onOpenCreate = () => {
     setEditMode(false)
     setCurrent(null)
     setFormData(emptyProjectForm)
+    setProjectErrors(emptyProjectErrors)
     setCreateOpen(true)
   }
 
@@ -175,6 +207,7 @@ export default function AdminDashboard() {
     setEditMode(true)
     setCurrent(project)
     setFormData(projectToFormData(project))
+    setProjectErrors(emptyProjectErrors)
     setCreateOpen(true)
   }
 
@@ -273,6 +306,20 @@ export default function AdminDashboard() {
     }))
 
   const onSubmit = async () => {
+    if (isSavingProject) return
+    const validationErrors = validateProjectForm(formData)
+    if (Object.keys(validationErrors).length) {
+      setProjectErrors(validationErrors)
+      toaster.create({
+        title: 'Check project fields',
+        description: 'Fix the highlighted fields before saving.',
+        type: 'error',
+        closable: true,
+      })
+      return
+    }
+
+    setIsSavingProject(true)
     try {
       const payload = buildProjectPayload(formData)
 
@@ -305,15 +352,22 @@ export default function AdminDashboard() {
       await fetchActivities()
       await fetchProjects()
       setCreateOpen(false)
+      setProjectErrors(emptyProjectErrors)
     } catch (error) {
       reportAdminError(error)
       if (handleUnauthorized(error)) return
+      const apiFieldErrors = getApiFieldErrors(error)
+      if (Object.keys(apiFieldErrors).length) {
+        setProjectErrors(apiFieldErrors)
+      }
       toaster.create({
         title: 'Error saving project',
         description: getApiErrorMessage(error, 'Please check the project fields and try again.'),
         type: 'error',
         closable: true,
       })
+    } finally {
+      setIsSavingProject(false)
     }
   }
 
@@ -323,6 +377,8 @@ export default function AdminDashboard() {
   }
 
   const doDelete = async () => {
+    if (isDeletingProject || !toDelete?.id) return
+    setIsDeletingProject(true)
     try {
       await apiClient.delete(`/api/projects/${toDelete.id}`)
       toaster.create({ title: 'Project deleted', type: 'success', closable: true })
@@ -331,14 +387,15 @@ export default function AdminDashboard() {
         type: 'Deleted',
         title: toDelete.title,
       })
-      fetchActivities()
-      fetchProjects()
+      await fetchActivities()
+      await fetchProjects()
+      setDeleteOpen(false)
     } catch (error) {
       reportAdminError(error)
       if (handleUnauthorized(error)) return
       toaster.create({ title: 'Error deleting', type: 'error', closable: true })
     } finally {
-      setDeleteOpen(false)
+      setIsDeletingProject(false)
     }
   }
 
@@ -512,6 +569,7 @@ export default function AdminDashboard() {
           setResumeForm={setResumeForm}
           resumeLoading={resumeLoading}
           saveResume={saveResume}
+          isSavingResume={isSavingResume}
           onCancel={() => setResumeOpen(false)}
           addMetric={addMetric}
           updateMetric={updateMetric}
@@ -569,6 +627,8 @@ export default function AdminDashboard() {
           onCancel={() => setCreateOpen(false)}
           onUploadImage={onUploadImage}
           isUploading={isUploading}
+          isSaving={isSavingProject}
+          errors={projectErrors}
           setFormData={setFormData}
           dialogBg={dialogBg}
           dialogBorder={dialogBorder}
@@ -581,6 +641,7 @@ export default function AdminDashboard() {
           project={toDelete}
           cancelRef={cancelRef}
           onDelete={doDelete}
+          isDeleting={isDeletingProject}
         />
       </Box>
     </>

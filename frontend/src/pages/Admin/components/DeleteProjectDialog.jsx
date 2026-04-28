@@ -7,6 +7,7 @@ export default function DeleteProjectDialog({
   project,
   cancelRef,
   onDelete,
+  isDeleting,
 }) {
   return (
     <Dialog.Root
@@ -28,16 +29,15 @@ export default function DeleteProjectDialog({
             <Dialog.Footer>
               <ButtonGroup gap={3}>
                 <Dialog.CloseTrigger asChild>
-                  <Button ref={cancelRef}>Cancel</Button>
+                  <Button ref={cancelRef} disabled={isDeleting}>Cancel</Button>
                 </Dialog.CloseTrigger>
-                <Dialog.ActionTrigger asChild>
-                  <Button
-                    colorPalette="red"
-                    onClick={onDelete}
-                  >
-                    Delete
-                  </Button>
-                </Dialog.ActionTrigger>
+                <Button
+                  colorPalette="red"
+                  onClick={onDelete}
+                  loading={isDeleting}
+                >
+                  Delete
+                </Button>
               </ButtonGroup>
             </Dialog.Footer>
           </Dialog.Content>
