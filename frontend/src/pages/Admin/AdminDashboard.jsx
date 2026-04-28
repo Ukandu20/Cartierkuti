@@ -111,6 +111,7 @@ export default function AdminDashboard() {
     setUsername,
     password,
     setPassword,
+    isLoggingIn,
     handleLogin,
     handleUnauthorized,
   } = useAdminAuth({ onAuthenticated: handleAuthenticated })
@@ -478,6 +479,7 @@ export default function AdminDashboard() {
           setUsername={setUsername}
           password={password}
           setPassword={setPassword}
+          isLoggingIn={isLoggingIn}
           handleLogin={handleLogin}
         />
       </>

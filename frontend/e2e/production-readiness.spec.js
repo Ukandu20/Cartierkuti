@@ -151,7 +151,7 @@ const setupApi = async (page) => {
 const login = async (page) => {
   await page.goto('/admin')
   await page.getByLabel('Username').fill('admin')
-  await page.getByLabel('Password').fill('valid-password')
+  await page.locator('input[name="password"]').fill('valid-password')
   await page.getByRole('button', { name: 'Login' }).click()
   await expect(page.getByText('Existing Projects')).toBeVisible()
 }
@@ -182,7 +182,7 @@ test('admin login succeeds and invalid login fails', async ({ page }) => {
 
   await page.goto('/admin')
   await page.getByLabel('Username').fill('admin')
-  await page.getByLabel('Password').fill('bad-password')
+  await page.locator('input[name="password"]').fill('bad-password')
   await page.getByRole('button', { name: 'Login' }).click()
   await expect(page.getByText('Wrong password').first()).toBeVisible()
 

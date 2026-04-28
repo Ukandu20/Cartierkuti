@@ -14,6 +14,7 @@ export function useAdminAuth({ onAuthenticated }) {
   const [isAuth, setIsAuth] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
   const clearAdminSession = useCallback(() => {
     sessionStorage.removeItem('isAdminAuthenticated')
@@ -89,11 +90,13 @@ export function useAdminAuth({ onAuthenticated }) {
   }, [clearAdminSession])
 
   const handleLogin = useCallback(async () => {
+    if (isLoggingIn) return
     if (!username.trim() || !password.trim()) {
       toaster.create({ title: 'Username and password required', type: 'error', closable: true })
       return
     }
 
+    setIsLoggingIn(true)
     try {
       const { data } = await apiClient.post('/api/admin/login', {
         username: username.trim(),
@@ -110,8 +113,10 @@ export function useAdminAuth({ onAuthenticated }) {
     } catch (error) {
       reportAdminError(error)
       toaster.create({ title: 'Wrong password', type: 'error', closable: true })
+    } finally {
+      setIsLoggingIn(false)
     }
-  }, [onAuthenticated, password, username])
+  }, [isLoggingIn, onAuthenticated, password, username])
 
   return {
     isAuth,
@@ -119,6 +124,7 @@ export function useAdminAuth({ onAuthenticated }) {
     setUsername,
     password,
     setPassword,
+    isLoggingIn,
     handleLogin,
     handleUnauthorized,
   }
