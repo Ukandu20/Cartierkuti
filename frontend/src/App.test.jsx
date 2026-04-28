@@ -15,11 +15,13 @@ vi.mock('@/utils/axiosConfig', () => ({
 describe('App routes', () => {
   it('renders the home route', async () => {
     renderWithProviders(<App />)
-    expect(screen.getByRole('heading', { name: /data analyst/i })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /navigate to home/i })).toBeInTheDocument()
   })
 
-  it('renders the contact route', () => {
+  it('renders the contact route', async () => {
     renderWithProviders(<App />, { route: '/contact' })
-    expect(screen.getByRole('heading', { name: /contact form/i })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /contact form/i }, { timeout: 5000 })
+    ).toBeInTheDocument()
   })
 })

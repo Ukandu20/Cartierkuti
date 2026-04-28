@@ -7,6 +7,30 @@ export default defineConfig({
   envPrefix: 'VITE_',
   build: {
     outDir: "build",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+
+          if (id.includes("@chakra-ui") || id.includes("@emotion")) return "chakra-vendor";
+          if (id.includes("@fortawesome") || id.includes("react-icons")) return "icons-vendor";
+          if (id.includes("framer-motion")) return "motion-vendor";
+          if (id.includes("swiper")) return "swiper-vendor";
+          if (id.includes("axios")) return "api-vendor";
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/") ||
+            id.includes("node_modules/react-router") ||
+            id.includes("node_modules/@remix-run/router") ||
+            id.includes("node_modules/scheduler/")
+          ) {
+            return "react-vendor";
+          }
+
+          return "vendor";
+        },
+      },
+    },
   },
   plugins: [
     react(),
