@@ -11,6 +11,7 @@ import {
   Icon,
   IconButton,
   Button,
+  ButtonGroup,
   Portal,
   Dialog,
   CloseButton,
@@ -71,7 +72,7 @@ export default function ProjectCard({
             <Text fontWeight="bold" fontSize="md" color="white">
               {project.title}
             </Text>
-            <HStack spacing="0.5" mt="1">
+            <HStack gap="0.5" mt="1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Icon
                   as={FaStar}
@@ -92,13 +93,13 @@ export default function ProjectCard({
 
           {/* overlay on hover */}
           <Card.Body p="4" className={styles.overlay}>
-            <Stack spacing="2">
+            <Stack gap="2">
               <Text fontWeight="bold" fontSize="lg" color="white">
                 {project.title}
               </Text>
 
               {project.avgStars != null && (
-                <HStack spacing="0.5">
+                <HStack gap="0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Icon
                       as={FaStar}
@@ -118,23 +119,28 @@ export default function ProjectCard({
               )}
 
               {/* ────────── ACTION BUTTONS ────────── */}
-              <Stack direction="row" spacing="2" pt="2">
-                <Button
-                  size="lg"
-                  onClick={(e) =>
-                    hitAndOpen(project.id, project.externalLink, e)
-                  }
-                >
-                  Demo
-                </Button>
+              <HStack gap="2" pt="2" align="center">
+                <ButtonGroup size="sm" variant="solid" gap="2">
+                  <Button
+                    h="9"
+                    minH="9"
+                    onClick={(e) =>
+                      hitAndOpen(project.id, project.externalLink, e)
+                    }
+                  >
+                    Demo
+                  </Button>
 
-                <Button
-                  onClick={(e) =>
-                    hitAndOpen(project.id, project.githubLink, e)
-                  }
-                >
-                  GitHub
-                </Button>
+                  <Button
+                    h="9"
+                    minH="9"
+                    onClick={(e) =>
+                      hitAndOpen(project.id, project.githubLink, e)
+                    }
+                  >
+                    GitHub
+                  </Button>
+                </ButtonGroup>
 
                 {/* favourite toggle */}
                 <IconButton
@@ -143,14 +149,18 @@ export default function ProjectCard({
                   aria-label={
                     isFav ? "Unfavourite project" : "Add to favourites"
                   }
-                  onClick={() => handleFavorite(project.id)}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    handleFavorite(project.id)
+                  }}
                 >
                   <Icon
                     as={isFav ? FaHeartBroken : FaHeart}
                     boxSize={4}
                   />
                 </IconButton>
-              </Stack>
+              </HStack>
             </Stack>
           </Card.Body>
         </MotionCard>
@@ -195,12 +205,6 @@ export default function ProjectCard({
                 isFavorite={isFav}
               />
             </Dialog.Body>
-
-            <Dialog.Footer>
-              <Dialog.CloseTrigger asChild>
-                <Button variant="ghost"></Button>
-              </Dialog.CloseTrigger>
-            </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

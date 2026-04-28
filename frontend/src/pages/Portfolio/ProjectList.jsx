@@ -21,8 +21,9 @@ export default function ProjectList({
       initial="hidden"
       animate="show"
       columns={{ base: 1, md: 2, xl: 3 }}
-      spacingX={{ base: 6, md: 8, xl: 10 }}
-      spacingY={{ base: 10, md: 12 }}
+      gap={{ base: 6, md: 8, xl: 10 }}
+      columnGap={{ base: 6, md: 8, xl: 10 }}
+      rowGap={{ base: 8, md: 10, xl: 12 }}
     >
       {searchedProjects.map((p) => (
         <Box as={motion.div} key={p.id} variants={itemVariants}>

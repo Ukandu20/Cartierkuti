@@ -22,4 +22,15 @@ describe('project normalization', () => {
       expect.objectContaining({ id: '1', featured: true }),
     ])
   })
+
+  it('normalizes category labels and aliases', () => {
+    expect(normalizeProject({ _id: '1', category: 'Machine Learning/AI' })).toMatchObject({
+      category: 'AI/ML',
+      categoryValue: 'ai-ml',
+    })
+    expect(normalizeProject({ _id: '2', category: 'Other' })).toMatchObject({
+      category: 'Others',
+      categoryValue: 'others',
+    })
+  })
 })

@@ -5,6 +5,7 @@ import {
   Image,
   Text,
   Button,
+  ButtonGroup,
   HStack,
   IconButton,
   Stack,
@@ -117,26 +118,24 @@ export default function ProjectDetails({
       </Text>
 
       {/* links */}
-      <HStack spacing={4} mb={4}>
+      <ButtonGroup size="xs" gap={3} mb={4}>
         <Button
           colorPalette="teal"
-          size="xs"
-          onClick={(e) => openLink(project.externalLink, e)}
+          onClick={(e) => openLink(projectId, project.externalLink, e)}
         >
           Live Demo
         </Button>
         <Button
           variant="outline"
           colorPalette="teal"
-          size="xs"
-          onClick={(e) => openLink(project.githubLink, e)}
+          onClick={(e) => openLink(projectId, project.githubLink, e)}
         >
           GitHub
         </Button>
-      </HStack>
+      </ButtonGroup>
 
       {/* tags (headless) */}
-      <HStack spacing={2} mb={4} wrap="wrap">
+      <HStack gap={2} mb={4} wrap="wrap">
         {project.tags.map((tag) => (
           <Tag.Root
             key={tag}
@@ -176,10 +175,10 @@ export default function ProjectDetails({
       <Text fontWeight="bold" mb={2} color={palette.txtPrimary}>
         Reviews
       </Text>
-      <Stack spacing={3}>
+      <Stack gap={3}>
         {loadingRv ? (
           <Text fontSize="sm" color={palette.txtMuted}>
-            Loading…
+            Loading...
           </Text>
         ) : reviews.length === 0 ? (
           <Text fontSize="sm" color={palette.txtMuted}>
@@ -188,7 +187,7 @@ export default function ProjectDetails({
         ) : (
           reviews.map((rv) => (
             <Box key={rv.date}>
-              <HStack spacing={1} mb={1}>
+              <HStack gap={1} mb={1}>
                 {Array.from({ length: 5 }).map((_, j) => (
                   <Icon
                     key={j}
@@ -215,7 +214,7 @@ export default function ProjectDetails({
           Leave a Review
         </Text>
 
-        <HStack mb={2}>
+        <ButtonGroup variant="ghost" gap={1} mb={2}>
           {Array.from({ length: 5 }).map((_, i) => (
             <IconButton
               key={i}
@@ -230,7 +229,7 @@ export default function ProjectDetails({
               />
             </IconButton>
           ))}
-        </HStack>
+        </ButtonGroup>
 
         <Textarea
           value={comment}
