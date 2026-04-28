@@ -2,7 +2,7 @@
 
 This project uses [Vite](https://vitejs.dev/) to build and serve the React frontend.
 
-## Available Scripts
+## Environment
 
 Inside the `frontend` directory you can run:
 

@@ -3,15 +3,13 @@
 /* ================== */
 /* 📚 Google Fonts     */
 /* ================== */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 
 /* ================== */
 /* 🌐 Global Resets    */
 /* ================== */
 *, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html {
@@ -52,20 +50,6 @@ small {
 /* ================== */
 /* 🔘 Button Reset */
 /* ================== */
-button {
-  font-family: inherit;
-  font-size: inherit;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: inherit;
-}
-
-button:focus {
-  outline: 2px solid #05e2d7;
-  outline-offset: 2px;
-}
-
 /* ================== */
 /* ✨ Spacing Utils     */
 /* ================== */

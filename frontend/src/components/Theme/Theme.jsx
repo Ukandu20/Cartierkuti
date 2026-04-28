@@ -1,5 +1,5 @@
 /* ────────────────────────────────────────────────────────────────
-   Theme.jsx  —  Chakra UI v3 “System” theme (Button via recipe only)
+   Theme.jsx  —  Chakra UI v3 “System” theme
    Fully dark-mode–aware | no truncation
    ──────────────────────────────────────────────────────────────── */
 
@@ -7,7 +7,6 @@ import {
   createSystem,
   defaultConfig,
   defineConfig,
-  defineRecipe,
 } from '@chakra-ui/react'
 
 /* ------------------------------------------------------------------
@@ -30,15 +29,35 @@ const tokens = {
 
     /* hard-coded surfaces */
     background: {
-      light: { value: '#ffffff' },
-      dark:  { value: '#1D242D' },
+      light: { value: '#F6F4F1' },
+      dark:  { value: '#141414' },
+    },
+
+    surface: {
+      light: { value: '#FFFFFF' },
+      dark:  { value: '#1B1B1B' },
+      subtleLight: { value: '#FBFAF8' },
+      subtleDark:  { value: '#1E1E1E' },
+    },
+
+    border: {
+      light: { value: '#E2DED8' },
+      dark:  { value: '#2A2A2A' },
+    },
+
+    status: {
+      success: { value: '#15803D' },
+      warning: { value: '#B45309' },
+      error:   { value: '#B91C1C' },
+      info:    { value: '#1D4ED8' },
     },
 
     /* hard-coded text tones */
     text: {
-      light:  { value: '#1D242D' },
-      dark:   { value: '#E4E4E4' },
-      muted:  { value: '#6B7280' },
+      light:  { value: '#1A1A1A' },
+      dark:   { value: '#F6F4F1' },
+      muted:  { value: '#4B4B4B' },
+      mutedDark: { value: '#A7A39A' },
     },
   },
 
@@ -73,81 +92,76 @@ const semanticTokens = {
     'fg.muted': {
       value: {
         base: '{colors.text.muted}',
-        _dark: '{colors.text.light}',
+        _dark: '{colors.text.mutedDark}',
       },
     },
 
-    /* foreground inside solid brand buttons */
-    'button.inverse': {
+    /* status text */
+    'fg.success': {
+      value: { base: '#166534', _dark: '#4ADE80' },
+    },
+    'fg.warning': {
+      value: { base: '#92400E', _dark: '#FBBF24' },
+    },
+    'fg.error': {
+      value: { base: '#991B1B', _dark: '#FCA5A5' },
+    },
+    'fg.info': {
+      value: { base: '#1E40AF', _dark: '#93C5FD' },
+    },
+
+    /* status backgrounds */
+    'bg.success': {
+      value: { base: '#ECFDF3', _dark: '#0F1F14' },
+    },
+    'bg.warning': {
+      value: { base: '#FFFBEB', _dark: '#1F170B' },
+    },
+    'bg.error': {
+      value: { base: '#FEF2F2', _dark: '#210D0D' },
+    },
+    'bg.info': {
+      value: { base: '#EFF6FF', _dark: '#0B1321' },
+    },
+
+    /* status borders */
+    'border.success': {
+      value: { base: '#BBF7D0', _dark: '#14532D' },
+    },
+    'border.warning': {
+      value: { base: '#FDE68A', _dark: '#78350F' },
+    },
+    'border.error': {
+      value: { base: '#FECACA', _dark: '#7F1D1D' },
+    },
+    'border.info': {
+      value: { base: '#BFDBFE', _dark: '#1E3A8A' },
+    },
+
+    /* surfaces */
+    'bg.surface': {
       value: {
-        base: '{colors.background.light}',
-        _dark: '{colors.background.dark}',
+        base: '{colors.surface.light}',
+        _dark: '{colors.surface.dark}',
+      },
+    },
+
+    'bg.subtle': {
+      value: {
+        base: '{colors.surface.subtleLight}',
+        _dark: '{colors.surface.subtleDark}',
+      },
+    },
+
+    /* borders */
+    'border.subtle': {
+      value: {
+        base: '{colors.border.light}',
+        _dark: '{colors.border.dark}',
       },
     },
   },
 }
-
-/* ------------------------------------------------------------------
- * 3 ·  Button recipe (CVA utility class + drives <Button>)
- * ----------------------------------------------------------------- */
-const buttonRecipe = defineRecipe({
-  baseStyle: {
-    fontWeight: 'bold',
-    borderRadius: 'lg',
-    transition: 'all 0.2s ease',
-  },
-
-  variants: {
-    variant: {
-      solid: {
-        bg: 'brand.500',
-        color: 'button.inverse',
-        _hover:  { bg: 'brand.600' },
-        _active: { bg: 'brand.700' },
-      },
-
-      outline: {
-        border: '2px solid',
-        borderColor: 'brand.500',
-        color: 'brand.500',
-        _hover: {
-          bg: {
-            base: 'brand.50',
-            _dark: 'brand.900',
-          },
-        },
-      },
-
-      link: {
-        bg: 'transparent',
-        color: 'brand.500',
-        _hover: { textDecoration: 'none', color: 'brand.600' },
-      },
-
-      favourite: {
-        bg: 'transparent',
-        color: 'red.500',
-        _hover:  {
-          transform: 'scale(1.15) rotate(-2deg)',
-          color: 'red.600',
-        },
-        _active: { transform: 'scale(1.1)' },
-      },
-    },
-
-    size: {
-      sm:   { px: 3, py: 2, fontSize: 'sm' },
-      md:   { px: 5, py: 3, fontSize: 'md' },
-      lg:   { px: 6, py: 4, fontSize: 'md' },
-      icon: { p: 2, h: 'auto', w: 'auto' },
-    },
-  },
-
-  defaultVariants: {
-    variant: 'solid',
-    size: 'sm',
-  },
-})
 
 /* ------------------------------------------------------------------
  * 4 ·  Global styles (use semantic aliases)
@@ -182,6 +196,13 @@ const globalCss = {
 /* ------------------------------------------------------------------
  * 5 ·  Assemble & export System object
  * ----------------------------------------------------------------- */
+const baseTokens = defaultConfig.theme?.tokens ?? {}
+const mergedTokens = {
+  ...baseTokens,
+  colors: { ...baseTokens.colors, ...tokens.colors },
+  fonts: { ...baseTokens.fonts, ...tokens.fonts },
+}
+
 const config = defineConfig({
   /* colour-mode behaviour */
   config: {
@@ -190,11 +211,8 @@ const config = defineConfig({
   },
 
   theme: {
-    tokens,
+    tokens: mergedTokens,
     semanticTokens,
-    recipes: {
-      button: buttonRecipe,
-    },
   },
 
   globalCss,

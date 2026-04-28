@@ -4,11 +4,13 @@ import AppRoutes from './AppRoutes';
 import Footer from './components/Footer/Footer';
 import {  Flex } from '@chakra-ui/react';
 import { Toaster } from './components/ui/toaster';
+import ScrollToTop from './components/ScrollToTop/ScrollToTop'
 
 
 export default function App() {
   return (
     <>
+      <ScrollToTop />
       {/* Navbar fixed at the top */}
       <Navbar />
 

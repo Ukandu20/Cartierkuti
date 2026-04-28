@@ -61,9 +61,10 @@ export const ColorModeButton = React.forwardRef(function (props, ref) {
         variant="ghost"
         onClick={toggleColorMode}
         aria-label="Toggle color mode"
-        icon={<ColorModeIcon size="1.25rem" />}
         {...props}
-      />
+      >
+        <ColorModeIcon size="1.25rem" />
+      </IconButton>
     </ClientOnly>
   )
 })

@@ -1,8 +1,31 @@
-// middleware/auth.js
-export default function checkAdminSecret(req, res, next) {
-  const token = req.header('Authorization')?.replace(/^Bearer\s+/, '');
-  if (token !== process.env.ADMIN_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
+import jwt from 'jsonwebtoken'
+
+export function requireAdmin(req, res, next) {
+  const authHeader = req.header('Authorization') || ''
+  const token = authHeader.replace(/^Bearer\s+/i, '')
+
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({ error: 'Server misconfigured' })
   }
-  next();
+
+  if (!token || token === authHeader) {
+    return res.status(401).json({ error: 'Missing bearer token' })
+  }
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    if (payload?.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+    req.user = {
+      id: payload.sub,
+      username: payload.username,
+      role: payload.role,
+    }
+    return next()
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' })
+  }
 }
+
+export default requireAdmin

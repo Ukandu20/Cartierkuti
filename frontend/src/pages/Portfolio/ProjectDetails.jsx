@@ -5,6 +5,7 @@ import {
   Image,
   Text,
   Button,
+  ButtonGroup,
   HStack,
   IconButton,
   Stack,
@@ -14,8 +15,8 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 import { FaStar, FaHeart, FaRegStar, FaHeartBroken } from "react-icons/fa";
-import { useColorMode } from "../../components/Theme/color-mode";
 import { toaster }   from "../../components/ui/toaster";             // ← use your custom toaster
+import apiClient from "@/utils/axiosConfig";
 
 
 export default function ProjectDetails({
@@ -31,35 +32,34 @@ export default function ProjectDetails({
   const [loadingRv, setLoadingRv] = useState(false);
   const [isHoveringFav, setIsHoveringFav] = useState(false);
 
-  const { colorMode } = useColorMode();
+  const projectId = project?._id ?? project?.id;
 
   /* palette */
   const palette = useMemo(
     () => ({
       accent      : "brand.500",
       hover       : "brand.600",
-      tagBg       : colorMode === "light" ? "gray.100" : "gray.700",
-      tagColor    : colorMode === "light" ? "black"    : "white",
-      txtMuted    : colorMode === "light" ? "gray.400" : "gray.500",
-      txtSecondary: colorMode === "light" ? "gray.600" : "gray.400",
-      txtPrimary  : colorMode === "light" ? "gray.800" : "gray.100",
-      starIdle    : colorMode === "light" ? "gray.300" : "gray.600",
-      textareaBg  : colorMode === "light" ? "white"    : "gray.700",
-      textareaCol : colorMode === "light" ? "black"    : "white",
-      textareaBd  : colorMode === "light" ? "gray.300" : "gray.600",
+      tagBg       : "bg.subtle",
+      tagColor    : "fg.default",
+      txtMuted    : "fg.muted",
+      txtSecondary: "fg.muted",
+      txtPrimary  : "fg.default",
+      starIdle    : "fg.muted",
+      textareaBg  : "bg.subtle",
+      textareaCol : "fg.default",
+      textareaBd  : "border.subtle",
     }),
-    [colorMode]
+    []
   );
 
   /* fetch reviews */
   useEffect(() => {
-    if (!project?.id) return;
+    if (!projectId) return;
     const load = async () => {
       setLoadingRv(true);
       try {
-        const res = await fetch(`/api/projects/${project.id}/reviews`);
-        if (!res.ok) throw new Error();
-        setReviews(await res.json());
+        const { data } = await apiClient.get(`/api/projects/${projectId}/reviews`);
+        setReviews(Array.isArray(data) ? data : []);
       } catch {
         setReviews([]);
       } finally {
@@ -67,10 +67,11 @@ export default function ProjectDetails({
       }
     };
     load();
-  }, [project?.id]);
+  }, [projectId]);
 
   /* submit review */
   const submitReview = async () => {
+    if (!projectId) return;
     try {
       const newReview = {
         stars: tempStars,
@@ -83,11 +84,7 @@ export default function ProjectDetails({
       setTempStars(0);
       setComment("");
 
-      await fetch(`/api/projects/${project.id}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newReview),
-      });
+      await apiClient.post(`/api/projects/${projectId}/reviews`, newReview);
 
       toaster({
         description: "Thanks for the review!",
@@ -121,32 +118,24 @@ export default function ProjectDetails({
       </Text>
 
       {/* links */}
-      <HStack spacing={4} mb={4}>
+      <ButtonGroup size="xs" gap={3} mb={4}>
         <Button
-          bg={palette.accent}
-          color="black"
-          _hover={{ bg: palette.hover }}
-          px={2}
-          py={1}
-          onClick={(e) => openLink(project.externalLink, e)}
+          colorPalette="teal"
+          onClick={(e) => openLink(projectId, project.externalLink, e)}
         >
           Live Demo
         </Button>
         <Button
           variant="outline"
-          borderColor={palette.accent}
-          color={palette.accent}
-          _hover={{ bg: palette.hover, color: "black" }}
-          px={2}
-          py={1}
-          onClick={(e) => openLink(project.githubLink, e)}
+          colorPalette="teal"
+          onClick={(e) => openLink(projectId, project.githubLink, e)}
         >
           GitHub
         </Button>
-      </HStack>
+      </ButtonGroup>
 
       {/* tags (headless) */}
-      <HStack spacing={2} mb={4} wrap="wrap">
+      <HStack gap={2} mb={4} wrap="wrap">
         {project.tags.map((tag) => (
           <Tag.Root
             key={tag}
@@ -162,11 +151,9 @@ export default function ProjectDetails({
       </HStack>
 
       {/* favorite */}
-      <Icon
-        /* show 💔 only while hovering a saved favourite */
-        as={isFavorite && isHoveringFav ? FaHeartBroken : FaHeart}
-        boxSize={4}
-        role="button"
+      <IconButton
+        variant="ghost"
+        colorPalette="red"
         aria-label={
           isFavorite
             ? isHoveringFav
@@ -174,23 +161,24 @@ export default function ProjectDetails({
               : "Favourite project"
             : "Add to favourites"
         }
-        cursor="pointer"
-        color={isFavorite ? "red.500" : palette.txtMuted}
-        _hover={{ color: "red.500" }}
         onMouseEnter={() => setIsHoveringFav(true)}
         onMouseLeave={() => setIsHoveringFav(false)}
-        onClick={() => handleFavorite(project.id)}
-        transition="color 0.15s ease"
-      />
+        onClick={() => handleFavorite(projectId)}
+      >
+        <Icon
+          as={isFavorite && isHoveringFav ? FaHeartBroken : FaHeart}
+          boxSize={4}
+        />
+      </IconButton>
 
       {/* reviews */}
       <Text fontWeight="bold" mb={2} color={palette.txtPrimary}>
         Reviews
       </Text>
-      <Stack spacing={3}>
+      <Stack gap={3}>
         {loadingRv ? (
           <Text fontSize="sm" color={palette.txtMuted}>
-            Loading…
+            Loading...
           </Text>
         ) : reviews.length === 0 ? (
           <Text fontSize="sm" color={palette.txtMuted}>
@@ -199,7 +187,7 @@ export default function ProjectDetails({
         ) : (
           reviews.map((rv) => (
             <Box key={rv.date}>
-              <HStack spacing={1} mb={1}>
+              <HStack gap={1} mb={1}>
                 {Array.from({ length: 5 }).map((_, j) => (
                   <Icon
                     key={j}
@@ -226,20 +214,22 @@ export default function ProjectDetails({
           Leave a Review
         </Text>
 
-        <HStack mb={2}>
+        <ButtonGroup variant="ghost" gap={1} mb={2}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Icon
-              as={FaStar}
-              boxSize={3.5}
+            <IconButton
               key={i}
               aria-label={`${i + 1} star`}
               variant="ghost"
-              icon={i < tempStars ? <FaStar /> : <FaRegStar />}   // ← outline when idle
-              color={i < tempStars ? "yellow.400" : "gray.500"}   // ← darker idle color
               onClick={() => setTempStars(i + 1)}
-            />
+            >
+              <Icon
+                as={i < tempStars ? FaStar : FaRegStar}
+                boxSize={3.5}
+                color={i < tempStars ? "yellow.400" : "fg.muted"}
+              />
+            </IconButton>
           ))}
-        </HStack>
+        </ButtonGroup>
 
         <Textarea
           value={comment}
@@ -254,11 +244,9 @@ export default function ProjectDetails({
 
         <Button
           onClick={submitReview}
-          bg={palette.accent}
-          color="black"
-          px={4}
-          _hover={{ bg: palette.hover }}
-          isDisabled={!tempStars || comment.trim() === ""}
+          colorPalette="teal"
+          size="sm"
+          disabled={!tempStars || comment.trim() === ""}
         >
           Submit
         </Button>

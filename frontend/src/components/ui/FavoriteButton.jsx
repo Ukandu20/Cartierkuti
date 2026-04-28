@@ -1,11 +1,11 @@
 // src/components/ui/FavoriteButton.jsx
-import { Icon, Button } from "@chakra-ui/react";
+import { Icon, IconButton } from "@chakra-ui/react";
 import { FaHeart, FaHeartBroken } from "react-icons/fa";
 
 const FavoriteButton = ({ isFavorite, ...rest }) => (
-  <Button
-    variant="favourite"
-    size="icon"
+  <IconButton
+    variant="ghost"
+    colorPalette="red"
     aria-label={isFavorite ? "Unfavourite" : "Favourite"}
     {...rest}
   >

@@ -1,158 +1,165 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
-import apiClient from 'axios'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
-  Heading,
-  Text,
   SimpleGrid,
-  Flex,
-  VStack,
   Stack,
-  Input,
-  Textarea,
-  Button,
-  Portal,
-  CloseButton,
-  Dialog,
-  Fieldset,
-  Field,
-  For,
-  NativeSelect,
-  FileUpload,
-  Float,
-  useFileUploadContext,
-  Checkbox,
+  Text,
 } from '@chakra-ui/react'
-
-import { useColorMode } from '../../components/Theme/color-mode'
-import { Toaster, toaster } from '@/components/ui/toaster'
 import {
-  HiFolderOpen,
-  HiPlay,
+  HiDocumentText,
   HiEye,
-  HiStar,
-  HiPlus,
+  HiFolderOpen,
   HiPencil,
+  HiPlay,
+  HiPlus,
+  HiStar,
   HiTrash,
 } from 'react-icons/hi'
-import { RiImageAddLine } from 'react-icons/ri'
+import { Toaster, toaster } from '@/components/ui/toaster'
+import { ErrorState, LoadingState } from '@/components/ui/StateFeedback'
+import apiClient from '@/utils/axiosConfig'
+import { normalizeProject } from '@/utils/projectNormalizer'
+import {
+  buildProjectPayload,
+  emptyProjectForm,
+  getAvgStars,
+  getFilteredProjects,
+  getProjectAnalytics,
+  getProjectCounts,
+  getProjectFilterLabel,
+  isInProgress,
+  projectToFormData,
+} from './adminDashboardUtils'
+import ActivityAnalyticsDialog from './components/ActivityAnalyticsDialog'
+import AdminLoginPanel from './components/AdminLoginPanel'
+import AdminOverviewHeader from './components/AdminOverviewHeader'
+import DashboardStats from './components/DashboardStats'
+import DeleteProjectDialog from './components/DeleteProjectDialog'
+import ActivityLogSection from './components/ActivityLogSection'
+import ProjectAnalyticsDialog from './components/ProjectAnalyticsDialog'
+import ProjectEditorDialog from './components/ProjectEditorDialog'
+import ProjectTableSection from './components/ProjectTableSection'
+import QuickActionsSection from './components/QuickActionsSection'
+import QuickInsightsSection from './components/QuickInsightsSection'
+import ResumeEditorDialog from './components/ResumeEditorDialog'
+import { useAdminActivities } from './hooks/useAdminActivities'
+import { useAdminAuth } from './hooks/useAdminAuth'
+import { useAdminProjects } from './hooks/useAdminProjects'
 
+const ACTIVITY_PAGE_SIZE = 5
+const PROJECT_PAGE_SIZE = 8
 
-// ────────────────────────────────────────────────────────────────────────────────
-// StatCard now uses useColorMode to compute its colors
-// ────────────────────────────────────────────────────────────────────────────────
-const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => {
-  const { colorMode } = useColorMode()
-  const accent  = colorMode === 'light' ? 'teal.500'     : 'teal.300'
-  const bg      = colorMode === 'light' ? 'gray.100'      : 'whiteAlpha.100'
-  const idleTxt = colorMode === 'light' ? 'gray.700'      : 'whiteAlpha.800'
-
-  return (
-    <Box
-      p={4}
-      bg={bg}
-      boxShadow="sm"
-      borderRadius="md"
-      _hover={{
-        boxShadow: !disabled ? 'md' : undefined,
-        cursor:    !disabled ? 'pointer' : undefined,
-      }}
-      onClick={!disabled ? onClick : undefined}
-      opacity={disabled ? 0.6 : 1}
-    >
-      <Text fontSize="md" fontWeight="bold" mb={2}>{label}</Text>
-      <Flex align="center" justify="space-between" mb={2}>
-        <IconComp size="1.75rem" color={accent} />
-        <Text fontSize="2xl" fontWeight="bold" color={accent}>{value}</Text>
-      </Flex>
-      <Text fontSize="xs" color={idleTxt} opacity={0.7}>{desc}</Text>
-    </Box>
-  )
+const reportAdminError = (error) => {
+  if (import.meta.env.DEV) {
+    console.error(error)
+  }
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
-// Main AdminDashboard
-// ────────────────────────────────────────────────────────────────────────────────
-export default function AdminDashboard() {
-  const { colorMode } = useColorMode()
-  const bg = colorMode === 'light' ? 'gray.100' : 'whiteAlpha.100'
+const getApiErrorMessage = (error, fallback) => {
+  const data = error?.response?.data
+  const firstError = Array.isArray(data?.errors) ? data.errors[0] : null
 
-  const [isAuth, setIsAuth] = useState(false)
-  const [password, setPassword] = useState('')
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  if (typeof firstError === 'string') return firstError
+  if (firstError?.path && firstError?.message) return `${firstError.path}: ${firstError.message}`
+  if (data?.message) return data.message
+  if (data?.error) return data.error
+
+  return fallback
+}
+
+export default function AdminDashboard() {
+  const accent = 'brand.600'
+  const bg = 'bg.subtle'
+  const dialogBg = 'bg.surface'
+  const dialogBorder = 'border.subtle'
+  const closeHoverBg = 'bg.subtle'
+
+  const {
+    projects,
+    loading,
+    error,
+    fetchProjects,
+    resumeForm,
+    setResumeForm,
+    resumeLoading,
+    fetchResume,
+    saveResume: persistResume,
+  } = useAdminProjects()
+
+  const handleAuthenticated = useCallback(() => {
+    fetchProjects()
+    fetchResume()
+  }, [fetchProjects, fetchResume])
+
+  const {
+    isAuth,
+    username,
+    setUsername,
+    password,
+    setPassword,
+    handleLogin,
+    handleUnauthorized,
+  } = useAdminAuth({ onAuthenticated: handleAuthenticated })
+
+  const {
+    activities,
+    totalActivities,
+    filterType,
+    setFilterType,
+    filterStart,
+    setFilterStart,
+    filterEnd,
+    setFilterEnd,
+    page,
+    setPage,
+    fetchActivities,
+    clearFilters,
+  } = useAdminActivities({ isAuth, pageSize: ACTIVITY_PAGE_SIZE })
+
+  const [projectPage, setProjectPage] = useState(1)
+  const [projectFilter, setProjectFilter] = useState('all')
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    externalLink: '',
-    githubLink: '',
-    liveDemoLink: '',
-    imageUrl: '',
-    category: '',
-    languages: '',
-    status: '',
-    tags: '',
-    date: '',
-    featured: false,
-  })
+  const [formData, setFormData] = useState(emptyProjectForm)
 
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [isDeleteOpen, setDeleteOpen] = useState(false)
-  const cancelRef = useRef()
+  const [isQuickEditOpen, setQuickEditOpen] = useState(false)
+  const [isQuickDeleteOpen, setQuickDeleteOpen] = useState(false)
+  const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
+  const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
+  const [isResumeOpen, setResumeOpen] = useState(false)
   const [toDelete, setToDelete] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [projectAnalyticsTarget, setProjectAnalyticsTarget] = useState(null)
+  const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
+  const [projectAnalyticsLoading, setProjectAnalyticsLoading] = useState(false)
+  const cancelRef = useRef()
+  const listRef = useRef(null)
 
-  // fetch
-  const fetchProjects = async () => {
-    setLoading(true)
-    try {
-      const { data } = await apiClient.get('/api/projects')
-      setProjects(Array.isArray(data) ? data : [])
-    } catch {
-      setError('Could not load projects.')
-    } finally {
-      setLoading(false)
+  const pageCount = Math.ceil(totalActivities / ACTIVITY_PAGE_SIZE)
+
+  const saveResume = async () => {
+    const saved = await persistResume()
+    if (saved) {
+      setResumeOpen(false)
     }
   }
 
   useEffect(() => {
-    const auth = sessionStorage.getItem('isAdminAuthenticated')
-    const time = sessionStorage.getItem('loginTime')
-    if (auth && time && Date.now() - +time < 30 * 60_000) {
-      setIsAuth(true)
-      fetchProjects()
-    } else {
-      sessionStorage.clear()
-    }
-  }, [])
+    setProjectPage(1)
+  }, [projectFilter])
 
-  // session timeout
   useEffect(() => {
-    if (!isAuth) return
-    let tid
-    const reset = () => {
-      clearTimeout(tid)
-      tid = setTimeout(() => {
-        sessionStorage.clear()
-        setIsAuth(false)
-      }, 15 * 60_000)
-    }
-    window.addEventListener('mousemove', reset)
-    window.addEventListener('keydown', reset)
-    reset()
-    return () => {
-      clearTimeout(tid)
-      window.removeEventListener('mousemove', reset)
-      window.removeEventListener('keydown', reset)
-    }
-  }, [isAuth])
+    const filteredLength = getFilteredProjects(projects, projectFilter).length
+    const maxPage = Math.max(1, Math.ceil(filteredLength / PROJECT_PAGE_SIZE))
+    if (projectPage > maxPage) setProjectPage(maxPage)
+  }, [projects, projectFilter, projectPage])
 
-  const onChange = e => {
-    const { name, value, type, checked } = e.target
-    setFormData(fd => ({
-      ...fd,
+  const onChange = (event) => {
+    const { name, value, type, checked } = event.target
+    setFormData((current) => ({
+      ...current,
       [name]: type === 'checkbox' ? checked : value,
     }))
   }
@@ -160,472 +167,423 @@ export default function AdminDashboard() {
   const onOpenCreate = () => {
     setEditMode(false)
     setCurrent(null)
-    setFormData({
-      title: '',
-      description: '',
-      externalLink: '',
-      githubLink: '',
-      liveDemoLink: '',
-      imageUrl: '',
-      category: '',
-      languages: '',
-      status: '',
-      tags: '',
-      date: '',
-      featured: false,
-    })
+    setFormData(emptyProjectForm)
     setCreateOpen(true)
   }
 
-  const onOpenEdit = proj => {
+  const onOpenEdit = (project) => {
     setEditMode(true)
-    setCurrent(proj)
-    setFormData({
-      title: proj.title || '',
-      description: proj.description || '',
-      externalLink: proj.externalLink || '',
-      githubLink: proj.githubLink || '',
-      liveDemoLink: proj.liveDemoLink || '',
-      imageUrl: proj.imageUrl || '',
-      category: proj.category || '',
-      languages: (proj.languages || []).join(', '),
-      status: proj.status || '',
-      tags: (proj.tags || []).join(', '),
-      date: proj.date ? new Date(proj.date).toISOString().slice(0,10) : '',
-      featured: proj.featured || false,
-    })
+    setCurrent(project)
+    setFormData(projectToFormData(project))
     setCreateOpen(true)
   }
 
-  const onSubmit = async () => {
+  const handleProjectFilter = (filter) => {
+    setProjectFilter(filter)
+    setProjectPage(1)
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const openProjectAnalytics = async (project) => {
+    if (!project) return
+    setProjectAnalyticsTarget(project)
+    setProjectAnalyticsOpen(true)
+    const projectId = project.id || project._id
+    if (!projectId) return
+    setProjectAnalyticsLoading(true)
     try {
-      const payload = {
-        ...formData,
-        languages: formData.languages.split(',').map(s => s.trim()),
-        tags: formData.tags.split(',').map(s => s.trim()),
-        date: new Date(formData.date),
-      }
-      const headers = { Authorization: `Bearer ${import.meta.env.VITE_ADMIN_SECRET}` }
-      if (editMode) {
-        await apiClient.put(`/api/projects/${current._id}`, payload, { headers })
-        toaster.create({ title: 'Project updated', type: 'success', closable: true })
-      } else {
-        await apiClient.post('/api/projects', payload, { headers })
-        toaster.create({ title: 'Project created', type: 'success', closable: true })
-      }
-      fetchProjects()
-      setCreateOpen(false)
-    } catch {
-      toaster.create({ title: 'Error saving project', type: 'error', closable: true })
+      const { data } = await apiClient.get('/api/activities', {
+        params: { projectId, page: 1, limit: 5 },
+      })
+      setProjectAnalyticsActivities(Array.isArray(data.activities) ? data.activities : [])
+    } catch (error) {
+      reportAdminError(error)
+      setProjectAnalyticsActivities([])
+    } finally {
+      setProjectAnalyticsLoading(false)
     }
   }
 
-  const confirmDelete = proj => {
-    setToDelete(proj)
+  const addMetric = () =>
+    setResumeForm((current) => ({
+      ...current,
+      metrics: [...current.metrics, { label: '', value: '', note: '' }],
+    }))
+  const updateMetric = (index, key, value) =>
+    setResumeForm((current) => {
+      const next = [...current.metrics]
+      next[index] = { ...next[index], [key]: value }
+      return { ...current, metrics: next }
+    })
+  const removeMetric = (index) =>
+    setResumeForm((current) => ({
+      ...current,
+      metrics: current.metrics.filter((_, itemIndex) => itemIndex !== index),
+    }))
+
+  const addExperience = () =>
+    setResumeForm((current) => ({
+      ...current,
+      experience: [...current.experience, { role: '', company: '', location: '', period: '', bulletsText: '' }],
+    }))
+  const updateExperience = (index, key, value) =>
+    setResumeForm((current) => {
+      const next = [...current.experience]
+      next[index] = { ...next[index], [key]: value }
+      return { ...current, experience: next }
+    })
+  const removeExperience = (index) =>
+    setResumeForm((current) => ({
+      ...current,
+      experience: current.experience.filter((_, itemIndex) => itemIndex !== index),
+    }))
+
+  const addEducation = () =>
+    setResumeForm((current) => ({
+      ...current,
+      education: [...current.education, { school: '', degree: '', period: '', bulletsText: '' }],
+    }))
+  const updateEducation = (index, key, value) =>
+    setResumeForm((current) => {
+      const next = [...current.education]
+      next[index] = { ...next[index], [key]: value }
+      return { ...current, education: next }
+    })
+  const removeEducation = (index) =>
+    setResumeForm((current) => ({
+      ...current,
+      education: current.education.filter((_, itemIndex) => itemIndex !== index),
+    }))
+
+  const addCertification = () =>
+    setResumeForm((current) => ({
+      ...current,
+      certifications: [...current.certifications, { name: '', issuer: '', year: '' }],
+    }))
+  const updateCertification = (index, key, value) =>
+    setResumeForm((current) => {
+      const next = [...current.certifications]
+      next[index] = { ...next[index], [key]: value }
+      return { ...current, certifications: next }
+    })
+  const removeCertification = (index) =>
+    setResumeForm((current) => ({
+      ...current,
+      certifications: current.certifications.filter((_, itemIndex) => itemIndex !== index),
+    }))
+
+  const onSubmit = async () => {
+    try {
+      const payload = buildProjectPayload(formData)
+
+      if (editMode) {
+        const { data: updated } = await apiClient.put(`/api/projects/${current.id}`, payload)
+        const normalizedUpdated = normalizeProject(updated)
+        toaster.create({ title: 'Project updated', type: 'success', closable: true })
+
+        const changed = Object.keys(payload).filter((key) =>
+          JSON.stringify(payload[key]) !== JSON.stringify(current[key])
+        )
+        await apiClient.post('/api/activities', {
+          projectId: normalizedUpdated.id,
+          type: 'Updated',
+          title: normalizedUpdated.title,
+          detail: changed.length ? `Changed: ${changed.join(', ')}` : '',
+        })
+      } else {
+        const { data: created } = await apiClient.post('/api/projects', payload)
+        const normalizedCreated = normalizeProject(created)
+        toaster.create({ title: 'Project created', type: 'success', closable: true })
+        await apiClient.post('/api/activities', {
+          projectId: normalizedCreated.id,
+          type: 'Created',
+          title: normalizedCreated.title,
+          detail: `Added a new project ${normalizedCreated.title}, Category: ${normalizedCreated.category}; Languages: ${normalizedCreated.languages.join(', ')}; Status: ${normalizedCreated.status}`,
+        })
+      }
+
+      await fetchActivities()
+      await fetchProjects()
+      setCreateOpen(false)
+    } catch (error) {
+      reportAdminError(error)
+      if (handleUnauthorized(error)) return
+      toaster.create({
+        title: 'Error saving project',
+        description: getApiErrorMessage(error, 'Please check the project fields and try again.'),
+        type: 'error',
+        closable: true,
+      })
+    }
+  }
+
+  const confirmDelete = (project) => {
+    setToDelete(project)
     setDeleteOpen(true)
   }
+
   const doDelete = async () => {
     try {
-      await apiClient.delete(`/api/projects/${toDelete._id}`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_AUTH_TOKEN}` }
-      })
+      await apiClient.delete(`/api/projects/${toDelete.id}`)
       toaster.create({ title: 'Project deleted', type: 'success', closable: true })
+      await apiClient.post('/api/activities', {
+        projectId: toDelete.id,
+        type: 'Deleted',
+        title: toDelete.title,
+      })
+      fetchActivities()
       fetchProjects()
-    } catch {
+    } catch (error) {
+      reportAdminError(error)
+      if (handleUnauthorized(error)) return
       toaster.create({ title: 'Error deleting', type: 'error', closable: true })
     } finally {
       setDeleteOpen(false)
     }
   }
 
-  // FileUploadList remains same
-  const FileUploadList = () => {
-    const fileUpload = useFileUploadContext()
-    const files = fileUpload.acceptedFiles
-    if (!files.length) return null
-    return (
-      <FileUpload.ItemGroup>
-        {files.map(file => (
-          <FileUpload.Item key={file.name} file={file} boxSize="20" p="2">
-            <FileUpload.ItemPreviewImage />
-            <Float placement="top-end">
-              <FileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid">
-                <RiImageAddLine />
-              </FileUpload.ItemDeleteTrigger>
-            </Float>
-          </FileUpload.Item>
-        ))}
-      </FileUpload.ItemGroup>
-    )
+  const onUploadImage = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setIsUploading(true)
+    try {
+      const body = new FormData()
+      body.append('image', file)
+      const { data } = await apiClient.post('/api/projects/upload', body)
+      if (!data?.imageUrl) throw new Error('Missing imageUrl from upload')
+      setFormData((current) => ({ ...current, imageUrl: data.imageUrl }))
+    } catch (error) {
+      reportAdminError(error)
+      if (handleUnauthorized(error)) return
+      toaster.create({
+        title: 'Image upload failed',
+        description: getApiErrorMessage(error, 'Please choose a valid image and try again.'),
+        type: 'error',
+        closable: true,
+      })
+    } finally {
+      setIsUploading(false)
+    }
   }
 
-// ── KPIs & lists ─────────────────────────────────────────────────────────────
+  const mostViewedProject = useMemo(() => {
+    if (!projects.length) return null
+    return [...projects].sort((a, b) => (b.views || 0) - (a.views || 0))[0]
+  }, [projects])
+
+  const mostViewedMeta = mostViewedProject
+    ? `${mostViewedProject.title || 'Untitled'}${mostViewedProject.category ? ` - ${mostViewedProject.category}` : ''}`
+    : 'No views yet'
+
   const kpis = useMemo(() => [
-    { label:'Total Projects',    value:projects.length,                                desc:'all projects', icon:HiFolderOpen, onClick:() => {} },
-    { label:'Active Projects',   value:projects.filter(p=>p.status==='active').length, desc:'in progress', icon:HiPlay,       onClick:() => {} },
-    { label:'Most Viewed',       value:projects.length?Math.max(...projects.map(p=>p.views||0)):0, desc:'peak views', icon:HiEye, onClick:() => {} },
-    { label:'Featured Projects', value:projects.filter(p=>p.featured).length,         desc:'your best',    icon:HiStar,      onClick:() => {} },
-  ], [projects])
+    { label: 'Total Projects', value: projects.length, desc: 'all projects', icon: HiFolderOpen, onClick: () => handleProjectFilter('all') },
+    { label: 'Active Projects', value: projects.filter((project) => isInProgress(project.status)).length, desc: 'in progress', icon: HiPlay, onClick: () => handleProjectFilter('active') },
+    { label: 'Most Viewed', value: mostViewedProject?.views || 0, desc: 'peak views', icon: HiEye, onClick: () => openProjectAnalytics(mostViewedProject), extra: mostViewedMeta },
+    { label: 'Featured Projects', value: projects.filter((project) => project.featured).length, desc: 'your best', icon: HiStar, onClick: () => handleProjectFilter('featured') },
+  ], [projects, mostViewedProject, mostViewedMeta])
 
   const quickActions = [
-    { label:'Add Project',    value:'',              desc:'create new', icon:HiPlus,   onClick:onOpenCreate },
-    { label:'Edit Project',   value:projects.length, desc:'modify',     icon:HiPencil, onClick:()=>{} },
-    { label:'Delete Project', value:projects.length, desc:'remove',     icon:HiTrash,  onClick:()=>{} },
-    { label:'View Analytics', value:'',              desc:'charts',     icon:HiEye,    onClick:()=>{} },
+    { label: 'Add Project', value: '', desc: 'create new', icon: HiPlus, onClick: onOpenCreate },
+    { label: 'Edit Project', value: projects.length, desc: 'modify', icon: HiPencil, onClick: () => setQuickEditOpen(true) },
+    { label: 'Delete Project', value: projects.length, desc: 'remove', icon: HiTrash, onClick: () => setQuickDeleteOpen(true) },
+    { label: 'View Analytics', value: '', desc: 'charts', icon: HiEye, onClick: () => setAnalyticsOpen(true) },
+    {
+      label: 'Edit Resume',
+      value: '',
+      desc: 'about page',
+      icon: HiDocumentText,
+      onClick: () => {
+        fetchResume()
+        setResumeOpen(true)
+      },
+    },
   ]
 
-  const recent = useMemo(
-    () => [...projects].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5),
-    [projects],
+  const counts = useMemo(() => getProjectCounts(projects), [projects])
+  const analytics = useMemo(() => getProjectAnalytics(projects), [projects])
+  const filteredProjects = useMemo(
+    () => getFilteredProjects(projects, projectFilter),
+    [projects, projectFilter],
+  )
+  const projectFilterLabel = getProjectFilterLabel(projectFilter)
+  const projectPageCount = Math.max(1, Math.ceil(filteredProjects.length / PROJECT_PAGE_SIZE))
+  const paginatedProjects = filteredProjects.slice(
+    (projectPage - 1) * PROJECT_PAGE_SIZE,
+    projectPage * PROJECT_PAGE_SIZE,
   )
 
-  const counts = {
-    started:  projects.filter(p=>p.status==='active').length,
-    finished: projects.filter(p=>p.status==='completed').length,
-    total:    projects.length,
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────────
-  // LOGIN SCREEN with Fieldset
-  // ──────────────────────────────────────────────────────────────────────────────
-
-  // Auth screen
   if (!isAuth) {
     return (
       <>
         <Toaster />
-        <Flex height="100vh" align="center" justify="center">
-          <Box p={6} bg={bg} borderRadius="md">
-            <Fieldset.Root size="md" maxW="sm">
-              <Stack mb={4} spaceY={2}>
-                <Fieldset.Legend>Admin Login</Fieldset.Legend>
-                <Fieldset.HelperText>Enter your admin password</Fieldset.HelperText>
-              </Stack>
-              <Fieldset.Content>
-                <Field.Root required>
-                  <Field.Label>Password</Field.Label>
-                  <Input
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                </Field.Root>
-              </Fieldset.Content>
-              <Button mt={4} w="full" colorScheme="teal" onClick={() => {
-                if (password === import.meta.env.VITE_ADMIN_SECRET) {
-                  sessionStorage.setItem('isAdminAuthenticated', 'true')
-                  sessionStorage.setItem('loginTime', `${Date.now()}`)
-                  setIsAuth(true)
-                  fetchProjects()
-                } else {
-                  toaster.create({ title: 'Wrong password', type: 'error', closable: true })
-                }
-              }}>Login</Button>
-            </Fieldset.Root>
-          </Box>
-        </Flex>
+        <AdminLoginPanel
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
+          handleLogin={handleLogin}
+        />
       </>
     )
   }
 
-  // Main UI
   return (
     <>
       <Toaster />
       <Box p={{ base: 4, md: 8 }}>
-        <Heading>Welcome Back!</Heading>
-        {/* KPI, Recent, Quick Actions, Listing same as before */}
-        <Text mb={6} color="gray.400">Here’s what’s happening with your projects</Text>
+        <AdminOverviewHeader
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+          onOpenCreate={onOpenCreate}
+          onOpenAnalytics={() => setAnalyticsOpen(true)}
+        />
 
-        {/* KPI Row */}
-        <SimpleGrid columns={{ base:1, md:2, lg:4 }} spaceX={6} spaceY={4} mb={8}>
-          {kpis.map(k => (
-            <StatCard key={k.label} {...k} disabled={!k.onClick} />
-          ))}
-        </SimpleGrid>
+        <Box mb={8}>
+          <DashboardStats statCards={kpis.map((kpi) => ({ ...kpi, disabled: !kpi.onClick }))} />
+        </Box>
 
-        {/* Recent & Insights */}
-        <SimpleGrid columns={{ base:1, md:2 }} spaceX={6} spaceY={4} mb={8}>
-          {/* Recent Activity */}
-          <Box>
-            <Heading size="md" mb={4}>Recent Activity</Heading>
-            <VStack spaceY={4} align="stretch">
-              {recent.length
-                ? recent.map(p=>(
-                    <Box key={p._id} p={4} bg={bg} borderRadius="md">
-                      <Flex justify="space-between" mb={2}>
-                        <Text fontWeight="medium">{p.title}</Text>
-                        <Text fontSize="xs" color="gray.500">
-                          {new Date(p.date).toLocaleString(undefined,{
-                            month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'
-                          })}
-                        </Text>
-                      </Flex>
-                      <Text fontSize="xs" color="gray.400">{p.description||'No details'}</Text>
-                    </Box>
-                  ))
-                : <Text color="gray.500">No recent activity.</Text>
-              }
-            </VStack>
-          </Box>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6} alignItems="stretch" mb={8}>
+          <ActivityLogSection
+            activities={activities}
+            totalActivities={totalActivities}
+            page={page}
+            pageCount={pageCount}
+            pageSize={ACTIVITY_PAGE_SIZE}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterStart={filterStart}
+            setFilterStart={setFilterStart}
+            filterEnd={filterEnd}
+            setFilterEnd={setFilterEnd}
+            setPage={setPage}
+            fetchActivities={fetchActivities}
+            clearFilters={clearFilters}
+            bg={bg}
+            dialogBg={dialogBg}
+            dialogBorder={dialogBorder}
+          />
 
-          {/* Quick Insights */}
-          <Box>
-            <Heading size="md" mb={4}>Quick Insights</Heading>
-            <Box p={4} bg={bg} borderRadius="md">
-              <Stack spaceX={3}>
-                <Flex justify="space-between"><Text>Started</Text><Text fontWeight="bold">{counts.started}</Text></Flex>
-                <Flex justify="space-between"><Text>Finished</Text><Text fontWeight="bold">{counts.finished}</Text></Flex>
-                <Flex justify="space-between"><Text>Total</Text><Text fontWeight="bold">{counts.total}</Text></Flex>
-              </Stack>
-            </Box>
-          </Box>
-        </SimpleGrid>
-
-        {/* Quick Actions */}
-        <SimpleGrid columns={{ base:1, md:2, lg:4 }} spaceX={6} spaceY={4} mb={8}>
-          {quickActions.map(a => (
-            <StatCard key={a.label} {...a} />
-          ))}
-        </SimpleGrid>
-
-        {/* Project Listing */}
-        <Box mb={6}>
-          <Flex justify="space-between" mb={4}>
-            <Heading size="lg">Existing Projects</Heading>
-            <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>New Project</Button>
-          </Flex>
-          <Stack spaceY={3}>
-            {projects.map(p=>(
-              <Flex
-                key={p._id}
-                p={4}
-                bg={bg}
-                borderRadius="md"
-                justify="space-between"
-              >
-                <Box>
-                  <Text fontWeight="bold">{p.title}</Text>
-                  <Text fontSize="sm" color="gray.500">{p.category}</Text>
-                </Box>
-                <Stack direction="row" spaceX={2} spaceY={2}>
-                  <Button size="sm" leftIcon={<HiPencil />} onClick={()=>onOpenEdit(p)}>Edit</Button>
-                  <Button size="sm" leftIcon={<HiTrash />} colorScheme="red" onClick={()=>confirmDelete(p)}>Delete</Button>
-                </Stack>
-              </Flex>
-            ))}
+          <Stack gap={6} h="full">
+            <QuickInsightsSection counts={counts} dialogBg={dialogBg} dialogBorder={dialogBorder} />
+            <QuickActionsSection
+              quickActions={quickActions}
+              projectsCount={projects.length}
+              dialogBg={dialogBg}
+              dialogBorder={dialogBorder}
+            />
           </Stack>
-        </Box>        
+        </SimpleGrid>
 
+        {loading && <LoadingState label="Loading projects..." />}
+        {error && (
+          <ErrorState
+            title={error}
+            description="Project data could not be refreshed."
+            onRetry={fetchProjects}
+          />
+        )}
+        <Box ref={listRef}>
+          <Text fontSize="sm" color="fg.muted" mb={2}>{projectFilterLabel} projects</Text>
+          <ProjectTableSection
+            projects={projects}
+            paginatedProjects={paginatedProjects}
+            projectPage={projectPage}
+            projectPageCount={projectPageCount}
+            projectPageSize={PROJECT_PAGE_SIZE}
+            onProjectPageChange={setProjectPage}
+            onOpenCreate={onOpenCreate}
+            onOpenEdit={onOpenEdit}
+            onConfirmDelete={confirmDelete}
+            isQuickEditOpen={isQuickEditOpen}
+            setQuickEditOpen={setQuickEditOpen}
+            isQuickDeleteOpen={isQuickDeleteOpen}
+            setQuickDeleteOpen={setQuickDeleteOpen}
+            bg={bg}
+            dialogBg={dialogBg}
+            dialogBorder={dialogBorder}
+            closeHoverBg={closeHoverBg}
+          />
+        </Box>
 
+        <ResumeEditorDialog
+          open={isResumeOpen}
+          onOpenChange={(details) => setResumeOpen(details.open)}
+          resumeForm={resumeForm}
+          setResumeForm={setResumeForm}
+          resumeLoading={resumeLoading}
+          saveResume={saveResume}
+          onCancel={() => setResumeOpen(false)}
+          addMetric={addMetric}
+          updateMetric={updateMetric}
+          removeMetric={removeMetric}
+          addExperience={addExperience}
+          updateExperience={updateExperience}
+          removeExperience={removeExperience}
+          addEducation={addEducation}
+          updateEducation={updateEducation}
+          removeEducation={removeEducation}
+          addCertification={addCertification}
+          updateCertification={updateCertification}
+          removeCertification={removeCertification}
+          bg={bg}
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+          closeHoverBg={closeHoverBg}
+        />
 
-        <Button leftIcon={<HiPlus />} colorScheme="teal" onClick={onOpenCreate}>New Project</Button>
+        <ActivityAnalyticsDialog
+          open={isAnalyticsOpen}
+          onOpenChange={(details) => setAnalyticsOpen(details.open)}
+          projects={projects}
+          analytics={analytics}
+          onClose={() => setAnalyticsOpen(false)}
+          bg={bg}
+          accent={accent}
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+          closeHoverBg={closeHoverBg}
+        />
 
-        <Dialog.Root placement="center" open={isCreateOpen} onOpenChange={setCreateOpen} scrollBehavior="inside" px={2}>
-          <Portal>
-            <Dialog.Backdrop />
-            <Dialog.Positioner>
-              <Dialog.Content
-                w={{ base: '90vw', md: '600px' }}
-                maxH="85vh"
-                overflowY="auto"
-                bg={bg}
-                color={colorMode === 'light' ? 'gray.800' : 'whiteAlpha.900'}
-                p={{ base: 4, md: 6 }}
-                rounded="lg"
-                shadow="lg"
-                borderWidth="1px"
-                borderColor={colorMode === 'light' ? 'gray.200' : 'whiteAlpha.300'}
-              >
-                <Dialog.Header display="flex" justifyContent="space-between" mb={4}>
-                  <Dialog.Title fontSize="2xl" fontWeight="bold">
-                    {editMode ? 'Edit Project' : 'New Project'}
-                  </Dialog.Title>
-                  <Dialog.CloseTrigger asChild>
-                    <CloseButton />
-                  </Dialog.CloseTrigger>
-                </Dialog.Header>
+        <ProjectAnalyticsDialog
+          open={isProjectAnalyticsOpen}
+          onOpenChange={(details) => setProjectAnalyticsOpen(details.open)}
+          project={projectAnalyticsTarget}
+          activities={projectAnalyticsActivities}
+          loading={projectAnalyticsLoading}
+          getAvgStars={getAvgStars}
+          onClose={() => setProjectAnalyticsOpen(false)}
+          bg={bg}
+          accent={accent}
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+          closeHoverBg={closeHoverBg}
+        />
 
-                <Dialog.Body px={0}>
-                  <Fieldset.Root size="lg" maxW="2xl">
-                    <Fieldset.Content>
-                      {/* Title & Description */}
-                      <Field.Root required>
-                        <Field.Label>Project Title</Field.Label>
-                        <Input
-                          name="title"
-                          value={formData.title}
-                          onChange={onChange}
-                          px={2}
-                        />
-                      </Field.Root>
-                      <Field.Root required>
-                        <Field.Label>Project Description</Field.Label>
-                        <Textarea
-                          name="description"
-                          value={formData.description}
-                          onChange={onChange}
-                          px={2}
-                          aria-label="Project Description"
-                        />
-                      </Field.Root>
+        <ProjectEditorDialog
+          open={isCreateOpen}
+          onOpenChange={(details) => setCreateOpen(details.open)}
+          editMode={editMode}
+          formData={formData}
+          onChange={onChange}
+          onSubmit={onSubmit}
+          onCancel={() => setCreateOpen(false)}
+          onUploadImage={onUploadImage}
+          isUploading={isUploading}
+          setFormData={setFormData}
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+          closeHoverBg={closeHoverBg}
+        />
 
-                      {/* Links Row */}
-                      <Flex wrap="wrap" gap={2} mb={4}>
-                        <Field.Root flex="1">
-                          <Field.Label>External Link</Field.Label>
-                          <Input
-                            name="externalLink"
-                            type="url"
-                            placeholder="https://example.com"
-                            value={formData.externalLink}
-                            onChange={onChange}
-                            px={2}
-                          />
-                        </Field.Root>
-                        <Field.Root flex="1">
-                          <Field.Label>GitHub Link</Field.Label>
-                          <Input
-                            name="githubLink"
-                            type="url"
-                            placeholder="https://github.com/..."
-                            value={formData.githubLink}
-                            onChange={onChange}
-                            px={2}
-                          />
-                        </Field.Root>
-                        <Field.Root flex="1">
-                          <Field.Label>Live Link</Field.Label>
-                          <Input
-                            name="liveDemoLink"
-                            type="url"
-                            placeholder="https://live-demo.com"
-                            value={formData.liveDemoLink}
-                            onChange={onChange}
-                            px={2}
-                          />
-                        </Field.Root>
-                      </Flex>
-
-                      {/* Category, Languages, Tags, Status, Date... same pattern as above */}
-                      <Field.Root required>
-                        <Field.Label htmlFor="category-select">
-                          Category
-                        </Field.Label>
-                        <NativeSelect.Root>
-                          <NativeSelect.Field
-                            id="category-select"
-                            name="category"
-                            value={formData.category}
-                            onChange={onChange}
-                            paddingX={2}
-                          >
-                            <option value="" disabled>
-                              Select a category…
-                            </option>
-                            {[
-                              'Web Development',
-                              'Data Analysis',
-                              'Machine Learning/AI',
-                              'Data Science',
-                              'Other',
-                            ].map(item => (
-                              <option key={item} value={item}>
-                                {item}
-                              </option>
-                            ))}
-                          </NativeSelect.Field>
-                          <NativeSelect.Indicator />
-                        </NativeSelect.Root>
-                      </Field.Root>
-                      <Field.Root required>
-                        <Field.Label>Languages</Field.Label>
-                        <Input name="languages" value={formData.languages} onChange={onChange} paddingX={2} alignContent="center"/>
-                      </Field.Root>
-                      <Field.Root required>
-                        <Field.Label>Tags</Field.Label>
-                        <Input name="tags" value={formData.tags} onChange={onChange} paddingX={2} alignContent="center" />
-                      </Field.Root>
-                      <Field.Root required>
-                        <Field.Label htmlFor="status-select">Project Status</Field.Label>
-                        <NativeSelect.Root>
-                          <NativeSelect.Field id="status-select" name="status" value={formData.status} onChange={onChange} paddingX={2} alignContent="center">
-                            <option value="" disabled>
-                              Select status…
-                            </option>
-                            {['Not Started','In Progress','Completed'].map(item => (
-                              <option key={item} value={item}>
-                                {item}
-                              </option>
-                            ))}
-                          </NativeSelect.Field>
-                          <NativeSelect.Indicator />
-                        </NativeSelect.Root>
-                      </Field.Root>
-                      <Field.Root required>
-                        <Field.Label>Upload Date</Field.Label>
-                        <Input type="date" name="date" value={formData.date} onChange={onChange} paddingX={2} alignContent="center" />
-                      </Field.Root>
-
-
-                      {/* Image Upload & Featured */}
-                      <Flex align="center" gap={4}>
-                        <Field.Root>
-                          <Field.Label>Preview Image</Field.Label>
-                          <FileUpload.Root accept="image/*">
-                            <FileUpload.HiddenInput
-                              aria-label="Select preview image"
-                              onChange={e => {
-                                const file = e.target.files?.[0]
-                                if (!file) return
-                                const url = URL.createObjectURL(file)
-                                setFormData(fd => ({ ...fd, imageUrl: url }))
-                              }}
-                            />
-                            <FileUpload.Trigger asChild>
-                              <Button size="sm" variant="outline" aria-label="Upload image">
-                                <RiImageAddLine />
-                              </Button>
-                            </FileUpload.Trigger>
-                            <FileUploadList />
-                          </FileUpload.Root>
-                        </Field.Root>
-
-                        <Field.Root>
-                          <Checkbox.Root
-                            name="featured"
-                            checked={formData.featured}
-                            onCheckedChange={val => setFormData(fd => ({ ...fd, featured: val }))}
-                          >
-                            <Checkbox.HiddenInput />
-                            <Checkbox.Control />
-                            <Checkbox.Label>Featured?</Checkbox.Label>
-                          </Checkbox.Root>
-                        </Field.Root>
-                      </Flex>
-                    </Fieldset.Content>
-                  </Fieldset.Root>
-                </Dialog.Body>
-
-                <Dialog.Footer display="flex" justifyContent="flex-end" mt={4} gap={3}>
-                  <Dialog.ActionTrigger asChild>
-                    <Button onClick={onSubmit} variant="solid">
-                      {editMode ? 'Update' : 'Create'}
-                    </Button>
-                  </Dialog.ActionTrigger>
-                  <Button onClick={() => setCreateOpen(false)} variant="ghost">Cancel</Button>
-                </Dialog.Footer>
-
-                <Dialog.CloseTrigger asChild>
-                  <CloseButton position="absolute" top="4" right="4"/>
-                </Dialog.CloseTrigger>
-              </Dialog.Content>
-            </Dialog.Positioner>
-          </Portal>
-        </Dialog.Root>
+        <DeleteProjectDialog
+          open={isDeleteOpen}
+          onOpenChange={(details) => setDeleteOpen(details.open)}
+          project={toDelete}
+          cancelRef={cancelRef}
+          onDelete={doDelete}
+        />
       </Box>
     </>
   )
 }
+

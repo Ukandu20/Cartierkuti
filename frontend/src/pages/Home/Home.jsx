@@ -5,110 +5,191 @@ import React, { Suspense } from 'react'
 import {
   Box,
   Button,
+  ButtonGroup,
   Flex,
   Heading,
+  HStack,
   Icon,
-  Link as ChakraLink,
+  Separator,
   SimpleGrid,
   Spinner,
   Stack,
   Text,
   useBreakpointValue,
 } from '@chakra-ui/react'
-import { Helmet } from 'react-helmet'
-import { FaExpandAlt } from 'react-icons/fa'
-import {
-  SiJavascript, SiReact, SiNodedotjs, SiExpress, SiMongodb,
-  SiPython, SiPandas, SiNumpy, SiScikitlearn, SiTensorflow, SiMysql,
-} from 'react-icons/si'
-import { Link, useLocation } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
+import { FaArrowRight, FaDownload } from 'react-icons/fa'
+import { Link } from 'react-router-dom'
 import { useColorMode } from '@/components/Theme/color-mode'
+import { absoluteUrl, siteTitle } from '@/utils/siteConfig'
 
-/* ─── helper to underline active nav link ─── */
-const useActiveLink = (pathname) => {
-  const { pathname: current } = useLocation()
-  return current === pathname ? { textDecoration: 'underline' } : undefined
+const editorialFonts = {
+  heading: "'Playfair Display', serif",
+  body: "'Source Sans 3', system-ui, sans-serif",
+  mono: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
 }
 
-/* ───────────────────────── HERO ───────────────────────── */
+const getEditorialTokens = (colorMode) => ({
+  bg: colorMode === 'light' ? '#F6F4F1' : '#141414',
+  surface: colorMode === 'light' ? '#FFFFFF' : '#1B1B1B',
+  surfaceAlt: colorMode === 'light' ? '#FBFAF8' : '#222222',
+  ink: colorMode === 'light' ? '#1A1A1A' : 'gray.100',
+  muted: colorMode === 'light' ? '#4B4B4B' : 'gray.400',
+  rule: colorMode === 'light' ? '#E2DED8' : 'gray.700',
+  accentData: '#0F766E',
+  accentSecurity: '#7C2D12',
+})
+
+/* ------------------------------ Hero ------------------------------ */
 const Hero = () => {
   const { colorMode } = useColorMode()
-
-  const main = colorMode === 'light' ? 'gray.100' : 'white'
-  const sub  = colorMode === 'light' ? 'gray.300' : 'gray.400'
-  const body = colorMode === 'light' ? 'gray.400' : 'gray.300'
+  const tokens = getEditorialTokens(colorMode)
+  const sparkline = [12, 26, 18, 34, 22, 40, 28]
 
   return (
-    <Flex
-      as="section"
-      role="region"
-      aria-labelledby="hero-heading"
-      direction="column"
-      align="center"
-      justify="center"
-      minH="calc(100vh - 90px)"
-      px={4}
-      bgGradient={
-        colorMode === 'light'
-          ? 'linear(to-b, whiteAlpha.900, whiteAlpha.700)'
-          : 'linear(to-b, gray.900, gray.800)'
-      }
-      textAlign="center"
-    >
-      <Stack spacing={6} maxW="800px" align="center">
-        <Heading
-          id="hero-heading"
-          fontSize={{ base: '5xl', md: '7xl' }}
-          fontWeight="700"
-          color={main}
-          lineHeight="1.1"
-        >
-          Hey, I’m&nbsp;
-          <Box as="span" color="brand.500" whiteSpace="nowrap">
-            Preston
-          </Box>
-        </Heading>
+    <Box as="section" role="region" aria-labelledby="hero-heading" bg={tokens.bg}>
+      <Flex
+        direction={{ base: 'column', lg: 'row' }}
+        align="center"
+        justify="space-between"
+        gap={{ base: 10, lg: 16 }}
+        minH={{ base: 'auto', md: 'calc(85vh - 90px)' }}
+        px={{ base: 6, md: 10 }}
+        py={{ base: 14, md: 20 }}
+        maxW="7xl"
+        mx="auto"
+      >
+        <Stack gap={6} flex="1" align={{ base: 'center', lg: 'flex-start' }}>
+          <Text
+            fontFamily={editorialFonts.mono}
+            fontSize="xs"
+            letterSpacing="0.24em"
+            textTransform="uppercase"
+            color={tokens.muted}
+          >
+            Data analytics / security insights / scientific rigor
+          </Text>
 
-        <Heading
-          as="h2"
-          fontSize={{ base: '2xl', md: '4xl' }}
-          fontWeight="500"
-          color={sub}
-        >
-          Full-stack&nbsp;&amp;&nbsp;Data&nbsp;Science&nbsp;Developer
-        </Heading>
+          <Heading
+            id="hero-heading"
+            fontFamily={editorialFonts.heading}
+            fontSize={{ base: '4xl', md: '6xl' }}
+            fontWeight="600"
+            color={tokens.ink}
+            lineHeight="1.05"
+            textAlign={{ base: 'center', lg: 'left' }}
+          >
+            Data Analyst &amp; <Box as="span" color={tokens.accentData}>Cybersecurity-minded</Box>
+            <br />
+            Scientist.
+          </Heading>
 
-        <Text fontSize="lg" color={body} maxW="75%">
-          Computer Science grad with a passion for building robust web apps
-          and extracting insights from data.
-        </Text>
+          <Text
+            fontFamily={editorialFonts.body}
+            fontSize={{ base: 'lg', md: 'xl' }}
+            color={tokens.muted}
+            maxW="560px"
+            textAlign={{ base: 'center', lg: 'left' }}
+          >
+            I build analytics systems that reveal risk, improve decisions, and secure data workflows.
+            My work blends BI, statistical modeling, and security-aware analysis.
+          </Text>
 
-        <Button
-          as={Link}
-          to="/about"
-          variant="link"
-          size="lg"
-          gap={2}
-          colorScheme="brand"
-          rightIcon={
-            <Icon
-              as={FaExpandAlt}
-              transform="rotate(45deg)"
-              mt="-2px"
-              aria-hidden="true"
-            />
-          }
-          aria-label="Learn more about me"
-          sx={useActiveLink('/about')}
+          <SimpleGrid columns={{ base: 1, sm: 3 }} gap={6} w="full" pt={2}>
+            {[
+              'Dashboards and KPI reporting',
+              'Predictive modeling and anomaly detection',
+              'Risk analytics and security telemetry',
+            ].map((item) => (
+              <Box key={item} borderTop="1px solid" borderColor={tokens.rule} pt={3}>
+                <Text
+                  fontFamily={editorialFonts.mono}
+                  fontSize="xs"
+                  textTransform="uppercase"
+                  letterSpacing="0.12em"
+                  color={tokens.muted}
+                >
+                  {item}
+                </Text>
+              </Box>
+            ))}
+          </SimpleGrid>
+
+          <ButtonGroup gap={4} pt={4} flexWrap="wrap" justifyContent={{ base: 'center', lg: 'flex-start' }}>
+            <Button
+              asChild
+              size="lg"
+              colorPalette="teal"
+              fontFamily={editorialFonts.body}
+            >
+              <Link to="/portfolio">
+                View Projects
+                <Icon as={FaArrowRight} aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              colorPalette="teal"
+              fontFamily={editorialFonts.body}
+            >
+              <a href="/resume.pdf" download>
+                <Icon as={FaDownload} aria-hidden="true" />
+                Download Resume
+              </a>
+            </Button>
+          </ButtonGroup>
+        </Stack>
+
+        <Stack
+          gap={6}
+          flex="1"
+          maxW="420px"
+          w="full"
+          bg={tokens.surface}
+          border="1px solid"
+          borderColor={tokens.rule}
+          borderRadius="2xl"
+          p={{ base: 6, md: 8 }}
+          boxShadow="md"
         >
-          Learn&nbsp;More
-        </Button>
-      </Stack>
-    </Flex>
+          <Text
+            fontFamily={editorialFonts.mono}
+            fontSize="xs"
+            letterSpacing="0.24em"
+            textTransform="uppercase"
+            color={tokens.muted}
+          >
+            Signal overview
+          </Text>
+          <Heading fontFamily={editorialFonts.heading} fontSize="2xl" color={tokens.ink}>
+            Risk Drift Index
+          </Heading>
+          <Text fontFamily={editorialFonts.body} color={tokens.muted}>
+            Monitoring anomaly patterns across operational data streams and security events.
+          </Text>
+          <HStack gap="6px" align="flex-end" h="48px">
+            {sparkline.map((height, idx) => (
+              <Box
+                key={`${height}-${idx}`}
+                w="10px"
+                h={`${height}px`}
+                bg={idx === sparkline.length - 1 ? tokens.accentSecurity : tokens.rule}
+                borderRadius="full"
+              />
+            ))}
+          </HStack>
+          <Text fontFamily={editorialFonts.mono} fontSize="xs" color={tokens.muted}>
+            Status: stable | last updated today
+          </Text>
+        </Stack>
+      </Flex>
+    </Box>
   )
 }
 
-/* ─────────────────────── PROJECTS ─────────────────────── */
+/* --------------------------- Featured projects --------------------------- */
 const Projects = React.lazy(() =>
   import(
     /* webpackChunkName: "ProjectsCarousel" */
@@ -118,126 +199,252 @@ const Projects = React.lazy(() =>
 
 const FeaturedProjects = () => {
   const { colorMode } = useColorMode()
-  const heading = colorMode === 'light' ? 'gray.800' : 'white'
+  const tokens = getEditorialTokens(colorMode)
 
   return (
     <Box
       as="section"
       role="region"
       aria-labelledby="featured-heading"
-      py={16}
-      px={4}
-      maxW="7xl"
-      mx="auto"
-      textAlign="center"
+      py={{ base: 12, md: 16 }}
+      px={{ base: 6, md: 10 }}
+      bg={tokens.surfaceAlt}
     >
-      <Heading id="featured-heading" size="xl" mb={10} color={heading}>
-        Featured&nbsp;Projects
-      </Heading>
+      <Box maxW="7xl" mx="auto">
+        <Heading
+          id="featured-heading"
+          fontFamily={editorialFonts.heading}
+          fontSize={{ base: '3xl', md: '4xl' }}
+          color={tokens.ink}
+        >
+          Selected Work
+        </Heading>
+        <Text
+          fontFamily={editorialFonts.body}
+          fontSize="lg"
+          color={tokens.muted}
+          maxW="640px"
+          mt={3}
+          mb={10}
+        >
+          Projects centered on analytics, automation, and security-aware data pipelines.
+        </Text>
 
-      <Suspense fallback={<Spinner size="xl" />}>
-        <Projects />
-      </Suspense>
+        <Suspense fallback={<Spinner size="xl" />}>
+          <Projects />
+        </Suspense>
+      </Box>
     </Box>
   )
 }
 
-/* ─────────────────────── SKILLS ───────────────────────── */
-const webSkills = [
-  { label: 'JavaScript',    Icon: SiJavascript },
-  { label: 'React',         Icon: SiReact      },
-  { label: 'Node.js',       Icon: SiNodedotjs  },
-  { label: 'Express',       Icon: SiExpress    },
-  { label: 'MongoDB',       Icon: SiMongodb    },
-]
-const dataSkills = [
-  { label: 'Python',        Icon: SiPython      },
-  { label: 'pandas',        Icon: SiPandas      },
-  { label: 'NumPy',         Icon: SiNumpy       },
-  { label: 'scikit-learn',  Icon: SiScikitlearn },
-  { label: 'TensorFlow',    Icon: SiTensorflow  },
-  { label: 'SQL',           Icon: SiMysql       },
+/* ------------------------------ Snapshot ------------------------------ */
+const focusAreas = [
+  {
+    title: 'Risk and Threat Analytics',
+    desc: 'Turn logs, alerts, and operational data into actionable security signals.',
+  },
+  {
+    title: 'Decision Intelligence',
+    desc: 'Model outcomes, track KPIs, and translate data into executive-ready insights.',
+  },
+  {
+    title: 'Data Engineering Foundations',
+    desc: 'Build reliable pipelines, clean datasets, and automated quality checks.',
+  },
 ]
 
-const SkillGrid = ({ items }) => (
-  <SimpleGrid
-    columns={{ base: 3, sm: 4, md: 6 }}
-    spacing={8}
-    justifyItems="center"
-    mt={6}
-  >
-    {items.map(({ label, Icon: I }) => (
-      <Box key={label} textAlign="center" aria-label={label}>
-        <Icon as={I} fontSize="3xl" mb={2} aria-hidden="true" />
-        <Text fontSize="sm">{label}</Text>
+const AboutSnapshot = () => {
+  const { colorMode } = useColorMode()
+  const tokens = getEditorialTokens(colorMode)
+
+  return (
+    <Box as="section" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }} bg={tokens.surface}>
+      <Box maxW="7xl" mx="auto">
+        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 16 }}>
+          <Stack gap={4}>
+            <Text
+              fontFamily={editorialFonts.mono}
+              fontSize="xs"
+              letterSpacing="0.2em"
+              textTransform="uppercase"
+              color={tokens.muted}
+            >
+              Profile snapshot
+            </Text>
+            <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '3xl', md: '4xl' }} color={tokens.ink}>
+              Analytics-first, security-aware.
+            </Heading>
+            <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted}>
+              I focus on <Box as="span" fontWeight="600" color={tokens.ink}>analytics</Box>, threat-aware
+              data interpretation, and statistical rigor. My goal is to deliver
+              insights that are trusted, reproducible, and aligned with risk management.
+            </Text>
+          </Stack>
+
+          <Stack gap={5} bg={tokens.surfaceAlt} border="1px solid" borderColor={tokens.rule} borderRadius="2xl" p={6}>
+            <Text
+              fontFamily={editorialFonts.mono}
+              fontSize="xs"
+              letterSpacing="0.2em"
+              textTransform="uppercase"
+              color={tokens.muted}
+            >
+              Focus areas
+            </Text>
+            {focusAreas.map((area) => (
+              <Box key={area.title}>
+                <Text fontFamily={editorialFonts.body} fontWeight="600" color={tokens.ink}>
+                  {area.title}
+                </Text>
+                <Text fontFamily={editorialFonts.body} color={tokens.muted}>
+                  {area.desc}
+                </Text>
+              </Box>
+            ))}
+          </Stack>
+        </SimpleGrid>
       </Box>
-    ))}
-  </SimpleGrid>
-)
+    </Box>
+  )
+}
 
+/* ------------------------------ Skills ------------------------------ */
 const Skills = () => {
   const { colorMode } = useColorMode()
-  const h   = colorMode === 'light' ? 'gray.800' : 'white'
-  const sub = colorMode === 'light' ? 'gray.600' : 'gray.300'
+  const tokens = getEditorialTokens(colorMode)
   const subSize = useBreakpointValue({ base: 'lg', md: 'xl' })
 
   return (
-    <Box
-      as="section"
-      role="region"
-      aria-labelledby="skills-heading"
-      py={16}
-      px={4}
-    >
-      <Heading
-        id="skills-heading"
-        size="xl"
-        textAlign="center"
-        mb={10}
-        color={h}
-      >
-        Technical&nbsp;Skills
-      </Heading>
+    <Box as="section" role="region" aria-labelledby="skills-heading" py={{ base: 12, md: 16 }} px={{ base: 6, md: 10 }} bg={tokens.bg}>
+      <Box maxW="7xl" mx="auto">
+        <Heading
+          id="skills-heading"
+          fontFamily={editorialFonts.heading}
+          fontSize={{ base: '3xl', md: '4xl' }}
+          color={tokens.ink}
+        >
+          Tools and Methods
+        </Heading>
+        <Separator mt={4} borderColor={tokens.rule} />
 
-      <Heading size={subSize} textAlign="center" color={sub}>
-        Web&nbsp;Development
-      </Heading>
-      <SkillGrid items={webSkills} />
+        <SimpleGrid columns={{ base: 1, md: 2 }} gap={{ base: 8, md: 14 }} mt={10}>
+          <Box>
+            <Text
+              fontFamily={editorialFonts.mono}
+              fontSize="xs"
+              letterSpacing="0.2em"
+              textTransform="uppercase"
+              color={tokens.muted}
+              mb={3}
+            >
+              Data analytics and science
+            </Text>
+            <Stack gap={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
+              <Text>SQL, Python, Pandas, NumPy</Text>
+              <Text>Data modeling, forecasting, anomaly detection</Text>
+              <Text>Tableau / Power BI dashboards, KPI reporting</Text>
+              <Text>scikit-learn, experimentation and evaluation</Text>
+            </Stack>
+          </Box>
 
-      <Heading size={subSize} textAlign="center" mt={14} color={sub}>
-        Data&nbsp;Science&nbsp;&amp;&nbsp;Analytics
-      </Heading>
-      <SkillGrid items={dataSkills} />
+          <Box>
+            <Text
+              fontFamily={editorialFonts.mono}
+              fontSize="xs"
+              letterSpacing="0.2em"
+              textTransform="uppercase"
+              color={tokens.muted}
+              mb={3}
+            >
+              Cybersecurity analytics
+            </Text>
+            <Stack gap={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
+              <Text>Security log analysis and alert triage</Text>
+              <Text>Threat modeling fundamentals</Text>
+              <Text>SIEM concepts, incident support workflows</Text>
+              <Text>Network and identity telemetry interpretation</Text>
+            </Stack>
+          </Box>
+        </SimpleGrid>
+
+        <Text fontFamily={editorialFonts.mono} fontSize={subSize} color={tokens.muted} mt={12}>
+          Engineering foundations: Python scripting, API integrations, data QA automation.
+        </Text>
+      </Box>
     </Box>
   )
 }
 
-/* ─────────────────────── MAIN PAGE ────────────────────── */
+/* ------------------------------ CTA ------------------------------ */
+const ContactCTA = () => {
+  const { colorMode } = useColorMode()
+  const tokens = getEditorialTokens(colorMode)
+
+  return (
+    <Box as="section" py={{ base: 12, md: 16 }} px={{ base: 6, md: 10 }} bg={tokens.surface}>
+      <Box maxW="7xl" mx="auto">
+        <Separator borderColor={tokens.rule} mb={10} />
+        <Stack gap={4} align={{ base: 'center', md: 'flex-start' }}>
+          <Text
+            fontFamily={editorialFonts.mono}
+            fontSize="xs"
+            letterSpacing="0.2em"
+            textTransform="uppercase"
+            color={tokens.muted}
+          >
+            Collaboration
+          </Text>
+          <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '3xl', md: '4xl' }} color={tokens.ink}>
+            Let's solve data or security problems.
+          </Heading>
+          <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted} maxW="620px">
+            Open to analyst and security-focused roles, consulting, and project collaborations.
+          </Text>
+          <Button
+            asChild
+            size="lg"
+            colorPalette="red"
+            fontFamily={editorialFonts.body}
+          >
+            <Link to="/contact">
+              Say Hello
+              <Icon as={FaArrowRight} aria-hidden="true" />
+            </Link>
+          </Button>
+        </Stack>
+      </Box>
+    </Box>
+  )
+}
+
+/* ------------------------------ Main page ------------------------------ */
 export default function Home() {
   return (
     <>
-      {/* SEO/meta */}
       <Helmet>
-        <title>Preston | Full-stack & Data Science Developer</title>
+        <title>{siteTitle}</title>
         <meta
           name="description"
-          content="Portfolio of Preston – full-stack & data-science developer building robust web apps and extracting insights from data."
+          content="Portfolio of Preston, a data analyst and cybersecurity-minded scientist delivering analytics, risk insights, and decision intelligence."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Preston | Full-stack & Data Science Developer" />
+        <meta property="og:title" content={siteTitle} />
         <meta
           property="og:description"
-          content="Explore featured projects, technical skills, and career highlights of Preston."
+          content="Explore analytics projects, security-minded insights, and data science capabilities."
         />
-        <meta property="og:url" content="https://your-domain.com/" />
-        <meta property="og:image" content="https://your-domain.com/og-cover.png" />
+        <meta property="og:url" content={absoluteUrl('/')} />
+        <meta property="og:image" content={absoluteUrl('/personalportfolio.png')} />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <main>
         <Hero />
+        <AboutSnapshot />
         <FeaturedProjects />
         <Skills />
+        <ContactCTA />
       </main>
     </>
   )

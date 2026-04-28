@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
+import logger from '../logger.js';
 
 export const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       serverApi: { version: '1', strict: true, deprecationErrors: true }
     });
-    console.log('MongoDB Connected Successfully');
+    logger.info('MongoDB connected successfully');
   } catch (err) {
-    console.error('MongoDB Connection Error:', err);
-    process.exit(1); // Exit server if DB fails
+    logger.error({ err }, 'MongoDB connection error');
+    process.exit(1);
   }
 };

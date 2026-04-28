@@ -9,18 +9,19 @@ import {
   HStack,
   Stack,
   Icon,
-  Button,          // ✅ recipe-driven core Button
+  IconButton,
+  Button,
+  ButtonGroup,
   Portal,
   Dialog,
+  CloseButton,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import {
   FaStar,
   FaHeart,
-  FaHeartBroken,  // ← for the favourite toggle
-  FaTimes,
+  FaHeartBroken,
 } from "react-icons/fa";
-import { useColorMode } from "@/components/Theme/color-mode";
 import ProjectDetails   from "./ProjectDetails";
 import styles           from "./ProjectCard.module.css";
 
@@ -32,7 +33,6 @@ export default function ProjectCard({
   handleFavorite,
   hitAndOpen,
 }) {
-  const { colorMode } = useColorMode();
   const isFav       = favorites.includes(project.id);
   const stripeColor = "brand.500";
 
@@ -48,7 +48,7 @@ export default function ProjectCard({
           cursor="pointer"
         >
           {/* featured ribbon */}
-          {project.isFeatured && (
+          {project.featured && (
             <Box
               className={styles.stripe}
               bg={stripeColor}
@@ -72,7 +72,7 @@ export default function ProjectCard({
             <Text fontWeight="bold" fontSize="md" color="white">
               {project.title}
             </Text>
-            <HStack spacing="0.5" mt="1">
+            <HStack gap="0.5" mt="1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Icon
                   as={FaStar}
@@ -93,13 +93,13 @@ export default function ProjectCard({
 
           {/* overlay on hover */}
           <Card.Body p="4" className={styles.overlay}>
-            <Stack spacing="2">
+            <Stack gap="2">
               <Text fontWeight="bold" fontSize="lg" color="white">
                 {project.title}
               </Text>
 
               {project.avgStars != null && (
-                <HStack spacing="0.5">
+                <HStack gap="0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Icon
                       as={FaStar}
@@ -113,45 +113,54 @@ export default function ProjectCard({
                     />
                   ))}
                   <Text fontSize="xs" color="whiteAlpha.800">
-                    ({project.ratings?.length || 0})
+                    ({project.reviews?.length || 0})
                   </Text>
                 </HStack>
               )}
 
               {/* ────────── ACTION BUTTONS ────────── */}
-              <Stack direction="row" spacing="2" pt="2">
-                <Button
-                  size="lg"
-                  onClick={(e) =>
-                    hitAndOpen(project.id, project.externalLink, e)
-                  }
-                >
-                  Demo
-                </Button>
+              <HStack gap="2" pt="2" align="center">
+                <ButtonGroup size="sm" variant="solid" gap="2">
+                  <Button
+                    h="9"
+                    minH="9"
+                    onClick={(e) =>
+                      hitAndOpen(project.id, project.externalLink, e)
+                    }
+                  >
+                    Demo
+                  </Button>
 
-                <Button
-                  onClick={(e) =>
-                    hitAndOpen(project.id, project.githubLink, e)
-                  }
-                >
-                  GitHub
-                </Button>
+                  <Button
+                    h="9"
+                    minH="9"
+                    onClick={(e) =>
+                      hitAndOpen(project.id, project.githubLink, e)
+                    }
+                  >
+                    GitHub
+                  </Button>
+                </ButtonGroup>
 
-                {/* recipe-driven favourite toggle */}
-                <Button
-                  size="icon"
-                  variant="favourite"
+                {/* favourite toggle */}
+                <IconButton
+                  variant="ghost"
+                  colorPalette="red"
                   aria-label={
                     isFav ? "Unfavourite project" : "Add to favourites"
                   }
-                  onClick={() => handleFavorite(project.id)}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    handleFavorite(project.id)
+                  }}
                 >
                   <Icon
                     as={isFav ? FaHeartBroken : FaHeart}
                     boxSize={4}
                   />
-                </Button>
-              </Stack>
+                </IconButton>
+              </HStack>
             </Stack>
           </Card.Body>
         </MotionCard>
@@ -173,16 +182,14 @@ export default function ProjectCard({
             borderRadius={8}
             boxShadow="lg"
             p={4}
-            bg={colorMode === "light" ? "white" : "gray.800"}
+            bg="bg.surface"
           >
             <Dialog.Header>
               <Dialog.Title>{project.title}</Dialog.Title>
               <Dialog.CloseTrigger asChild>
-                <Icon
-                  as={FaTimes}
+                <CloseButton
                   aria-label="Close"
                   size={6}
-                  variant="ghost"
                   position="absolute"
                   top="4"
                   right="4"
@@ -198,12 +205,6 @@ export default function ProjectCard({
                 isFavorite={isFav}
               />
             </Dialog.Body>
-
-            <Dialog.Footer>
-              <Dialog.CloseTrigger asChild>
-                <Button variant="ghost"></Button>
-              </Dialog.CloseTrigger>
-            </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

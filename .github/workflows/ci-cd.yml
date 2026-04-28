@@ -2,48 +2,68 @@ name: CI / CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  # 1) CI: install & (eventually) test
   build-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Use Node.js 20
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install backend dependencies
+        working-directory: backend
         run: npm ci
 
-      # - name: Run tests
-      #   run: npm test
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+        run: npm test
 
-  # 2) Build & push Docker image to GHCR
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:5050
+          VITE_SITE_URL: http://localhost:5173
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:5050
+          VITE_SITE_URL: http://localhost:5173
+        run: npm run build
+
   docker:
     needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build & push Docker image
-        uses: docker/build-push-action@v4
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -52,13 +72,12 @@ jobs:
             ghcr.io/ukandu20/backend-api:latest
             ghcr.io/ukandu20/backend-api:${{ github.sha }}
 
-  # 3) Seed production data (real projects)
   seed-production:
     needs: docker
     runs-on: ubuntu-latest
     steps:
       - name: Log in to GHCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -67,16 +86,18 @@ jobs:
       - name: Pull prod image
         run: docker pull ghcr.io/ukandu20/backend-api:latest
 
-      - name: Run real seeder
+      - name: Run production seeder
         run: |
           docker run --rm \
             -e NODE_ENV=production \
             -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
-            -e ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}" \
+            -e ADMIN_USERNAME="${{ secrets.ADMIN_USERNAME }}" \
+            -e ADMIN_PASSWORD_HASH="${{ secrets.ADMIN_PASSWORD_HASH }}" \
+            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            -e ADMIN_TOKEN_TTL="${{ secrets.ADMIN_TOKEN_TTL }}" \
             ghcr.io/ukandu20/backend-api:latest \
             npm run seed:prod
 
-  # 4) Deploy to Render after seeding
   deploy:
     needs: seed-production
     runs-on: ubuntu-latest

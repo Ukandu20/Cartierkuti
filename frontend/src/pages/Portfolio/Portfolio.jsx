@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import axios from 'axios'
+import apiClient from '@/utils/axiosConfig'
+import { normalizeProjects } from '@/utils/projectNormalizer'
 import {
   Input,
   Portal,
@@ -18,28 +19,28 @@ import {
   Pagination,
 } from '@chakra-ui/react'
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
-import { Helmet, HelmetProvider } from 'react-helmet-async'
+import { Helmet } from 'react-helmet-async'
+import { EmptyState, ErrorState } from '@/components/ui/StateFeedback'
+import { PROJECT_CATEGORIES, isProjectInCategory } from '@/utils/projectCategories'
 
 import ProjectList from './ProjectList'
 import classes from './Portfolio.module.css'
-import { useColorMode } from '../../components/Theme/color-mode'
 
 /* ───────────────── constants ───────────────── */
-const TABS      = ['All', 'Data Science', 'Data Analysis', 'Web Development', 'AI/ML', 'Others']
+const TABS = PROJECT_CATEGORIES
 const PAGE_SIZE = 9
 
 /* ───────────────── component ───────────────── */
 export default function Portfolio() {
-  const { colorMode } = useColorMode()
-  const accent = '#05e2d7'
+  const accent = 'brand.500'
 
   /* palette */
-  const idleTxt    = colorMode === 'light' ? 'gray.700'    : 'whiteAlpha.800'
-  const fieldBg    = colorMode === 'light' ? 'gray.100'    : 'whiteAlpha.100'
-  const fieldBd    = colorMode === 'light' ? 'gray.300'    : 'whiteAlpha.300'
-  const fieldTx    = colorMode === 'light' ? 'gray.800'    : 'whiteAlpha.900'
-  const phColor    = colorMode === 'light' ? 'gray.500'    : 'gray.400'
-  const skeletonBg = colorMode === 'light' ? 'white'       : 'gray.800'
+  const idleTxt    = 'fg.muted'
+  const fieldBg    = 'bg.subtle'
+  const fieldBd    = 'border.subtle'
+  const fieldTx    = 'fg.default'
+  const phColor    = 'fg.muted'
+  const skeletonBg = 'bg.surface'
 
   /* sort-list collection (for headless Select) */
   const sortOptions = useMemo(
@@ -65,18 +66,21 @@ export default function Portfolio() {
   const [page,     setPage]     = useState(1)
 
   /* ───────────── fetch once ───────────── */
+  const fetchProjects = async () => {
+    setLoading(true)
+    try {
+      const { data } = await apiClient.get('/api/projects')
+      setProjects(normalizeProjects(data))
+      setError('')
+    } catch {
+      setError('Error fetching projects.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      setLoading(true)
-      try {
-        const { data } = await axios.get('/api/projects')
-        setProjects(Array.isArray(data) ? data : [])
-      } catch {
-        setError('Error fetching projects.')
-      } finally {
-        setLoading(false)
-      }
-    })()
+    fetchProjects()
   }, [])
 
   /* reset page whenever filter changes */
@@ -88,7 +92,9 @@ export default function Portfolio() {
 
   const hitAndOpen = (id, url, e) => {
     e?.preventDefault?.()
-    axios.patch(`/api/projects/${id}/hit`)
+    e?.stopPropagation?.()
+    if (!url) return
+    apiClient.patch(`/api/projects/${id}/hit`)
     window.open(url, '_blank')
   }
 
@@ -100,14 +106,14 @@ export default function Portfolio() {
       w="100%"
       maxW="sm"
       boxShadow="sm"
-      spacing={4}
+      gap={4}
       p={4}
     >
       <Skeleton height="200px" borderRadius="md" />
       <Skeleton height="20px" width="80%" />
       <Skeleton height="14px" width="60%" />
       <Skeleton height="14px" width="90%" />
-      <HStack spacing={3} mt={2}>
+      <HStack gap={3} mt={2}>
         <Skeleton height="36px" width="80px" borderRadius="md" />
         <Skeleton height="36px" width="80px" borderRadius="md" />
         <Skeleton height="36px" width="36px" borderRadius="full" />
@@ -120,14 +126,14 @@ export default function Portfolio() {
   const filtered = useMemo(() => {
     return projects.filter(
       p =>
-        (currentCategory === 'All' || p.category === currentCategory) &&
+        isProjectInCategory(p, currentCategory.value) &&
         p.title.toLowerCase().includes(search.toLowerCase())
     )
   }, [projects, currentCategory, search])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      if (sort === 'date')  return new Date(b.date) - new Date(a.date)
+      if (sort === 'date')  return new Date(b.createdDate || 0) - new Date(a.createdDate || 0)
       if (sort === 'views') return (b.views ?? 0)  - (a.views ?? 0)
       return a.title.localeCompare(b.title)
     })
@@ -138,8 +144,7 @@ export default function Portfolio() {
 
   /* ───────────── UI ───────────── */
   return (
-    <HelmetProvider>
-      <div className={classes.container}>
+    <div className={classes.container}>
         <Helmet>
           <title>Portfolio | Preston</title>
         </Helmet>
@@ -168,7 +173,7 @@ export default function Portfolio() {
                 _hover={{ color: accent, fontWeight: 'bold' }}
                 _selected={{ color: accent, borderBottom: `2px solid ${accent}` }}
               >
-                {t}
+                {t.label}
               </Tabs.Trigger>
             ))}
           </Tabs.List>
@@ -186,7 +191,7 @@ export default function Portfolio() {
             <Input
               w={{ base: '100%', md: '260px' }}
               px={2}
-              placeholder="Search projects…"
+              placeholder="Search projects..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               bg={fieldBg}
@@ -251,7 +256,16 @@ export default function Portfolio() {
                 ))}
               </Flex>
             ) : error ? (
-              <Text color="red.500">{error}</Text>
+              <ErrorState
+                title={error}
+                description="Check the API connection and try again."
+                onRetry={fetchProjects}
+              />
+            ) : paginated.length === 0 ? (
+              <EmptyState
+                title="No projects found."
+                description="Try a different category, search, or sort option."
+              />
             ) : (
               <ProjectList
                 searchedProjects={paginated}
@@ -310,7 +324,6 @@ export default function Portfolio() {
 
           </Tabs.Content>
         </Tabs.Root>
-      </div>
-    </HelmetProvider>
+    </div>
   )
 }

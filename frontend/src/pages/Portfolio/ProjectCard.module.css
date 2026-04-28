@@ -57,6 +57,16 @@
   transform: translateY(0);
 }
 
+@media (hover: none), (pointer: coarse) {
+  .overlay {
+    position: static;
+    transform: none;
+    background: rgba(17, 19, 23, 0.94);
+    backdrop-filter: none;
+    padding: 1rem;
+  }
+}
+
 /* button group inherits existing styles */
 .buttonGroup {
   display: flex;
