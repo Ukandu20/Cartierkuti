@@ -48,7 +48,7 @@ export default function ActivityAnalyticsDialog({
             <Dialog.Body px={0}>
               {projects.length ? (
                 <>
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spaceX={4} spaceY={4} mb={6}>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={6}>
                     <Box p={4} bg={bg} borderRadius="md">
                       <Text fontSize="xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.08em">Total Views</Text>
                       <Text fontSize="2xl" fontWeight="bold">{analytics.totalViews}</Text>
@@ -68,7 +68,7 @@ export default function ActivityAnalyticsDialog({
                   </SimpleGrid>
 
                   <Heading size="sm" mb={3}>Top Viewed Projects</Heading>
-                  <Stack spaceY={2}>
+                  <Stack gap={2}>
                     {analytics.topViewed.map((project) => (
                       <Flex key={project.id || project._id} p={3} bg={bg} borderRadius="md" justify="space-between" align="center">
                         <Box>

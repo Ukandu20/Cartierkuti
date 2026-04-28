@@ -1,3 +1,5 @@
+import { getCategoryLabel, normalizeCategoryValue } from '@/utils/projectCategories'
+
 export const emptyProjectForm = {
   title: '',
   description: '',
@@ -126,7 +128,7 @@ export const projectToFormData = (project = {}) => ({
   githubLink: project.githubLink || '',
   liveDemoLink: project.liveDemoLink || '',
   imageUrl: project.imageUrl || '',
-  category: project.category || '',
+  category: getCategoryLabel(project.category || project.categoryValue),
   languages: (project.languages || []).join(', '),
   status: project.status || '',
   tags: (project.tags || []).join(', '),
@@ -135,9 +137,18 @@ export const projectToFormData = (project = {}) => ({
 })
 
 export const buildProjectPayload = (formData) => ({
-  ...formData,
+  title: formData.title?.trim() || '',
+  description: formData.description?.trim() || '',
+  externalLink: formData.externalLink?.trim() || '',
+  githubLink: formData.githubLink?.trim() || '',
+  liveDemoLink: formData.liveDemoLink?.trim() || '',
+  imageUrl: formData.imageUrl?.trim() || '',
+  category: getCategoryLabel(formData.category),
   languages: formData.languages.split(',').map((item) => item.trim()).filter(Boolean),
+  status: formData.status?.trim() || '',
   tags: formData.tags.split(',').map((item) => item.trim()).filter(Boolean),
+  metadata: formData.metadata?.trim() || '',
+  featured: Boolean(formData.featured),
 })
 
 export const getAvgStars = (project) => {
@@ -169,6 +180,10 @@ export const getProjectAnalytics = (projects) => {
 export const getFilteredProjects = (projects, projectFilter) => {
   if (projectFilter === 'active') return projects.filter((project) => isInProgress(project.status))
   if (projectFilter === 'featured') return projects.filter((project) => project.featured)
+  const normalizedFilter = normalizeCategoryValue(projectFilter)
+  if (normalizedFilter !== 'all') {
+    return projects.filter((project) => normalizeCategoryValue(project.categoryValue || project.category) === normalizedFilter)
+  }
   return projects
 }
 

@@ -1,11 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
-  Button,
-  Flex,
-  Heading,
-  Input,
-  NativeSelect,
   SimpleGrid,
   Stack,
   Text,
@@ -20,43 +15,56 @@ import {
   HiStar,
   HiTrash,
 } from 'react-icons/hi'
-import PaginationControls from '@/components/pagination/pagination'
 import { Toaster, toaster } from '@/components/ui/toaster'
+import { ErrorState, LoadingState } from '@/components/ui/StateFeedback'
 import apiClient from '@/utils/axiosConfig'
-import { niceDate } from '@/utils/formatDate'
-import { normalizeProject, normalizeProjects } from '@/utils/projectNormalizer'
-import ActivityCard from './activity'
+import { normalizeProject } from '@/utils/projectNormalizer'
 import {
   buildProjectPayload,
-  buildResumePayload,
   emptyProjectForm,
-  emptyResumeForm,
   getAvgStars,
   getFilteredProjects,
   getProjectAnalytics,
   getProjectCounts,
   getProjectFilterLabel,
   isInProgress,
-  normalizeResumeForm,
   projectToFormData,
 } from './adminDashboardUtils'
 import ActivityAnalyticsDialog from './components/ActivityAnalyticsDialog'
 import AdminLoginPanel from './components/AdminLoginPanel'
-import DashboardStats, { ActionCard } from './components/DashboardStats'
+import AdminOverviewHeader from './components/AdminOverviewHeader'
+import DashboardStats from './components/DashboardStats'
 import DeleteProjectDialog from './components/DeleteProjectDialog'
+import ActivityLogSection from './components/ActivityLogSection'
 import ProjectAnalyticsDialog from './components/ProjectAnalyticsDialog'
 import ProjectEditorDialog from './components/ProjectEditorDialog'
 import ProjectTableSection from './components/ProjectTableSection'
+import QuickActionsSection from './components/QuickActionsSection'
+import QuickInsightsSection from './components/QuickInsightsSection'
 import ResumeEditorDialog from './components/ResumeEditorDialog'
+import { useAdminActivities } from './hooks/useAdminActivities'
+import { useAdminAuth } from './hooks/useAdminAuth'
+import { useAdminProjects } from './hooks/useAdminProjects'
 
 const ACTIVITY_PAGE_SIZE = 5
 const PROJECT_PAGE_SIZE = 8
-const ADMIN_SESSION_MS = 30 * 60_000
 
 const reportAdminError = (error) => {
   if (import.meta.env.DEV) {
     console.error(error)
   }
+}
+
+const getApiErrorMessage = (error, fallback) => {
+  const data = error?.response?.data
+  const firstError = Array.isArray(data?.errors) ? data.errors[0] : null
+
+  if (typeof firstError === 'string') return firstError
+  if (firstError?.path && firstError?.message) return `${firstError.path}: ${firstError.message}`
+  if (data?.message) return data.message
+  if (data?.error) return data.error
+
+  return fallback
 }
 
 export default function AdminDashboard() {
@@ -66,19 +74,47 @@ export default function AdminDashboard() {
   const dialogBorder = 'border.subtle'
   const closeHoverBg = 'bg.subtle'
 
-  const [isAuth, setIsAuth] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const {
+    projects,
+    loading,
+    error,
+    fetchProjects,
+    resumeForm,
+    setResumeForm,
+    resumeLoading,
+    fetchResume,
+    saveResume: persistResume,
+  } = useAdminProjects()
 
-  const [activities, setActivities] = useState([])
-  const [totalActivities, setTotalActivities] = useState(0)
-  const [filterType, setFilterType] = useState('')
-  const [filterStart, setFilterStart] = useState('')
-  const [filterEnd, setFilterEnd] = useState('')
-  const [page, setPage] = useState(1)
+  const handleAuthenticated = useCallback(() => {
+    fetchProjects()
+    fetchResume()
+  }, [fetchProjects, fetchResume])
+
+  const {
+    isAuth,
+    username,
+    setUsername,
+    password,
+    setPassword,
+    handleLogin,
+    handleUnauthorized,
+  } = useAdminAuth({ onAuthenticated: handleAuthenticated })
+
+  const {
+    activities,
+    totalActivities,
+    filterType,
+    setFilterType,
+    filterStart,
+    setFilterStart,
+    filterEnd,
+    setFilterEnd,
+    page,
+    setPage,
+    fetchActivities,
+    clearFilters,
+  } = useAdminActivities({ isAuth, pageSize: ACTIVITY_PAGE_SIZE })
 
   const [projectPage, setProjectPage] = useState(1)
   const [projectFilter, setProjectFilter] = useState('all')
@@ -98,102 +134,17 @@ export default function AdminDashboard() {
   const [projectAnalyticsTarget, setProjectAnalyticsTarget] = useState(null)
   const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
   const [projectAnalyticsLoading, setProjectAnalyticsLoading] = useState(false)
-  const [resumeForm, setResumeForm] = useState(emptyResumeForm)
-  const [resumeLoading, setResumeLoading] = useState(false)
-
   const cancelRef = useRef()
   const listRef = useRef(null)
 
   const pageCount = Math.ceil(totalActivities / ACTIVITY_PAGE_SIZE)
 
-  const fetchActivities = async () => {
-    const params = {
-      page,
-      limit: ACTIVITY_PAGE_SIZE,
-      ...(filterType && { type: filterType }),
-      ...(filterStart && { startDate: filterStart }),
-      ...(filterEnd && { endDate: filterEnd }),
-    }
-    const { data } = await apiClient.get('/api/activities', { params })
-    setActivities(data.activities)
-    setTotalActivities(data.total)
-  }
-
-  const fetchProjects = async () => {
-    setLoading(true)
-    try {
-      const { data } = await apiClient.get('/api/projects')
-      setProjects(normalizeProjects(data))
-      setError('')
-    } catch {
-      setError('Could not load projects.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchResume = async () => {
-    setResumeLoading(true)
-    try {
-      const { data } = await apiClient.get('/api/resume')
-      setResumeForm(normalizeResumeForm(data))
-    } catch (error) {
-      reportAdminError(error)
-      toaster.create({ title: 'Error loading resume', type: 'error', closable: true })
-      setResumeForm(emptyResumeForm)
-    } finally {
-      setResumeLoading(false)
-    }
-  }
-
   const saveResume = async () => {
-    try {
-      await apiClient.put('/api/resume', buildResumePayload(resumeForm))
-      toaster.create({ title: 'Resume updated', type: 'success', closable: true })
+    const saved = await persistResume()
+    if (saved) {
       setResumeOpen(false)
-    } catch (error) {
-      reportAdminError(error)
-      toaster.create({ title: 'Error saving resume', type: 'error', closable: true })
     }
   }
-
-  useEffect(() => {
-    const auth = sessionStorage.getItem('isAdminAuthenticated')
-    const time = sessionStorage.getItem('loginTime')
-    const token = sessionStorage.getItem('adminToken')
-    const cached = localStorage.getItem('activities')
-    if (cached) {
-      try {
-        setActivities(JSON.parse(cached))
-      } catch {
-        localStorage.removeItem('activities')
-      }
-    }
-
-    const restore = async () => {
-      if (auth && time && token && Date.now() - Number(time) < ADMIN_SESSION_MS) {
-        try {
-          await apiClient.get('/api/admin/verify', {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          setIsAuth(true)
-          fetchProjects()
-          fetchResume()
-        } catch {
-          sessionStorage.clear()
-        }
-      } else {
-        sessionStorage.clear()
-      }
-    }
-
-    restore()
-  }, [])
-
-  useEffect(() => {
-    if (!isAuth) return
-    fetchActivities()
-  }, [isAuth, page, filterType, filterStart, filterEnd])
 
   useEffect(() => {
     setProjectPage(1)
@@ -204,32 +155,6 @@ export default function AdminDashboard() {
     const maxPage = Math.max(1, Math.ceil(filteredLength / PROJECT_PAGE_SIZE))
     if (projectPage > maxPage) setProjectPage(maxPage)
   }, [projects, projectFilter, projectPage])
-
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      toaster.create({ title: 'Username and password required', type: 'error', closable: true })
-      return
-    }
-
-    try {
-      const { data } = await apiClient.post('/api/admin/login', {
-        username: username.trim(),
-        password,
-      })
-      if (!data?.token) throw new Error('Missing token')
-      sessionStorage.setItem('isAdminAuthenticated', 'true')
-      sessionStorage.setItem('loginTime', `${Date.now()}`)
-      sessionStorage.setItem('adminToken', data.token)
-      setIsAuth(true)
-      fetchProjects()
-      fetchResume()
-      setPassword('')
-      setUsername('')
-    } catch (error) {
-      reportAdminError(error)
-      toaster.create({ title: 'Wrong password', type: 'error', closable: true })
-    }
-  }
 
   const onChange = (event) => {
     const { name, value, type, checked } = event.target
@@ -382,7 +307,13 @@ export default function AdminDashboard() {
       setCreateOpen(false)
     } catch (error) {
       reportAdminError(error)
-      toaster.create({ title: 'Error saving project', type: 'error', closable: true })
+      if (handleUnauthorized(error)) return
+      toaster.create({
+        title: 'Error saving project',
+        description: getApiErrorMessage(error, 'Please check the project fields and try again.'),
+        type: 'error',
+        closable: true,
+      })
     }
   }
 
@@ -404,6 +335,7 @@ export default function AdminDashboard() {
       fetchProjects()
     } catch (error) {
       reportAdminError(error)
+      if (handleUnauthorized(error)) return
       toaster.create({ title: 'Error deleting', type: 'error', closable: true })
     } finally {
       setDeleteOpen(false)
@@ -422,7 +354,13 @@ export default function AdminDashboard() {
       setFormData((current) => ({ ...current, imageUrl: data.imageUrl }))
     } catch (error) {
       reportAdminError(error)
-      toaster.create({ title: 'Image upload failed', type: 'error', closable: true })
+      if (handleUnauthorized(error)) return
+      toaster.create({
+        title: 'Image upload failed',
+        description: getApiErrorMessage(error, 'Please choose a valid image and try again.'),
+        type: 'error',
+        closable: true,
+      })
     } finally {
       setIsUploading(false)
     }
@@ -434,7 +372,7 @@ export default function AdminDashboard() {
   }, [projects])
 
   const mostViewedMeta = mostViewedProject
-    ? `${mostViewedProject.title || 'Untitled'}${mostViewedProject.category ? ` · ${mostViewedProject.category}` : ''}`
+    ? `${mostViewedProject.title || 'Untitled'}${mostViewedProject.category ? ` - ${mostViewedProject.category}` : ''}`
     : 'No views yet'
 
   const kpis = useMemo(() => [
@@ -493,126 +431,57 @@ export default function AdminDashboard() {
     <>
       <Toaster />
       <Box p={{ base: 4, md: 8 }}>
-        <Box mb={6} p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="lg" shadow="sm">
-          <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-            <Box>
-              <Text fontSize="xs" letterSpacing="0.12em" textTransform="uppercase" color="fg.muted">Admin Overview</Text>
-              <Heading size="lg">Welcome Back!</Heading>
-              <Text mt={1} color="fg.muted">Here's what's happening with your projects</Text>
-            </Box>
-            <Stack direction="row" spaceX={3}>
-              <Button colorPalette="teal" onClick={onOpenCreate}>
-                <HiPlus />
-                New Project
-              </Button>
-              <Button variant="outline" colorPalette="teal" onClick={() => setAnalyticsOpen(true)}>View Analytics</Button>
-            </Stack>
-          </Flex>
-        </Box>
+        <AdminOverviewHeader
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+          onOpenCreate={onOpenCreate}
+          onOpenAnalytics={() => setAnalyticsOpen(true)}
+        />
 
         <Box mb={8}>
           <DashboardStats statCards={kpis.map((kpi) => ({ ...kpi, disabled: !kpi.onClick }))} />
         </Box>
 
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spaceX={6} spaceY={6} mb={8}>
-          <Box p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="lg" shadow="sm">
-            <Flex justify="space-between" align="center" mb={4}>
-              <Heading size="md">Activity Log</Heading>
-              <Text fontSize="xs" color="fg.muted">{totalActivities} events</Text>
-            </Flex>
-            <Flex mb={4} py={2} gap={3} align="center" wrap="wrap">
-              <NativeSelect.Root>
-                <NativeSelect.Field
-                  placeholder="All"
-                  value={filterType}
-                  onChange={(event) => setFilterType(event.target.value)}
-                  bg={bg}
-                  px={2}
-                  borderRadius={4}
-                  height={10}
-                  minW={{ base: '100%', md: '160px' }}
-                >
-                  {['Created', 'Updated', 'Deleted'].map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </NativeSelect.Field>
-                <NativeSelect.Indicator />
-              </NativeSelect.Root>
-              <Input type="date" value={filterStart} onChange={(event) => setFilterStart(event.target.value)} bg={bg} px={3} borderRadius={4} height={10} minW={{ base: '100%', md: '170px' }} />
-              <Input type="date" value={filterEnd} onChange={(event) => setFilterEnd(event.target.value)} bg={bg} px={3} borderRadius={4} height={10} minW={{ base: '100%', md: '170px' }} />
-              <Stack direction="row" spaceX={3} w={{ base: '100%', md: 'auto' }}>
-                <Button size="sm" colorPalette="teal" onClick={() => { setPage(1); fetchActivities() }}>Apply</Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  colorPalette="teal"
-                  onClick={() => {
-                    setFilterType('')
-                    setFilterStart('')
-                    setFilterEnd('')
-                    setPage(1)
-                    fetchActivities()
-                  }}
-                >
-                  Clear
-                </Button>
-              </Stack>
-            </Flex>
-            <SimpleGrid columns={1} spaceY={2}>
-              {activities.length > 0 ? (
-                activities.map((activity) => (
-                  <ActivityCard
-                    key={activity._id || activity.id}
-                    type={activity.type}
-                    title={activity.title}
-                    timestamp={niceDate(activity.timestamp || activity.createdAt)}
-                    detail={activity.detail}
-                  />
-                ))
-              ) : (
-                <Text color="fg.muted">No activity yet.</Text>
-              )}
-            </SimpleGrid>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6} alignItems="stretch" mb={8}>
+          <ActivityLogSection
+            activities={activities}
+            totalActivities={totalActivities}
+            page={page}
+            pageCount={pageCount}
+            pageSize={ACTIVITY_PAGE_SIZE}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterStart={filterStart}
+            setFilterStart={setFilterStart}
+            filterEnd={filterEnd}
+            setFilterEnd={setFilterEnd}
+            setPage={setPage}
+            fetchActivities={fetchActivities}
+            clearFilters={clearFilters}
+            bg={bg}
+            dialogBg={dialogBg}
+            dialogBorder={dialogBorder}
+          />
 
-            {pageCount > 1 && (
-              <Flex justify="center" mt={4}>
-                <PaginationControls
-                  count={totalActivities}
-                  pageSize={ACTIVITY_PAGE_SIZE}
-                  page={page}
-                  onPageChange={setPage}
-                />
-              </Flex>
-            )}
-          </Box>
-
-          <Stack spaceY={6}>
-            <Box p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="lg" shadow="sm">
-              <Heading size="md" mb={4}>Quick Insights</Heading>
-              <Stack spaceY={3}>
-                <Flex justify="space-between"><Text>Started</Text><Text fontWeight="bold">{counts.started}</Text></Flex>
-                <Flex justify="space-between"><Text>Finished</Text><Text fontWeight="bold">{counts.finished}</Text></Flex>
-                <Flex justify="space-between"><Text>Total</Text><Text fontWeight="bold">{counts.total}</Text></Flex>
-              </Stack>
-            </Box>
-
-            <Box p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="lg" shadow="sm">
-              <Heading size="md" mb={4}>Quick Actions</Heading>
-              <SimpleGrid columns={{ base: 1, sm: 2 }} spaceX={4} spaceY={4}>
-                {quickActions.map((action) => (
-                  <ActionCard
-                    key={action.label}
-                    {...action}
-                    disabled={!projects.length && !['Add Project', 'Edit Resume'].includes(action.label)}
-                  />
-                ))}
-              </SimpleGrid>
-            </Box>
+          <Stack gap={6} h="full">
+            <QuickInsightsSection counts={counts} dialogBg={dialogBg} dialogBorder={dialogBorder} />
+            <QuickActionsSection
+              quickActions={quickActions}
+              projectsCount={projects.length}
+              dialogBg={dialogBg}
+              dialogBorder={dialogBorder}
+            />
           </Stack>
         </SimpleGrid>
 
-        {loading && <Text color="fg.muted" mb={3}>Loading projects...</Text>}
-        {error && <Text color="status.error" mb={3}>{error}</Text>}
+        {loading && <LoadingState label="Loading projects..." />}
+        {error && (
+          <ErrorState
+            title={error}
+            description="Project data could not be refreshed."
+            onRetry={fetchProjects}
+          />
+        )}
         <Box ref={listRef}>
           <Text fontSize="sm" color="fg.muted" mb={2}>{projectFilterLabel} projects</Text>
           <ProjectTableSection
@@ -717,3 +586,4 @@ export default function AdminDashboard() {
     </>
   )
 }
+

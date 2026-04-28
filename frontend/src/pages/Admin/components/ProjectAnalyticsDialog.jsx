@@ -52,7 +52,7 @@ export default function ProjectAnalyticsDialog({
 
             <Dialog.Body px={0}>
               {project ? (
-                <Stack spaceY={4}>
+                <Stack gap={4}>
                   <Flex gap={3} wrap="wrap">
                     <Box p={4} bg={bg} borderRadius="md" flex="1" minW="140px">
                       <Text fontSize="xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.08em">Views</Text>
@@ -73,7 +73,7 @@ export default function ProjectAnalyticsDialog({
                     {loading ? (
                       <Text color="fg.muted">Loading activity...</Text>
                     ) : activities.length ? (
-                      <Stack spaceY={2}>
+                      <Stack gap={2}>
                         {activities.map((activity) => (
                           <Box key={activity.id || activity._id} p={3} bg={bg} borderRadius="md">
                             <Flex justify="space-between" gap={3}>

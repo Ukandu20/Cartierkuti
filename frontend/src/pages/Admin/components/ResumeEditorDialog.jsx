@@ -2,6 +2,7 @@ import React from 'react'
 import {
   Box,
   Button,
+  ButtonGroup,
   CloseButton,
   Dialog,
   Field,
@@ -115,7 +116,7 @@ export default function ResumeEditorDialog({
                         <Text fontWeight="bold">Metrics</Text>
                         <Button size="xs" onClick={addMetric}>Add</Button>
                       </Flex>
-                      <Stack spaceY={4}>
+                      <Stack gap={4}>
                         {resumeForm.metrics.map((metric, index) => (
                           <Box key={`metric-${index}`} p={4} bg={bg} borderRadius="md">
                             <SimpleGrid columns={{ base: 1, md: 4 }} gap={5} alignItems="center">
@@ -134,7 +135,7 @@ export default function ResumeEditorDialog({
                         <Text fontWeight="bold">Experience</Text>
                         <Button size="xs" onClick={addExperience}>Add</Button>
                       </Flex>
-                      <Stack spaceY={5}>
+                      <Stack gap={5}>
                         {resumeForm.experience.map((item, index) => (
                           <Box key={`exp-${index}`} p={5} bg={bg} borderRadius="md">
                             <Flex justify="space-between" align="center" mb={3}>
@@ -161,7 +162,7 @@ export default function ResumeEditorDialog({
                         <Text fontWeight="bold">Education</Text>
                         <Button size="xs" onClick={addEducation}>Add</Button>
                       </Flex>
-                      <Stack spaceY={5}>
+                      <Stack gap={5}>
                         {resumeForm.education.map((item, index) => (
                           <Box key={`edu-${index}`} p={5} bg={bg} borderRadius="md">
                             <Flex justify="space-between" align="center" mb={3}>
@@ -187,7 +188,7 @@ export default function ResumeEditorDialog({
                         <Text fontWeight="bold">Certifications</Text>
                         <Button size="xs" onClick={addCertification}>Add</Button>
                       </Flex>
-                      <Stack spaceY={4}>
+                      <Stack gap={4}>
                         {resumeForm.certifications.map((item, index) => (
                           <Box key={`cert-${index}`} p={4} bg={bg} borderRadius="md">
                             <SimpleGrid columns={{ base: 1, md: 4 }} gap={5} alignItems="center">
@@ -218,9 +219,11 @@ export default function ResumeEditorDialog({
               )}
             </Dialog.Body>
 
-            <Dialog.Footer display="flex" justifyContent="flex-end" mt={4} gap={3}>
-              <Button variant="solid" onClick={saveResume}>Save Resume</Button>
-              <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+              <ButtonGroup gap={3}>
+                <Button variant="solid" onClick={saveResume}>Save Resume</Button>
+                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+              </ButtonGroup>
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>

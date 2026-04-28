@@ -13,7 +13,7 @@ export default function AdminLoginPanel({
       <Flex height="100vh" align="center" justify="center">
         <Box p={6} bg="bg.subtle" borderRadius="md">
           <Fieldset.Root size="md" maxW="sm">
-            <Stack mb={4} spaceY={2}>
+            <Stack mb={4} gap={2}>
               <Fieldset.Legend>Admin Login</Fieldset.Legend>
               <Fieldset.HelperText>Enter your admin username and password</Fieldset.HelperText>
             </Stack>

@@ -42,10 +42,17 @@ describe('adminDashboardUtils', () => {
       featured: true,
       date: '2025-01-01',
     })
-    expect(buildProjectPayload({ ...projectToFormData(projects[0]), languages: 'JS, Node', tags: 'web, api' })).toMatchObject({
+    const payload = buildProjectPayload({
+      ...projectToFormData(projects[0]),
+      languages: 'JS, Node',
+      tags: 'web, api',
+      date: '2025-01-01',
+    })
+    expect(payload).toMatchObject({
       languages: ['JS', 'Node'],
       tags: ['web', 'api'],
     })
+    expect(payload).not.toHaveProperty('date')
     expect(getFilteredProjects(projects, 'active')).toHaveLength(1)
     expect(getProjectCounts(projects)).toEqual({ started: 1, finished: 1, total: 2 })
     expect(getProjectAnalytics(projects)).toMatchObject({ totalViews: 14, avgViews: 7, featured: 1 })

@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   Button,
+  ButtonGroup,
   Checkbox,
   CloseButton,
   Dialog,
@@ -16,6 +17,7 @@ import {
   useFileUploadContext,
 } from '@chakra-ui/react'
 import { RiImageAddLine } from 'react-icons/ri'
+import { categoryOptions } from '@/utils/projectCategories'
 
 const FileUploadList = () => {
   const fileUpload = useFileUploadContext()
@@ -162,14 +164,8 @@ export default function ProjectEditorDialog({
                         paddingX={2}
                       >
                         <option value="" disabled>Select a category...</option>
-                        {[
-                          'Web Development',
-                          'Data Analysis',
-                          'Machine Learning/AI',
-                          'Data Science',
-                          'Other',
-                        ].map((item) => (
-                          <option key={item} value={item}>{item}</option>
+                        {categoryOptions.map((item) => (
+                          <option key={item.value} value={item.label}>{item.label}</option>
                         ))}
                       </NativeSelect.Field>
                       <NativeSelect.Indicator />
@@ -242,13 +238,15 @@ export default function ProjectEditorDialog({
               </Fieldset.Root>
             </Dialog.Body>
 
-            <Dialog.Footer display="flex" justifyContent="flex-end" mt={4} gap={3}>
-              <Dialog.ActionTrigger asChild>
-                <Button onClick={onSubmit} variant="solid" disabled={isUploading}>
-                  {editMode ? 'Update' : 'Create'}
-                </Button>
-              </Dialog.ActionTrigger>
-              <Button onClick={onCancel} variant="ghost">Cancel</Button>
+            <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+              <ButtonGroup gap={3}>
+                <Dialog.ActionTrigger asChild>
+                  <Button onClick={onSubmit} variant="solid" disabled={isUploading}>
+                    {editMode ? 'Update' : 'Create'}
+                  </Button>
+                </Dialog.ActionTrigger>
+                <Button onClick={onCancel} variant="ghost">Cancel</Button>
+              </ButtonGroup>
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>

@@ -9,6 +9,10 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
   return (
     <Box
       p={5}
+      h="full"
+      minH="172px"
+      display="flex"
+      flexDirection="column"
       bg="bg.surface"
       boxShadow="sm"
       borderRadius="lg"
@@ -21,7 +25,7 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
       onClick={!disabled ? onClick : undefined}
       opacity={disabled ? 0.6 : 1}
     >
-      <Flex align="center" justify="space-between" mb={3}>
+      <Flex align="flex-start" justify="space-between" mb={3} gap={4}>
         <Box>
           <Text fontSize="md" fontWeight="bold" mb={1}>{label}</Text>
           <Text fontSize="xs" color={idleTxt} opacity={0.7}>{desc}</Text>
@@ -38,12 +42,12 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
           <IconComp size="1.2rem" color={accent} />
         </Box>
       </Flex>
-      <Text fontSize="3xl" fontWeight="bold" color={accent}>{value}</Text>
-      {extra && (
-        <Text mt={1} fontSize="xs" color={idleTxt} opacity={0.75}>
-          {extra}
+      <Box mt="auto">
+        <Text fontSize="3xl" fontWeight="bold" color={accent}>{value}</Text>
+        <Text mt={1} minH="18px" fontSize="xs" color={idleTxt} opacity={0.75}>
+          {extra || ''}
         </Text>
-      )}
+      </Box>
     </Box>
   )
 }
@@ -56,6 +60,10 @@ export const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabl
   return (
     <Box
       p={5}
+      h="full"
+      minH="124px"
+      display="flex"
+      flexDirection="column"
       bg="bg.surface"
       borderWidth="1px"
       borderColor={border}
@@ -72,7 +80,7 @@ export const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabl
       opacity={disabled ? 0.6 : 1}
       cursor={disabled ? 'not-allowed' : 'pointer'}
     >
-      <Flex align="center" justify="space-between">
+      <Flex align="flex-start" justify="space-between" gap={4}>
         <Box>
           <Text fontSize="md" fontWeight="bold" mb={1}>{label}</Text>
           <Text fontSize="sm" color={idleTxt}>{desc}</Text>
@@ -89,18 +97,16 @@ export const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabl
           <IconComp size="1.25rem" color={accent} />
         </Box>
       </Flex>
-      {value !== '' && value != null && (
-        <Text mt={3} fontSize="xs" color={idleTxt} letterSpacing="0.08em" textTransform="uppercase">
-          {value} total
-        </Text>
-      )}
+      <Text mt="auto" pt={3} minH="28px" fontSize="xs" color={idleTxt} letterSpacing="0.08em" textTransform="uppercase">
+        {value !== '' && value != null ? `${value} total` : ''}
+      </Text>
     </Box>
   )
 }
 
 export default function DashboardStats({ statCards }) {
   return (
-    <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spaceX={4} spaceY={4}>
+    <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} gap={4} alignItems="stretch">
       {statCards.map((card) => (
         <StatCard key={card.label} {...card} />
       ))}

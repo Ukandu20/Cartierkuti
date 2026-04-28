@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Button, Dialog, Flex, Portal, CloseButton, Stack, Text } from '@chakra-ui/react'
+import { Box, Button, ButtonGroup, Dialog, Flex, Portal, CloseButton, Stack, Text } from '@chakra-ui/react'
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi'
 import PaginationControls from '@/components/pagination/pagination'
 
@@ -20,19 +20,18 @@ const ProjectRow = ({ project, bg, borderColor, onEdit, onDelete, mode = 'full' 
       <Text fontWeight="bold">{project.title}</Text>
       <Text fontSize="sm" color="fg.muted">
         {project.category}
-        {project.featured ? ' · Featured' : ''}
+        {project.featured ? ' - Featured' : ''}
       </Text>
     </Box>
-    <Stack direction="row" spaceX={2} spaceY={2}>
+    <ButtonGroup size="sm" gap={2} flexWrap="wrap">
       {onEdit && (
-        <Button size="sm" onClick={() => onEdit(project)}>
+        <Button onClick={() => onEdit(project)}>
           <HiPencil />
           Edit
         </Button>
       )}
       {onDelete && (
         <Button
-          size="sm"
           colorPalette="red"
           onClick={() => onDelete(project)}
         >
@@ -40,7 +39,7 @@ const ProjectRow = ({ project, bg, borderColor, onEdit, onDelete, mode = 'full' 
           Delete
         </Button>
       )}
-    </Stack>
+    </ButtonGroup>
   </Flex>
 )
 
@@ -93,7 +92,7 @@ const ProjectChooserDialog = ({
           </Dialog.Header>
 
           <Dialog.Body px={0}>
-            <Stack spaceY={3}>
+            <Stack gap={3}>
               {projects.length ? (
                 projects.map((project) => (
                   <ProjectRow
@@ -155,7 +154,7 @@ export default function ProjectTableSection({
           <Box>
             <Text as="h2" fontSize="2xl" fontWeight="bold">Existing Projects</Text>
             <Text fontSize="sm" color="fg.muted">
-              {projects.length} total · Page {projectPage} of {projectPageCount}
+              {projects.length} total - Page {projectPage} of {projectPageCount}
             </Text>
           </Box>
           <Button colorPalette="teal" onClick={onOpenCreate}>
@@ -163,7 +162,7 @@ export default function ProjectTableSection({
             New Project
           </Button>
         </Flex>
-        <Stack spaceY={3}>
+        <Stack gap={3}>
           {paginatedProjects.length ? (
             paginatedProjects.map((project) => (
               <ProjectRow
