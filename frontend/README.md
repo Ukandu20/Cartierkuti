@@ -1,26 +1,24 @@
-# Cartierkuti Frontend
+# Getting Started with Vite
 
-Vite/React frontend for the Cartierkuti portfolio.
+This project uses [Vite](https://vitejs.dev/) to build and serve the React frontend.
 
 ## Environment
 
-Create `.env.development`:
+Inside the `frontend` directory you can run:
 
-```env
-VITE_API_URL=http://localhost:5000
-VITE_SITE_URL=http://localhost:5173
-VITE_EMAILJS_SERVICE_ID=
-VITE_EMAILJS_TEMPLATE_ID=
-VITE_EMAILJS_PUBLIC_KEY=
-```
+### `npm run dev`
 
-## Commands
+Starts the application in development mode and watches for changes.
 
-```powershell
-npm install
-npm run dev
-npm test
-npm run build
-```
+### `npm run build`
 
-The app expects the backend API to expose JWT admin auth and project/resume endpoints documented in the root README.
+Bundles the app for production into the `build` folder.
+
+### `npm run preview`
+
+Serves the production build locally so you can preview it.
+
+## Learn More
+
+Check out the [Vite documentation](https://vitejs.dev/) to learn more about Vite.
+To learn React, check out the [React documentation](https://reactjs.org/).
