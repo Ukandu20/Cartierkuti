@@ -70,7 +70,8 @@ describe('admin auth', () => {
       .send({ username: 'admin', password: 'wrong' })
       .expect(401)
 
-    await request(app).post('/api/projects').send(validProject).expect(401)
+    const missingToken = await request(app).post('/api/projects').send(validProject).expect(401)
+    expect(missingToken.body).toEqual({ message: 'Missing bearer token' })
   })
 })
 
@@ -100,13 +101,31 @@ describe('project API', () => {
   })
 
   it('rejects malformed project bodies and bad ObjectIds', async () => {
-    await request(app)
+    const invalidProject = await request(app)
       .post('/api/projects')
       .set('Authorization', `Bearer ${token}`)
       .send({ ...validProject, externalLink: 'not-a-url' })
       .expect(400)
+    expect(invalidProject.body.message).toBe('Validation failed')
+    expect(invalidProject.body.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'externalLink',
+          message: 'Invalid url',
+        }),
+      ])
+    )
 
-    await request(app).get('/api/projects/not-an-id').expect(400)
+    const badId = await request(app).get('/api/projects/not-an-id').expect(400)
+    expect(badId.body).toMatchObject({
+      message: 'Validation failed',
+      errors: [
+        {
+          path: 'id',
+          message: 'Invalid Mongo ObjectId',
+        },
+      ],
+    })
   })
 })
 
