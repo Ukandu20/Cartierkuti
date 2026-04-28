@@ -1,11 +1,12 @@
-import axios from 'axios';
+import apiClient from '@/utils/axiosConfig'
+import { normalizeProject, normalizeProjects } from '@/utils/projectNormalizer'
 
 export const getAll = async () => {
-    const { data } = await axios.get('/api/projects/');
-    return data;
+    const { data } = await apiClient.get('/api/projects/');
+    return normalizeProjects(data);
 };
 
 export const getById = async projectId => {
-    const { data } = await axios.get('/api/projects/' + projectId);
-    return data;
+    const { data } = await apiClient.get('/api/projects/' + projectId);
+    return normalizeProject(data);
 };

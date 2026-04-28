@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6.0
+    volumes:
+      - mongo-data:/data/db
+
+  seed-dev:
+    image: node:20-alpine3.19
+    working_dir: /backend
+    volumes:
+      - ./:/backend
+      - ./node_modules:/backend/node_modules   # ← mount host modules
+    env_file:
+      - .env.development
+    command: ["npm", "run", "seed:dev","--","--wipe"]
+    depends_on:
+      - mongo
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /backend
+    env_file:
+      - .env.development
+    command: ["npm", "run", "dev"]
+    ports:
+      - "5050:5000"
+    volumes:
+      - ./:/backend
+      - ./node_modules:/backend/node_modules   # ← same mount here
+    depends_on:
+      - mongo
+      - seed-dev
+
+volumes:
+  mongo-data:

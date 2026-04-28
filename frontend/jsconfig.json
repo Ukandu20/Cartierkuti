@@ -1,6 +1,13 @@
 {
     "compilerOptions": {
-        "moduleResolution": "node"
-    },
-    "include": ["src"]
-}
+      // ...
+      "baseUrl": ".",
+      "paths": {
+        "@/*": [
+          "./src/*"
+        ]
+      }
+      // ...
+    }
+  }
+  
