@@ -62,7 +62,7 @@ export default function Navbar() {
         flex="1"
         justify="space-evenly"
         /* visually obvious gap so you’ll notice the change */
-        spacing={{ base: 8, md: 14 }}
+        gap={{ base: 8, md: 14 }}
         fontSize={{ base: 'sm', md: 'md' }}
       >
         {navLinks.map(({ href, label }) => (

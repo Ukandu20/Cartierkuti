@@ -12,6 +12,7 @@ import {
   Separator,
   Spinner,
   Button,
+  ButtonGroup,
   Icon,
 } from '@chakra-ui/react'
 import { Helmet } from 'react-helmet-async'
@@ -150,7 +151,7 @@ export default function About() {
 
       <Box as="section" maxW="7xl" mx="auto" pt={{ base: 10, md: 16 }} px={{ base: 6, md: 10 }}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 16 }} alignItems="start">
-          <Stack spacing={6}>
+          <Stack gap={6}>
             <Text
               fontFamily={editorialFonts.mono}
               fontSize="xs"
@@ -170,7 +171,7 @@ export default function About() {
               {resume.summary}
             </Text>
 
-            <HStack spacing={4} flexWrap="wrap">
+            <ButtonGroup gap={4} flexWrap="wrap">
               <Button
                 asChild
                 size="lg"
@@ -191,7 +192,7 @@ export default function About() {
               >
                 <Link to="/contact">Contact Me</Link>
               </Button>
-            </HStack>
+            </ButtonGroup>
           </Stack>
 
           <Box
@@ -242,7 +243,7 @@ export default function About() {
               </SimpleGrid>
             )}
             <Separator my={5} borderColor={tokens.rule} />
-            <Stack spacing={3}>
+            <Stack gap={3}>
               {resume.highlights.map((item, idx) => (
                 <Text key={`${item}-${idx}`} fontFamily={editorialFonts.body} color={tokens.muted}>
                   {item}
@@ -255,7 +256,7 @@ export default function About() {
 
       <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 8, lg: 12 }}>
-          <Stack spacing={6}>
+          <Stack gap={6}>
             <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '2xl', md: '3xl' }}>
               Experience
             </Heading>
@@ -272,12 +273,12 @@ export default function About() {
                   {item.role}
                 </Text>
                 <Text fontFamily={editorialFonts.body} color={tokens.muted}>
-                  {item.company}{item.location ? ` · ${item.location}` : ''}
+                  {item.company}{item.location ? ` - ${item.location}` : ''}
                 </Text>
                 <Text fontSize="sm" color={tokens.muted}>
                   {item.period}
                 </Text>
-                <Stack spacing={2} mt={3}>
+                <Stack gap={2} mt={3}>
                   {(item.bullets || []).map((bullet, bulletIdx) => (
                     <Text key={`${item.role}-bullet-${bulletIdx}`} color={tokens.muted}>
                       {bullet}
@@ -288,7 +289,7 @@ export default function About() {
             ))}
           </Stack>
 
-          <Stack spacing={6}>
+          <Stack gap={6}>
             <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '2xl', md: '3xl' }}>
               Education
             </Heading>
@@ -310,7 +311,7 @@ export default function About() {
                 <Text fontSize="sm" color={tokens.muted}>
                   {item.period}
                 </Text>
-                <Stack spacing={2} mt={3}>
+                <Stack gap={2} mt={3}>
                   {(item.bullets || []).map((bullet, bulletIdx) => (
                     <Text key={`${item.school}-bullet-${bulletIdx}`} color={tokens.muted}>
                       {bullet}
@@ -324,14 +325,14 @@ export default function About() {
       </Box>
 
       <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} pb={{ base: 12, md: 16 }}>
-        <Stack spacing={8}>
+        <Stack gap={8}>
           <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '2xl', md: '3xl' }}>
             Skills and Tools
           </Heading>
           <SimpleGrid columns={{ base: 1, md: 3 }} gap={5}>
             <Box bg={tokens.surface} borderRadius="xl" border="1px solid" borderColor={tokens.rule} p={5}>
               <Text fontWeight="bold" mb={3}>Primary</Text>
-              <HStack flexWrap="wrap" spacing={2}>
+              <HStack flexWrap="wrap" gap={2}>
                 {resume.skills.primary.map((skill) => (
                   <Badge
                     key={skill}
@@ -350,7 +351,7 @@ export default function About() {
             </Box>
             <Box bg={tokens.surface} borderRadius="xl" border="1px solid" borderColor={tokens.rule} p={5}>
               <Text fontWeight="bold" mb={3}>Secondary</Text>
-              <HStack flexWrap="wrap" spacing={2}>
+              <HStack flexWrap="wrap" gap={2}>
                 {resume.skills.secondary.map((skill) => (
                   <Badge
                     key={skill}
@@ -369,7 +370,7 @@ export default function About() {
             </Box>
             <Box bg={tokens.surface} borderRadius="xl" border="1px solid" borderColor={tokens.rule} p={5}>
               <Text fontWeight="bold" mb={3}>Tools</Text>
-              <HStack flexWrap="wrap" spacing={2}>
+              <HStack flexWrap="wrap" gap={2}>
                 {resume.skills.tools.map((skill) => (
                   <Badge
                     key={skill}
@@ -392,7 +393,7 @@ export default function About() {
 
       {resume.certifications.length ? (
         <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} pb={{ base: 12, md: 16 }}>
-          <Stack spacing={6}>
+          <Stack gap={6}>
             <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '2xl', md: '3xl' }}>
               Certifications
             </Heading>

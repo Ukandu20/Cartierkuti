@@ -32,7 +32,7 @@ export default function Footer() {
   return (
     <Box as="footer" bg={bg} py={{ base: 10, md: 14 }} px={4}>
       <VStack
-        spacing={6}
+        gap={6}
         maxW="container.lg"
         mx="auto"
         textAlign="center"
@@ -73,7 +73,7 @@ export default function Footer() {
                 </Link>
               </Text>
         
-              <HStack mt={10} spacing={8} justify="center">
+              <HStack mt={10} gap={8} justify="center">
                 <Link
                   href="https://linkedin.com/in/okechiukandu"
                   isExternal

@@ -86,12 +86,12 @@ export default function ContactPage() {
         <link rel="canonical" href={absoluteUrl('/contact')} />
       </Helmet>
 
-      <SimpleGrid columns={cols} spacing={{ base: 10, md: 16 }} maxW="6xl" mx="auto">
+      <SimpleGrid columns={cols} gap={{ base: 10, md: 16 }} maxW="6xl" mx="auto">
         {/* Left – Info */}
         <GridItem>
           <VStack
             p={{ base: 6, md: 10 }}
-            spacing={8}
+            gap={8}
             align="stretch"
           >
             <Box>
@@ -100,16 +100,16 @@ export default function ContactPage() {
                 Have a project, feedback or idea? Fill out the form or reach me through the channels below.
               </Text>
             </Box>
-            <VStack align="start" spacing={4} fontSize="sm">
-              <HStack spacing={3}>
+            <VStack align="start" gap={4} fontSize="sm">
+              <HStack gap={3}>
                 <Icon as={FaMapMarkerAlt} color={accent} />
                 <Text>Windsor, ON</Text>
               </HStack>
-              <HStack spacing={3}>
+              <HStack gap={3}>
                 <Icon as={FaPhoneAlt} color={accent} />
                 <Link href="tel:+12261234567">+1 226 123 4567</Link>
               </HStack>
-              <HStack spacing={3}>
+              <HStack gap={3}>
                 <Icon as={FaEnvelope} color={accent} />
                 <Link href="mailto:okechiukandu@gmail.com">okechiukandu@gmail.com</Link>
               </HStack>

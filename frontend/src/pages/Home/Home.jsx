@@ -5,6 +5,7 @@ import React, { Suspense } from 'react'
 import {
   Box,
   Button,
+  ButtonGroup,
   Flex,
   Heading,
   HStack,
@@ -58,7 +59,7 @@ const Hero = () => {
         maxW="7xl"
         mx="auto"
       >
-        <Stack spacing={6} flex="1" align={{ base: 'center', lg: 'flex-start' }}>
+        <Stack gap={6} flex="1" align={{ base: 'center', lg: 'flex-start' }}>
           <Text
             fontFamily={editorialFonts.mono}
             fontSize="xs"
@@ -94,7 +95,7 @@ const Hero = () => {
             My work blends BI, statistical modeling, and security-aware analysis.
           </Text>
 
-          <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={6} w="full" pt={2}>
+          <SimpleGrid columns={{ base: 1, sm: 3 }} gap={6} w="full" pt={2}>
             {[
               'Dashboards and KPI reporting',
               'Predictive modeling and anomaly detection',
@@ -114,7 +115,7 @@ const Hero = () => {
             ))}
           </SimpleGrid>
 
-          <HStack spacing={4} pt={4} flexWrap="wrap" justify={{ base: 'center', lg: 'flex-start' }}>
+          <ButtonGroup gap={4} pt={4} flexWrap="wrap" justifyContent={{ base: 'center', lg: 'flex-start' }}>
             <Button
               asChild
               size="lg"
@@ -138,11 +139,11 @@ const Hero = () => {
                 Download Resume
               </a>
             </Button>
-          </HStack>
+          </ButtonGroup>
         </Stack>
 
         <Stack
-          spacing={6}
+          gap={6}
           flex="1"
           maxW="420px"
           w="full"
@@ -168,7 +169,7 @@ const Hero = () => {
           <Text fontFamily={editorialFonts.body} color={tokens.muted}>
             Monitoring anomaly patterns across operational data streams and security events.
           </Text>
-          <HStack spacing="6px" align="flex-end" h="48px">
+          <HStack gap="6px" align="flex-end" h="48px">
             {sparkline.map((height, idx) => (
               <Box
                 key={`${height}-${idx}`}
@@ -260,8 +261,8 @@ const AboutSnapshot = () => {
   return (
     <Box as="section" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }} bg={tokens.surface}>
       <Box maxW="7xl" mx="auto">
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 10, lg: 16 }}>
-          <Stack spacing={4}>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 16 }}>
+          <Stack gap={4}>
             <Text
               fontFamily={editorialFonts.mono}
               fontSize="xs"
@@ -281,7 +282,7 @@ const AboutSnapshot = () => {
             </Text>
           </Stack>
 
-          <Stack spacing={5} bg={tokens.surfaceAlt} border="1px solid" borderColor={tokens.rule} borderRadius="2xl" p={6}>
+          <Stack gap={5} bg={tokens.surfaceAlt} border="1px solid" borderColor={tokens.rule} borderRadius="2xl" p={6}>
             <Text
               fontFamily={editorialFonts.mono}
               fontSize="xs"
@@ -327,7 +328,7 @@ const Skills = () => {
         </Heading>
         <Separator mt={4} borderColor={tokens.rule} />
 
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 8, md: 14 }} mt={10}>
+        <SimpleGrid columns={{ base: 1, md: 2 }} gap={{ base: 8, md: 14 }} mt={10}>
           <Box>
             <Text
               fontFamily={editorialFonts.mono}
@@ -339,7 +340,7 @@ const Skills = () => {
             >
               Data analytics and science
             </Text>
-            <Stack spacing={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
+            <Stack gap={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
               <Text>SQL, Python, Pandas, NumPy</Text>
               <Text>Data modeling, forecasting, anomaly detection</Text>
               <Text>Tableau / Power BI dashboards, KPI reporting</Text>
@@ -358,7 +359,7 @@ const Skills = () => {
             >
               Cybersecurity analytics
             </Text>
-            <Stack spacing={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
+            <Stack gap={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
               <Text>Security log analysis and alert triage</Text>
               <Text>Threat modeling fundamentals</Text>
               <Text>SIEM concepts, incident support workflows</Text>
@@ -384,7 +385,7 @@ const ContactCTA = () => {
     <Box as="section" py={{ base: 12, md: 16 }} px={{ base: 6, md: 10 }} bg={tokens.surface}>
       <Box maxW="7xl" mx="auto">
         <Separator borderColor={tokens.rule} mb={10} />
-        <Stack spacing={4} align={{ base: 'center', md: 'flex-start' }}>
+        <Stack gap={4} align={{ base: 'center', md: 'flex-start' }}>
           <Text
             fontFamily={editorialFonts.mono}
             fontSize="xs"

@@ -3,6 +3,7 @@ import React, { useRef } from 'react'
 import {
   Box,
   Button,
+  ButtonGroup,
   Flex,
   Heading,
   HStack,
@@ -226,7 +227,7 @@ export default function Carousel() {
         left={0}
         top="50%"
         transform="translateY(-50%)"
-        spacing={2}
+        gap={2}
         align="center"
         display={{ base: 'none', md: 'flex' }}
       >
@@ -315,7 +316,7 @@ function SlideCard({ project, tokens, eager }) {
         color={tokens.ink}
         textAlign={{ base: 'center', md: 'left' }}
       >
-        <Stack spacing={2}>
+        <Stack gap={2}>
           <Text
             fontFamily={editorialFonts.mono}
             fontSize="xs"
@@ -334,7 +335,7 @@ function SlideCard({ project, tokens, eager }) {
         </Text>
 
         {tags.length ? (
-          <HStack spacing={2} flexWrap="wrap">
+          <HStack gap={2} flexWrap="wrap">
             {tags.map((tag) => (
               <Box
                 key={tag}
@@ -353,7 +354,7 @@ function SlideCard({ project, tokens, eager }) {
           </HStack>
         ) : null}
 
-        <HStack pt={3} justify={{ base: 'center', md: 'flex-start' }}>
+        <ButtonGroup pt={3} gap={3} justifyContent={{ base: 'center', md: 'flex-start' }}>
           <Button
             asChild
             colorPalette="teal"
@@ -375,7 +376,7 @@ function SlideCard({ project, tokens, eager }) {
               GitHub
             </ChakraLink>
           </Button>
-        </HStack>
+        </ButtonGroup>
       </Stack>
 
       <Box flex="1" maxW={{ base: '100%', md: '50%' }} align="center">

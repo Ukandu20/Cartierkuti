@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Button } from '@chakra-ui/react';
+import { Button, ButtonGroup } from '@chakra-ui/react';
 import './ThemePicker.css';
 
 /* -------------------------------------------------- utilities */
@@ -70,9 +70,11 @@ const ThemePicker = () => {
       {!localStorage.getItem('themePref') && (
         <div className="themePrompt">
           <p>Choose a theme:</p>
-          <Button size="xs" variant="outline" onClick={() => setPref('light')}>Light</Button>
-          <Button size="xs" variant="outline" onClick={() => setPref('dark')}>Dark</Button>
-          <Button size="xs" variant="outline" onClick={() => setPref('system')}>System</Button>
+          <ButtonGroup size="xs" variant="outline" gap={2}>
+            <Button onClick={() => setPref('light')}>Light</Button>
+            <Button onClick={() => setPref('dark')}>Dark</Button>
+            <Button onClick={() => setPref('system')}>System</Button>
+          </ButtonGroup>
         </div>
       )}
 

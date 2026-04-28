@@ -69,7 +69,7 @@ export default function Contact() {
         </Link>
       </Text>
 
-      <HStack mt={10} spacing={8} justify="center">
+      <HStack mt={10} gap={8} justify="center">
         <Link
           href="https://linkedin.com/in/YOUR-HANDLE"
           isExternal
