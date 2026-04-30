@@ -3,97 +3,97 @@
 import React from 'react'
 import {
   Box,
-  VStack,
   Button,
   Heading,
   HStack,
-  Link,
   Icon,
+  Link,
+  Separator,
+  Stack,
   Text,
   useBreakpointValue,
 } from '@chakra-ui/react'
-import { FaGithub, FaBehance, FaLinkedinIn } from 'react-icons/fa'
+import { Link as RouterLink } from 'react-router-dom'
+import { FaArrowRight, FaBehance, FaGithub, FaLinkedinIn } from 'react-icons/fa'
 
 /**
- * Footer — contact & socials (Chakra v3)
- * -------------------------------------
- *  • Uses `divideY` style‑prop instead of <Divider/>
- *  • Email link + social icons share brand accent
+ * Footer - shared collaboration CTA and socials.
  */
 export default function Footer() {
-  const bg       = 'bg.subtle'
-  const txt      = 'fg.muted'
-  const accent   = 'brand.500'
+  const bg = 'bg.subtle'
+  const txt = 'fg.muted'
+  const accent = 'brand.500'
   const accentHover = 'brand.600'
-
-    // Responsive tweak: larger button on desktop, smaller on mobile
-    const btnSize = useBreakpointValue({ base: 'md', md: 'lg' })
+  const btnSize = useBreakpointValue({ base: 'md', md: 'lg' })
 
   return (
-    <Box as="footer" bg={bg} py={{ base: 10, md: 14 }} px={4}>
-      <VStack
-        gap={6}
-        maxW="container.lg"
+    <Box as="footer" bg={bg} px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }}>
+      <Stack
+        gap={{ base: 8, md: 10 }}
+        maxW="5xl"
         mx="auto"
+        align="center"
         textAlign="center"
-        >
-
-        <Heading size="2xl" mb={4}>
-                Interested in Working Together?
-              </Heading>
-        
-              <Text
-                maxW="2xl"
-                mx="auto"
-                fontSize="lg"
-                color="fg.muted"
-                mb={8}
-              >
-                I&#39;m always open to discussing exciting ideas, collaborations, or new
-                opportunities.
-              </Text>
-        
-      <Button
-        asChild
-        size={btnSize}
-        colorPalette="teal"
-        fontWeight="semibold"
       >
-        <a href="mailto:cartierkuti@gmail.com">Say Hello</a>
-      </Button>
-        
-              <Text
-                mt={6}
-                fontSize="sm"
-                color="fg.muted"
-              >
-                or email me directly at{' '}
-                <Link href="mailto:okechiukandu@gmail.com" color={accent} fontWeight="medium">
-                  okechiukandu@gmail.com
-                </Link>
-              </Text>
-        
-              <HStack mt={10} gap={8} justify="center">
-                <Link
-                  href="https://linkedin.com/in/okechiukandu"
-                  isExternal
-                  aria-label="LinkedIn"
-                  target='_blank'
-                >
-                  <Icon as={FaLinkedinIn} boxSize={6} color={accent} _hover={{ color: accentHover }} />
-                </Link>
-                <Link href="https://github.com/okechiukandu" target='_blank' isExternal aria-label="GitHub">
-                  <Icon as={FaGithub} boxSize={6} color={accent} _hover={{ color: accentHover }} />
-                </Link>
-                <Link href="https://behance.net/okechiukandu" target='_blank' isExternal aria-label="Behance">
-                  <Icon as={FaBehance} boxSize={6} color={accent} _hover={{ color: accentHover }} />
-                </Link>
-              </HStack>
-        {/* copyright */}
-        <Text pt={4} fontSize="xs" color={txt} textAlign="center" w="full">
-          © {new Date().getFullYear()} Okechi Ukandu. All rights reserved.
+        <Stack gap={4} align="center">
+          <Text
+            fontSize="xs"
+            letterSpacing="0.2em"
+            textTransform="uppercase"
+            color={txt}
+          >
+            Collaboration
+          </Text>
+          <Heading size={{ base: '2xl', md: '3xl' }}>
+            Let&apos;s turn data into sharper decisions.
+          </Heading>
+          <Text maxW="2xl" mx="auto" fontSize={{ base: 'md', md: 'lg' }} color={txt}>
+            Open to data analytics, dashboarding, data science, and sports analytics collaborations.
+          </Text>
+          <Button
+            asChild
+            size={btnSize}
+            colorPalette="teal"
+            fontWeight="semibold"
+          >
+            <RouterLink to="/contact">
+              Say Hello
+              <Icon as={FaArrowRight} aria-hidden="true" />
+            </RouterLink>
+          </Button>
+        </Stack>
+
+        <Stack gap={5} align="center">
+          <Text fontSize="sm" color={txt}>
+            or email me directly at{' '}
+            <Link href="mailto:okechiukandu@gmail.com" color={accent} fontWeight="medium">
+              okechiukandu@gmail.com
+            </Link>
+          </Text>
+
+          <HStack gap={8} justify="center">
+            <Link
+              href="https://linkedin.com/in/okechiukandu"
+              isExternal
+              aria-label="LinkedIn"
+              target="_blank"
+            >
+              <Icon as={FaLinkedinIn} boxSize={6} color={accent} _hover={{ color: accentHover }} />
+            </Link>
+            <Link href="https://github.com/okechiukandu" target="_blank" isExternal aria-label="GitHub">
+              <Icon as={FaGithub} boxSize={6} color={accent} _hover={{ color: accentHover }} />
+            </Link>
+            <Link href="https://behance.net/okechiukandu" target="_blank" isExternal aria-label="Behance">
+              <Icon as={FaBehance} boxSize={6} color={accent} _hover={{ color: accentHover }} />
+            </Link>
+          </HStack>
+        </Stack>
+
+        <Separator borderColor="border.muted" />
+        <Text fontSize="xs" color={txt} textAlign="center" w="full">
+          &copy; {new Date().getFullYear()} Okechi Ukandu. All rights reserved.
         </Text>
-      </VStack>
+      </Stack>
     </Box>
   )
 }

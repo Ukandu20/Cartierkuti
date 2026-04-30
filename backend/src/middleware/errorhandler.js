@@ -30,7 +30,7 @@ export function errorHandler(err, req, res, next) {
   } else if (err.code === 'LIMIT_FILE_SIZE') {
     status = 400
     payload.message = 'Uploaded file is too large'
-  } else if (/Only image uploads/.test(err.message)) {
+  } else if (/Only image uploads|Only PDF resume uploads/.test(err.message)) {
     status = 400
   }
 

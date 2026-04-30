@@ -3,6 +3,7 @@
 
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import {
+  Box,
   Flex,
   HStack,
   Link as ChakraLink,
@@ -14,6 +15,7 @@ import {
 import { FaDownload } from 'react-icons/fa'
 import ThemeToggle      from '../Theme/ThemeToggle'
 import logo from './CARTIERKUTI.svg'
+import { useResumeDownload } from '@/hooks/useResumeDownload'
 
 const navLinks = [
   { href: '/',          label: 'Home'      },
@@ -24,6 +26,7 @@ const navLinks = [
 
 export default function Navbar() {
   const { pathname } = useLocation()
+  const resumeUrl = useResumeDownload()
 
   const activeStyle = { fontWeight: 'bold', color: 'brand.600' }
 
@@ -34,7 +37,7 @@ export default function Navbar() {
       px={{ base: 4, md: 8 }}
       align="center"
       /* 💡 let the main flex decide spacing automatically */
-      gap={6}
+      gap={{ base: 3, md: 6 }}
       position="sticky"
       top="0"
       bg="bg.canvas"
@@ -47,14 +50,15 @@ export default function Navbar() {
         as={RouterLink}
         to="/"
         aria-label="Go to home page"
+        display={{ base: 'none', md: 'inline-flex' }}
         _hover={{ textDecor: 'none' }}
       >
-        <Image src={logo} alt="Preston logo" h={{ base: '50px', md: '70px' }} />
+        <Image src={logo} alt="Preston logo" h={{ base: '40px', md: '70px' }} />
       </ChakraLink>
 
       {/* centre links ============================================= */}
       {/* Spacer pushes this group away from the logo */}
-      <Spacer />
+      <Spacer display={{ base: 'none', md: 'block' }} />
 
       <HStack
         as="nav"
@@ -62,8 +66,8 @@ export default function Navbar() {
         flex="1"
         justify="space-evenly"
         /* visually obvious gap so you’ll notice the change */
-        gap={{ base: 8, md: 14 }}
-        fontSize={{ base: 'sm', md: 'md' }}
+        gap={{ base: 4, md: 14 }}
+        fontSize={{ base: 'xs', md: 'md' }}
       >
         {navLinks.map(({ href, label }) => (
           <ChakraLink
@@ -87,9 +91,11 @@ export default function Navbar() {
         colorPalette="teal"
         aria-label="Download resume (PDF)"
       >
-        <a href="/resume.pdf" download>
+        <a href={resumeUrl} download>
           <Icon as={FaDownload} boxSize={4} aria-hidden="true" />
-          Resume
+          <Box as="span" display={{ base: 'none', md: 'inline' }}>
+            Resume
+          </Box>
         </a>
       </Button>
 

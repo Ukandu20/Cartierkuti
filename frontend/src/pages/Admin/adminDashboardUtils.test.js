@@ -20,9 +20,13 @@ describe('adminDashboardUtils', () => {
       metrics: [{ label: ' Projects ', value: ' 12 ', note: ' shipped ' }],
       experience: [{ role: 'Dev', company: 'Acme', bullets: ['Built dashboards'] }],
       skills: { primary: ['SQL'], secondary: ['React'], tools: ['Git'] },
+      resumeFileUrl: 'https://example.com/resume.pdf',
+      resumeFileName: 'Preston-Resume.pdf',
+      resumeFileUpdatedAt: '2026-04-30T10:00:00.000Z',
     })
 
     expect(form.highlightsText).toBe('One\nTwo')
+    expect(form.resumeFileName).toBe('Preston-Resume.pdf')
     expect(buildResumePayload(form)).toMatchObject({
       headline: 'Analyst',
       highlights: ['One', 'Two'],

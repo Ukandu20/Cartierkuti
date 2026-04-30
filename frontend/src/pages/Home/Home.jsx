@@ -8,7 +8,6 @@ import {
   ButtonGroup,
   Flex,
   Heading,
-  HStack,
   Icon,
   Separator,
   SimpleGrid,
@@ -21,6 +20,7 @@ import { Helmet } from 'react-helmet-async'
 import { FaArrowRight, FaDownload } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { useColorMode } from '@/components/Theme/color-mode'
+import { useResumeDownload } from '@/hooks/useResumeDownload'
 import { absoluteUrl, siteTitle } from '@/utils/siteConfig'
 
 const editorialFonts = {
@@ -37,29 +37,28 @@ const getEditorialTokens = (colorMode) => ({
   muted: colorMode === 'light' ? '#4B4B4B' : 'gray.400',
   rule: colorMode === 'light' ? '#E2DED8' : 'gray.700',
   accentData: '#0F766E',
-  accentSecurity: '#7C2D12',
 })
 
 /* ------------------------------ Hero ------------------------------ */
 const Hero = () => {
   const { colorMode } = useColorMode()
   const tokens = getEditorialTokens(colorMode)
-  const sparkline = [12, 26, 18, 34, 22, 40, 28]
+  const resumeUrl = useResumeDownload()
 
   return (
     <Box as="section" role="region" aria-labelledby="hero-heading" bg={tokens.bg}>
       <Flex
-        direction={{ base: 'column', lg: 'row' }}
+        direction="column"
         align="center"
-        justify="space-between"
-        gap={{ base: 10, lg: 16 }}
+        justify="center"
+        gap={8}
         minH={{ base: 'auto', md: 'calc(85vh - 90px)' }}
         px={{ base: 6, md: 10 }}
         py={{ base: 14, md: 20 }}
-        maxW="7xl"
+        maxW="5xl"
         mx="auto"
       >
-        <Stack gap={6} flex="1" align={{ base: 'center', lg: 'flex-start' }}>
+        <Stack gap={6} align="center" textAlign="center">
           <Text
             fontFamily={editorialFonts.mono}
             fontSize="xs"
@@ -67,7 +66,7 @@ const Hero = () => {
             textTransform="uppercase"
             color={tokens.muted}
           >
-            Data analytics / security insights / scientific rigor
+            Data analytics / Artificial intelligence / Sports analytics
           </Text>
 
           <Heading
@@ -77,29 +76,26 @@ const Hero = () => {
             fontWeight="600"
             color={tokens.ink}
             lineHeight="1.05"
-            textAlign={{ base: 'center', lg: 'left' }}
+            textAlign="center"
           >
-            Data Analyst &amp; <Box as="span" color={tokens.accentData}>Cybersecurity-minded</Box>
-            <br />
-            Scientist.
+            <Box as="span" color={tokens.accentData}>Preston Ukandu</Box>
           </Heading>
 
           <Text
             fontFamily={editorialFonts.body}
             fontSize={{ base: 'lg', md: 'xl' }}
             color={tokens.muted}
-            maxW="560px"
-            textAlign={{ base: 'center', lg: 'left' }}
+            maxW="760px"
+            textAlign="center"
           >
-            I build analytics systems that reveal risk, improve decisions, and secure data workflows.
-            My work blends BI, statistical modeling, and security-aware analysis.
+            <Box as="span" color={tokens.accentData}>Data science and analytics practitioner.</Box> I turn messy data into clear stories, useful models, and decision-ready dashboards. My work brings together statistical thinking, machine learning, and applied analysis, with a growing interest in sports performance and game intelligence.
           </Text>
 
           <SimpleGrid columns={{ base: 1, sm: 3 }} gap={6} w="full" pt={2}>
             {[
-              'Dashboards and KPI reporting',
-              'Predictive modeling and anomaly detection',
-              'Risk analytics and security telemetry',
+              'Dashboards and data storytelling',
+              'Predictive modeling and evaluation',
+              'Sports performance analytics',
             ].map((item) => (
               <Box key={item} borderTop="1px solid" borderColor={tokens.rule} pt={3}>
                 <Text
@@ -134,55 +130,12 @@ const Hero = () => {
               colorPalette="teal"
               fontFamily={editorialFonts.body}
             >
-              <a href="/resume.pdf" download>
+              <a href={resumeUrl} download>
                 <Icon as={FaDownload} aria-hidden="true" />
                 Download Resume
               </a>
             </Button>
           </ButtonGroup>
-        </Stack>
-
-        <Stack
-          gap={6}
-          flex="1"
-          maxW="420px"
-          w="full"
-          bg={tokens.surface}
-          border="1px solid"
-          borderColor={tokens.rule}
-          borderRadius="2xl"
-          p={{ base: 6, md: 8 }}
-          boxShadow="md"
-        >
-          <Text
-            fontFamily={editorialFonts.mono}
-            fontSize="xs"
-            letterSpacing="0.24em"
-            textTransform="uppercase"
-            color={tokens.muted}
-          >
-            Signal overview
-          </Text>
-          <Heading fontFamily={editorialFonts.heading} fontSize="2xl" color={tokens.ink}>
-            Risk Drift Index
-          </Heading>
-          <Text fontFamily={editorialFonts.body} color={tokens.muted}>
-            Monitoring anomaly patterns across operational data streams and security events.
-          </Text>
-          <HStack gap="6px" align="flex-end" h="48px">
-            {sparkline.map((height, idx) => (
-              <Box
-                key={`${height}-${idx}`}
-                w="10px"
-                h={`${height}px`}
-                bg={idx === sparkline.length - 1 ? tokens.accentSecurity : tokens.rule}
-                borderRadius="full"
-              />
-            ))}
-          </HStack>
-          <Text fontFamily={editorialFonts.mono} fontSize="xs" color={tokens.muted}>
-            Status: stable | last updated today
-          </Text>
         </Stack>
       </Flex>
     </Box>
@@ -208,7 +161,6 @@ const FeaturedProjects = () => {
       aria-labelledby="featured-heading"
       py={{ base: 12, md: 16 }}
       px={{ base: 6, md: 10 }}
-      bg={tokens.surfaceAlt}
     >
       <Box maxW="7xl" mx="auto">
         <Heading
@@ -227,7 +179,7 @@ const FeaturedProjects = () => {
           mt={3}
           mb={10}
         >
-          Projects centered on analytics, automation, and security-aware data pipelines.
+          Projects centered on analytics, data storytelling, automation, and modeling.
         </Text>
 
         <Suspense fallback={<Spinner size="xl" />}>
@@ -241,8 +193,8 @@ const FeaturedProjects = () => {
 /* ------------------------------ Snapshot ------------------------------ */
 const focusAreas = [
   {
-    title: 'Risk and Threat Analytics',
-    desc: 'Turn logs, alerts, and operational data into actionable security signals.',
+    title: 'Sports and Performance Analytics',
+    desc: 'Explore player, team, and game data to surface trends, strengths, and decision points.',
   },
   {
     title: 'Decision Intelligence',
@@ -259,7 +211,7 @@ const AboutSnapshot = () => {
   const tokens = getEditorialTokens(colorMode)
 
   return (
-    <Box as="section" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }} bg={tokens.surface}>
+    <Box as="section" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }}>
       <Box maxW="7xl" mx="auto">
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 16 }}>
           <Stack gap={4}>
@@ -273,12 +225,12 @@ const AboutSnapshot = () => {
               Profile snapshot
             </Text>
             <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '3xl', md: '4xl' }} color={tokens.ink}>
-              Analytics-first, security-aware.
+              Analytics-first, model-minded.
             </Heading>
             <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted}>
-              I focus on <Box as="span" fontWeight="600" color={tokens.ink}>analytics</Box>, threat-aware
-              data interpretation, and statistical rigor. My goal is to deliver
-              insights that are trusted, reproducible, and aligned with risk management.
+              I focus on <Box as="span" fontWeight="600" color={tokens.ink}>analytics</Box>, statistical
+              interpretation, and practical model evaluation. My goal is to deliver insights that are
+              trusted, reproducible, and useful for business, product, and sports decisions.
             </Text>
           </Stack>
 
@@ -316,7 +268,7 @@ const Skills = () => {
   const subSize = useBreakpointValue({ base: 'lg', md: 'xl' })
 
   return (
-    <Box as="section" role="region" aria-labelledby="skills-heading" py={{ base: 12, md: 16 }} px={{ base: 6, md: 10 }} bg={tokens.bg}>
+    <Box as="section" role="region" aria-labelledby="skills-heading" py={{ base: 12, md: 16 }} px={{ base: 6, md: 10 }}>
       <Box maxW="7xl" mx="auto">
         <Heading
           id="skills-heading"
@@ -357,62 +309,20 @@ const Skills = () => {
               color={tokens.muted}
               mb={3}
             >
-              Cybersecurity analytics
+              Sports analytics and applied analysis
             </Text>
             <Stack gap={3} fontFamily={editorialFonts.body} fontSize="lg" color={tokens.ink}>
-              <Text>Security log analysis and alert triage</Text>
-              <Text>Threat modeling fundamentals</Text>
-              <Text>SIEM concepts, incident support workflows</Text>
-              <Text>Network and identity telemetry interpretation</Text>
+              <Text>Player and team performance analysis</Text>
+              <Text>Match trends, scouting questions, and game context</Text>
+              <Text>Visualization for rankings, comparisons, and storylines</Text>
+              <Text>Security-aware data handling as a supporting foundation</Text>
             </Stack>
           </Box>
         </SimpleGrid>
 
         <Text fontFamily={editorialFonts.mono} fontSize={subSize} color={tokens.muted} mt={12}>
-          Engineering foundations: Python scripting, API integrations, data QA automation.
+          Engineering foundations: Python scripting, API integrations, data QA automation, and reproducible analysis workflows.
         </Text>
-      </Box>
-    </Box>
-  )
-}
-
-/* ------------------------------ CTA ------------------------------ */
-const ContactCTA = () => {
-  const { colorMode } = useColorMode()
-  const tokens = getEditorialTokens(colorMode)
-
-  return (
-    <Box as="section" py={{ base: 12, md: 16 }} px={{ base: 6, md: 10 }} bg={tokens.surface}>
-      <Box maxW="7xl" mx="auto">
-        <Separator borderColor={tokens.rule} mb={10} />
-        <Stack gap={4} align={{ base: 'center', md: 'flex-start' }}>
-          <Text
-            fontFamily={editorialFonts.mono}
-            fontSize="xs"
-            letterSpacing="0.2em"
-            textTransform="uppercase"
-            color={tokens.muted}
-          >
-            Collaboration
-          </Text>
-          <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '3xl', md: '4xl' }} color={tokens.ink}>
-            Let's solve data or security problems.
-          </Heading>
-          <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted} maxW="620px">
-            Open to analyst and security-focused roles, consulting, and project collaborations.
-          </Text>
-          <Button
-            asChild
-            size="lg"
-            colorPalette="red"
-            fontFamily={editorialFonts.body}
-          >
-            <Link to="/contact">
-              Say Hello
-              <Icon as={FaArrowRight} aria-hidden="true" />
-            </Link>
-          </Button>
-        </Stack>
       </Box>
     </Box>
   )
@@ -426,13 +336,13 @@ export default function Home() {
         <title>{siteTitle}</title>
         <meta
           name="description"
-          content="Portfolio of Preston, a data analyst and cybersecurity-minded scientist delivering analytics, risk insights, and decision intelligence."
+          content="Portfolio of Preston, a data science and analytics practitioner building dashboards, models, and decision-ready insights with an interest in sports analytics."
         />
         <meta property="og:type" content="website" />
         <meta property="og:title" content={siteTitle} />
         <meta
           property="og:description"
-          content="Explore analytics projects, security-minded insights, and data science capabilities."
+          content="Explore data science, analytics, dashboarding, modeling, and sports analytics projects."
         />
         <meta property="og:url" content={absoluteUrl('/')} />
         <meta property="og:image" content={absoluteUrl('/personalportfolio.png')} />
@@ -444,7 +354,6 @@ export default function Home() {
         <AboutSnapshot />
         <FeaturedProjects />
         <Skills />
-        <ContactCTA />
       </main>
     </>
   )

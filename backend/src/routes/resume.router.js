@@ -1,25 +1,38 @@
 import { Router } from 'express'
+import multer from 'multer'
 import asyncHandler from 'express-async-handler'
 import requireAdmin from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import Resume from '../models/resume.model.js'
 import { resumeWriteSchema } from '../validation/schemas.js'
+import cloudinary from '../config/cloudinary.js'
 
 const resumeRouter = Router()
 
+const resumeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') {
+      return cb(new Error('Only PDF resume uploads are allowed'))
+    }
+    return cb(null, true)
+  },
+})
+
 const DEFAULT_RESUME = {
-  headline: 'Data analyst and security-minded developer',
+  headline: 'Data science and analytics practitioner',
   summary:
-    'I build analytics systems that reveal risk, improve decisions, and secure data workflows.',
+    'I turn messy data into clear stories, useful models, and decision-ready dashboards.',
   highlights: [
-    'Dashboarding, KPI reporting, and stakeholder storytelling.',
-    'Threat-aware analytics and operational telemetry.',
-    'Predictive modeling and anomaly detection.',
+    'Dashboarding, KPI reporting, and stakeholder data storytelling.',
+    'Predictive modeling, experimentation, and practical model evaluation.',
+    'Sports performance analytics and applied decision intelligence.',
   ],
   metrics: [
     { label: 'Years', value: '3+', note: 'Professional practice' },
-    { label: 'Projects', value: '20+', note: 'Data and software' },
-    { label: 'Focus', value: 'Analytics', note: 'Security-aware' },
+    { label: 'Projects', value: '20+', note: 'Analytics and software' },
+    { label: 'Focus', value: 'Analytics', note: 'Models and sports' },
   ],
   experience: [
     {
@@ -46,9 +59,11 @@ const DEFAULT_RESUME = {
   ],
   skills: {
     primary: ['Python', 'SQL', 'Pandas', 'React'],
-    secondary: ['Tableau', 'Power BI', 'Node.js', 'Express'],
+    secondary: ['Tableau', 'Power BI', 'scikit-learn', 'Node.js'],
     tools: ['Git', 'Docker', 'Linux', 'MongoDB'],
   },
+  resumeFileUrl: '',
+  resumeFileName: '',
 }
 
 resumeRouter.get(
@@ -73,6 +88,61 @@ resumeRouter.put(
       setDefaultsOnInsert: true,
     })
     res.json(updated)
+  })
+)
+
+resumeRouter.post(
+  '/file',
+  requireAdmin,
+  resumeUpload.single('resume'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No resume file received' })
+    }
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      return res.status(500).json({ message: 'Cloudinary is not configured' })
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'cartierkuti/resume',
+          resource_type: 'raw',
+          public_id: 'resume',
+          overwrite: true,
+          use_filename: false,
+        },
+        (error, uploadResult) => {
+          if (error) return reject(error)
+          return resolve(uploadResult)
+        },
+      )
+      stream.end(req.file.buffer)
+    })
+
+    const updated = await Resume.findOneAndUpdate(
+      {},
+      {
+        resumeFileUrl: result.secure_url,
+        resumeFileName: req.file.originalname,
+        resumeFileUpdatedAt: new Date(),
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      },
+    )
+
+    res.json({
+      resumeFileUrl: updated.resumeFileUrl,
+      resumeFileName: updated.resumeFileName,
+      resumeFileUpdatedAt: updated.resumeFileUpdatedAt,
+    })
   })
 )
 

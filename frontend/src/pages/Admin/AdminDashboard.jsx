@@ -98,6 +98,7 @@ export default function AdminDashboard() {
     resumeLoading,
     fetchResume,
     saveResume: persistResume,
+    uploadResumeFile,
   } = useAdminProjects()
 
   const handleAuthenticated = useCallback(() => {
@@ -149,6 +150,7 @@ export default function AdminDashboard() {
   const [isSavingProject, setIsSavingProject] = useState(false)
   const [isDeletingProject, setIsDeletingProject] = useState(false)
   const [isSavingResume, setIsSavingResume] = useState(false)
+  const [isUploadingResumeFile, setIsUploadingResumeFile] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [projectAnalyticsTarget, setProjectAnalyticsTarget] = useState(null)
   const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
@@ -168,6 +170,19 @@ export default function AdminDashboard() {
       }
     } finally {
       setIsSavingResume(false)
+    }
+  }
+
+  const onUploadResumeFile = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || isUploadingResumeFile) return
+
+    setIsUploadingResumeFile(true)
+    try {
+      await uploadResumeFile(file)
+    } finally {
+      setIsUploadingResumeFile(false)
     }
   }
 
@@ -446,7 +461,7 @@ export default function AdminDashboard() {
     { label: 'Delete Project', value: projects.length, desc: 'remove', icon: HiTrash, onClick: () => setQuickDeleteOpen(true) },
     { label: 'View Analytics', value: '', desc: 'charts', icon: HiEye, onClick: () => setAnalyticsOpen(true) },
     {
-      label: 'Edit Resume',
+      label: 'Edit About Page',
       value: '',
       desc: 'about page',
       icon: HiDocumentText,
@@ -572,6 +587,8 @@ export default function AdminDashboard() {
           resumeLoading={resumeLoading}
           saveResume={saveResume}
           isSavingResume={isSavingResume}
+          onUploadResumeFile={onUploadResumeFile}
+          isUploadingResumeFile={isUploadingResumeFile}
           onCancel={() => setResumeOpen(false)}
           addMetric={addMetric}
           updateMetric={updateMetric}
@@ -649,4 +666,3 @@ export default function AdminDashboard() {
     </>
   )
 }
-

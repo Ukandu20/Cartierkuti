@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa'
 import apiClient from '@/utils/axiosConfig'
 import { useColorMode } from '@/components/Theme/color-mode'
+import { getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { absoluteUrl } from '@/utils/siteConfig'
 
 const editorialFonts = {
@@ -36,22 +37,21 @@ const getEditorialTokens = (colorMode) => ({
   muted: colorMode === 'light' ? '#4B4B4B' : 'gray.400',
   rule: colorMode === 'light' ? '#E2DED8' : 'gray.700',
   accentData: '#0F766E',
-  accentSecurity: '#7C2D12',
 })
 
 const DEFAULT_RESUME = {
-  headline: 'Data analyst and security-minded developer',
+  headline: 'Data science and analytics practitioner',
   summary:
-    'I build analytics systems that reveal risk, improve decisions, and secure data workflows.',
+    'I turn messy data into clear stories, useful models, and decision-ready dashboards.',
   highlights: [
-    'Dashboarding, KPI reporting, and stakeholder storytelling.',
-    'Threat-aware analytics and operational telemetry.',
-    'Predictive modeling and anomaly detection.',
+    'Dashboarding, KPI reporting, and stakeholder data storytelling.',
+    'Predictive modeling, experimentation, and practical model evaluation.',
+    'Sports performance analytics and applied decision intelligence.',
   ],
   metrics: [
     { label: 'Years', value: '3+', note: 'Professional practice' },
-    { label: 'Projects', value: '20+', note: 'Data and software' },
-    { label: 'Focus', value: 'Analytics', note: 'Security-aware' },
+    { label: 'Projects', value: '20+', note: 'Analytics and software' },
+    { label: 'Focus', value: 'Analytics', note: 'Models and sports' },
   ],
   experience: [
     {
@@ -78,10 +78,28 @@ const DEFAULT_RESUME = {
   ],
   skills: {
     primary: ['Python', 'SQL', 'Pandas', 'React'],
-    secondary: ['Tableau', 'Power BI', 'Node.js', 'Express'],
+    secondary: ['Tableau', 'Power BI', 'scikit-learn', 'Node.js'],
     tools: ['Git', 'Docker', 'Linux', 'MongoDB'],
   },
+  resumeFileUrl: '',
+  resumeFileName: '',
+  resumeFileUpdatedAt: '',
 }
+
+const focusAreas = [
+  {
+    title: 'Sports and Performance Analytics',
+    desc: 'Explore player, team, and game data to surface trends, strengths, and decision points.',
+  },
+  {
+    title: 'Decision Intelligence',
+    desc: 'Model outcomes, track KPIs, and translate data into executive-ready insights.',
+  },
+  {
+    title: 'Data Engineering Foundations',
+    desc: 'Build reliable pipelines, clean datasets, and automated quality checks.',
+  },
+]
 
 const normalizeResume = (data) => {
   const safeArray = (value) => (Array.isArray(value) ? value : [])
@@ -99,6 +117,9 @@ const normalizeResume = (data) => {
       ? safeArray(data?.education)
       : DEFAULT_RESUME.education,
     certifications: safeArray(data?.certifications),
+    resumeFileUrl: data?.resumeFileUrl || DEFAULT_RESUME.resumeFileUrl,
+    resumeFileName: data?.resumeFileName || DEFAULT_RESUME.resumeFileName,
+    resumeFileUpdatedAt: data?.resumeFileUpdatedAt || DEFAULT_RESUME.resumeFileUpdatedAt,
     skills: {
       primary: safeArray(data?.skills?.primary).length
         ? safeArray(data?.skills?.primary)
@@ -118,6 +139,7 @@ export default function About() {
   const tokens = getEditorialTokens(colorMode)
   const [resume, setResume] = useState(DEFAULT_RESUME)
   const [loading, setLoading] = useState(true)
+  const resumeUrl = getResumeDownloadUrl(resume)
 
   useEffect(() => {
     let active = true
@@ -144,58 +166,81 @@ export default function About() {
         <title>About Me | Preston Ukandu</title>
         <meta
           name="description"
-          content="Resume and background of Preston Ukandu, a data analyst and security-minded developer."
+          content="Resume and background of Preston Ukandu, a data science and analytics practitioner focused on dashboards, models, and sports analytics."
         />
         <link rel="canonical" href={absoluteUrl('/about')} />
       </Helmet>
 
-      <Box as="section" maxW="7xl" mx="auto" pt={{ base: 10, md: 16 }} px={{ base: 6, md: 10 }}>
+      <Box as="section" maxW="5xl" mx="auto" pt={{ base: 12, md: 18 }} px={{ base: 6, md: 10 }}>
+        <Stack gap={6} align="center" textAlign="center">
+          <Text
+            fontFamily={editorialFonts.mono}
+            fontSize="xs"
+            letterSpacing="0.3em"
+            textTransform="uppercase"
+            color={tokens.muted}
+          >
+            About
+          </Text>
+          <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '4xl', md: '5xl' }}>
+            <Box as="span" color={tokens.accentData}>Preston Ukandu</Box>
+          </Heading>
+          <Text fontFamily={editorialFonts.body} fontSize={{ base: 'lg', md: 'xl' }} color={tokens.muted} maxW="760px">
+            {resume.headline}
+          </Text>
+          <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted} maxW="760px">
+            {resume.summary}
+          </Text>
+
+          <ButtonGroup gap={4} flexWrap="wrap" justifyContent="center">
+            <Button
+              asChild
+              size="lg"
+              colorPalette="teal"
+              fontFamily={editorialFonts.body}
+            >
+              <a href={resumeUrl} download>
+                <Icon as={FaDownload} aria-hidden="true" />
+                Download Resume
+              </a>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              colorPalette="teal"
+              fontFamily={editorialFonts.body}
+            >
+              <Link to="/contact">Contact Me</Link>
+            </Button>
+          </ButtonGroup>
+        </Stack>
+      </Box>
+
+      <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 16 }} alignItems="start">
-          <Stack gap={6}>
+          <Stack gap={5}>
             <Text
               fontFamily={editorialFonts.mono}
               fontSize="xs"
-              letterSpacing="0.3em"
+              letterSpacing="0.2em"
               textTransform="uppercase"
               color={tokens.muted}
             >
-              About
+              Profile snapshot
             </Text>
             <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '3xl', md: '4xl' }}>
-              About Me
+              Analytics-first, model-minded.
             </Heading>
             <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted}>
-              {resume.headline}
+              I focus on <Box as="span" fontWeight="600" color={tokens.ink}>analytics</Box>, statistical
+              interpretation, and practical model evaluation. My work connects clean data workflows,
+              useful dashboards, and applied analysis for business, product, and sports decisions.
             </Text>
-            <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted}>
-              {resume.summary}
-            </Text>
-
-            <ButtonGroup gap={4} flexWrap="wrap">
-              <Button
-                asChild
-                size="lg"
-                colorPalette="teal"
-                fontFamily={editorialFonts.body}
-              >
-                <a href="/resume.pdf" download>
-                  <Icon as={FaDownload} aria-hidden="true" />
-                  Download Resume
-                </a>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                colorPalette="teal"
-                fontFamily={editorialFonts.body}
-              >
-                <Link to="/contact">Contact Me</Link>
-              </Button>
-            </ButtonGroup>
           </Stack>
 
-          <Box
+          <Stack
+            gap={5}
             bg={tokens.surface}
             border="1px solid"
             borderColor={tokens.rule}
@@ -210,12 +255,44 @@ export default function About() {
               textTransform="uppercase"
               color={tokens.muted}
             >
-              Resume Snapshot
+              Focus areas
             </Text>
-            <Heading fontFamily={editorialFonts.heading} fontSize="2xl" mt={2}>
-              What I Deliver
-            </Heading>
-            <Separator my={4} borderColor={tokens.rule} />
+            {focusAreas.map((area) => (
+              <Box key={area.title}>
+                <Text fontFamily={editorialFonts.body} fontWeight="600" color={tokens.ink}>
+                  {area.title}
+                </Text>
+                <Text fontFamily={editorialFonts.body} color={tokens.muted}>
+                  {area.desc}
+                </Text>
+              </Box>
+            ))}
+          </Stack>
+        </SimpleGrid>
+      </Box>
+
+      <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} pb={{ base: 12, md: 16 }}>
+        <Box
+          bg={tokens.surface}
+          border="1px solid"
+          borderColor={tokens.rule}
+          borderRadius="2xl"
+          p={{ base: 6, md: 8 }}
+          boxShadow="md"
+        >
+          <Text
+            fontFamily={editorialFonts.mono}
+            fontSize="xs"
+            letterSpacing="0.25em"
+            textTransform="uppercase"
+            color={tokens.muted}
+          >
+            Resume Snapshot
+          </Text>
+          <Heading fontFamily={editorialFonts.heading} fontSize="2xl" mt={2}>
+            What I Deliver
+          </Heading>
+          <Separator my={4} borderColor={tokens.rule} />
             {loading ? (
               <Spinner size="lg" />
             ) : (
@@ -250,11 +327,10 @@ export default function About() {
                 </Text>
               ))}
             </Stack>
-          </Box>
-        </SimpleGrid>
+        </Box>
       </Box>
 
-      <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }}>
+      <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} pb={{ base: 12, md: 16 }}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 8, lg: 12 }}>
           <Stack gap={6}>
             <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '2xl', md: '3xl' }}>
@@ -416,26 +492,6 @@ export default function About() {
           </Stack>
         </Box>
       ) : null}
-
-      <Box as="section" px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }} bg={tokens.surface}>
-        <Box maxW="5xl" mx="auto" textAlign="center">
-          <Heading fontFamily={editorialFonts.heading} fontSize={{ base: '2xl', md: '3xl' }}>
-            Interested in Working Together?
-          </Heading>
-          <Text fontFamily={editorialFonts.body} fontSize="lg" color={tokens.muted} mt={4}>
-            I am open to analytics, security-minded data work, and collaborative research projects.
-          </Text>
-          <Button
-            asChild
-            size="lg"
-            mt={6}
-            colorPalette="red"
-            fontFamily={editorialFonts.body}
-          >
-            <Link to="/contact">Say Hello</Link>
-          </Button>
-        </Box>
-      </Box>
     </Box>
   )
 }
