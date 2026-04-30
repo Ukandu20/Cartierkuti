@@ -1,31 +1,31 @@
-"use client";
+"use client"
 
-import React from "react";
+import React from "react"
 import {
-  Card,
-  Image,
   Box,
-  Text,
-  HStack,
-  Stack,
-  Icon,
-  IconButton,
   Button,
   ButtonGroup,
-  Portal,
-  Dialog,
+  Card,
   CloseButton,
-} from "@chakra-ui/react";
-import { motion } from "framer-motion";
+  Dialog,
+  HStack,
+  Icon,
+  IconButton,
+  Image,
+  Portal,
+  Stack,
+  Text,
+} from "@chakra-ui/react"
+import { motion } from "framer-motion"
 import {
-  FaStar,
   FaHeart,
   FaHeartBroken,
-} from "react-icons/fa";
-import ProjectDetails   from "./ProjectDetails";
-import styles           from "./ProjectCard.module.css";
+  FaStar,
+} from "react-icons/fa"
+import ProjectDetails from "./ProjectDetails"
+import styles from "./ProjectCard.module.css"
 
-const MotionCard = motion.create(Card.Root);
+const MotionCard = motion.create(Card.Root)
 
 export default function ProjectCard({
   project,
@@ -33,12 +33,11 @@ export default function ProjectCard({
   handleFavorite,
   hitAndOpen,
 }) {
-  const isFav       = favorites.includes(project.id);
-  const stripeColor = "brand.500";
+  const isFav = favorites.includes(project.id)
+  const stripeColor = "brand.500"
 
   return (
     <Dialog.Root size="lg" placement="center" motionPreset="slide-in-bottom">
-      {/* ────────── CARD TRIGGER ────────── */}
       <Dialog.Trigger asChild>
         <MotionCard
           maxW="sm"
@@ -47,7 +46,6 @@ export default function ProjectCard({
           className={styles.card}
           cursor="pointer"
         >
-          {/* featured ribbon */}
           {project.featured && (
             <Box
               className={styles.stripe}
@@ -58,7 +56,6 @@ export default function ProjectCard({
             />
           )}
 
-          {/* image */}
           <Image
             src={project.imageUrl}
             alt={project.title}
@@ -67,7 +64,6 @@ export default function ProjectCard({
             objectFit="cover"
           />
 
-          {/* title + quick stars */}
           <Box px="3" py="2" bg="blackAlpha.600">
             <Text fontWeight="bold" fontSize="md" color="white">
               {project.title}
@@ -91,7 +87,6 @@ export default function ProjectCard({
             </HStack>
           </Box>
 
-          {/* overlay on hover */}
           <Card.Body p="4" className={styles.overlay}>
             <Stack gap="2">
               <Text fontWeight="bold" fontSize="lg" color="white">
@@ -118,7 +113,6 @@ export default function ProjectCard({
                 </HStack>
               )}
 
-              {/* ────────── ACTION BUTTONS ────────── */}
               <HStack gap="2" pt="2" align="center">
                 <ButtonGroup size="sm" variant="solid" gap="2">
                   <Button
@@ -142,7 +136,6 @@ export default function ProjectCard({
                   </Button>
                 </ButtonGroup>
 
-                {/* favourite toggle */}
                 <IconButton
                   variant="ghost"
                   colorPalette="red"
@@ -166,7 +159,6 @@ export default function ProjectCard({
         </MotionCard>
       </Dialog.Trigger>
 
-      {/* ────────── DIALOG ────────── */}
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner
@@ -209,5 +201,5 @@ export default function ProjectCard({
         </Dialog.Positioner>
       </Portal>
     </Dialog.Root>
-  );
+  )
 }

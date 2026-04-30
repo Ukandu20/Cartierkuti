@@ -15,6 +15,8 @@ export const emptyProjectForm = {
   featured: false,
 }
 
+export const emptyProjectErrors = {}
+
 export const emptyResumeForm = {
   headline: '',
   summary: '',
@@ -150,6 +152,80 @@ export const buildProjectPayload = (formData) => ({
   metadata: formData.metadata?.trim() || '',
   featured: Boolean(formData.featured),
 })
+
+const isValidUrl = (value) => {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const splitCommaList = (value) =>
+  (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+export const validateProjectForm = (formData) => {
+  const errors = {}
+  const requiredText = {
+    title: 'Project title is required.',
+    description: 'Project description is required.',
+    category: 'Category is required.',
+    status: 'Project status is required.',
+  }
+
+  Object.entries(requiredText).forEach(([key, message]) => {
+    if (!formData[key]?.trim()) errors[key] = message
+  })
+
+  if (!formData.externalLink?.trim()) {
+    errors.externalLink = 'External link is required.'
+  } else if (!isValidUrl(formData.externalLink.trim())) {
+    errors.externalLink = 'External link must be a valid http or https URL.'
+  }
+
+  if (!formData.githubLink?.trim()) {
+    errors.githubLink = 'GitHub link is required.'
+  } else if (!isValidUrl(formData.githubLink.trim())) {
+    errors.githubLink = 'GitHub link must be a valid http or https URL.'
+  }
+
+  if (formData.liveDemoLink?.trim() && !isValidUrl(formData.liveDemoLink.trim())) {
+    errors.liveDemoLink = 'Live link must be a valid http or https URL.'
+  }
+
+  if (formData.imageUrl?.trim() && !isValidUrl(formData.imageUrl.trim())) {
+    errors.imageUrl = 'Image URL must be a valid http or https URL.'
+  }
+
+  if (!splitCommaList(formData.languages).length) {
+    errors.languages = 'Add at least one language.'
+  }
+
+  if (!splitCommaList(formData.tags).length) {
+    errors.tags = 'Add at least one tag.'
+  }
+
+  return errors
+}
+
+export const projectWriteContractFields = Object.freeze([
+  'category',
+  'description',
+  'externalLink',
+  'featured',
+  'githubLink',
+  'imageUrl',
+  'languages',
+  'liveDemoLink',
+  'metadata',
+  'status',
+  'tags',
+  'title',
+])
 
 export const getAvgStars = (project) => {
   if (!project) return 0

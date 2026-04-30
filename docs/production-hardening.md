@@ -41,3 +41,27 @@ The admin page now has extracted login and dashboard stats components while pres
 Browser API debug logs are limited to development mode. CI now installs both apps, runs backend and frontend tests, builds the frontend, and only then proceeds to Docker/deployment jobs. Production seed/deploy configuration now references the new JWT credential secrets instead of `ADMIN_SECRET`.
 
 These changes make regressions visible before deployment and avoid leaking noisy request/response details in production consoles.
+
+## Production Readiness Follow-up
+
+The admin project dialog now validates the write contract before calling `/api/projects`. Required fields are `title`, `description`, `category`, `status`, `externalLink`, `githubLink`, at least one `language`, and at least one `tag`. Optional URL fields such as `liveDemoLink` and `imageUrl` are validated only when present. The UI-only `date` field is intentionally omitted from project writes because `createdDate` and `lastUpdatedDate` are backend-managed Mongoose timestamps.
+
+Backend validation, auth, upload, and not-found responses now use stable `{ message }` payloads, with validation-style failures returning `{ message: "Validation failed", errors: [{ path, message }] }` where a field path is available. The frontend maps that shape into inline project form errors and toast messages while keeping failed save/delete dialogs open.
+
+Playwright E2E coverage now exercises admin login success and failure, project create/edit/delete flows, frontend validation that blocks invalid submits, portfolio category aliases such as `Machine Learning/AI` and `AI/ML`, and mobile-visible project card actions. CI installs Playwright Chromium and runs `npm run test:e2e` after frontend unit tests.
+
+Required production secrets are:
+
+- `MONGODB_URI`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD_HASH`
+- `JWT_SECRET`
+- `ADMIN_TOKEN_TTL`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `RENDER_API_KEY`
+- `RENDER_SERVICE_ID`
+- `GHCR_TOKEN`
+
+Developer workflow note: this repository currently lives in a OneDrive-backed directory, which has already made `.git` lock-file writes unreliable. Moving the checkout to a non-synced path such as `C:\dev\Cartierkuti` will reduce intermittent Git and file watcher issues.

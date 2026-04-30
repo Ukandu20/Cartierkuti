@@ -49,6 +49,8 @@ export default function ProjectEditorDialog({
   onCancel,
   onUploadImage,
   isUploading,
+  isSaving,
+  errors = {},
   setFormData,
   dialogBg,
   dialogBorder,
@@ -102,11 +104,12 @@ export default function ProjectEditorDialog({
             <Dialog.Body px={0}>
               <Fieldset.Root size="lg" maxW="2xl">
                 <Fieldset.Content>
-                  <Field.Root required>
+                  <Field.Root required invalid={Boolean(errors.title)}>
                     <Field.Label>Project Title</Field.Label>
                     <Input name="title" value={formData.title} onChange={onChange} px={2} />
+                    <Field.ErrorText>{errors.title}</Field.ErrorText>
                   </Field.Root>
-                  <Field.Root required>
+                  <Field.Root required invalid={Boolean(errors.description)}>
                     <Field.Label>Project Description</Field.Label>
                     <Textarea
                       name="description"
@@ -115,10 +118,11 @@ export default function ProjectEditorDialog({
                       px={2}
                       aria-label="Project Description"
                     />
+                    <Field.ErrorText>{errors.description}</Field.ErrorText>
                   </Field.Root>
 
                   <Flex wrap="wrap" gap={2} mb={4}>
-                    <Field.Root flex="1">
+                    <Field.Root flex="1" required invalid={Boolean(errors.externalLink)}>
                       <Field.Label>External Link</Field.Label>
                       <Input
                         name="externalLink"
@@ -128,8 +132,9 @@ export default function ProjectEditorDialog({
                         onChange={onChange}
                         px={2}
                       />
+                      <Field.ErrorText>{errors.externalLink}</Field.ErrorText>
                     </Field.Root>
-                    <Field.Root flex="1">
+                    <Field.Root flex="1" required invalid={Boolean(errors.githubLink)}>
                       <Field.Label>GitHub Link</Field.Label>
                       <Input
                         name="githubLink"
@@ -139,8 +144,9 @@ export default function ProjectEditorDialog({
                         onChange={onChange}
                         px={2}
                       />
+                      <Field.ErrorText>{errors.githubLink}</Field.ErrorText>
                     </Field.Root>
-                    <Field.Root flex="1">
+                    <Field.Root flex="1" invalid={Boolean(errors.liveDemoLink)}>
                       <Field.Label>Live Link</Field.Label>
                       <Input
                         name="liveDemoLink"
@@ -150,10 +156,11 @@ export default function ProjectEditorDialog({
                         onChange={onChange}
                         px={2}
                       />
+                      <Field.ErrorText>{errors.liveDemoLink}</Field.ErrorText>
                     </Field.Root>
                   </Flex>
 
-                  <Field.Root required>
+                  <Field.Root required invalid={Boolean(errors.category)}>
                     <Field.Label htmlFor="category-select">Category</Field.Label>
                     <NativeSelect.Root>
                       <NativeSelect.Field
@@ -170,16 +177,19 @@ export default function ProjectEditorDialog({
                       </NativeSelect.Field>
                       <NativeSelect.Indicator />
                     </NativeSelect.Root>
+                    <Field.ErrorText>{errors.category}</Field.ErrorText>
                   </Field.Root>
-                  <Field.Root required>
+                  <Field.Root required invalid={Boolean(errors.languages)}>
                     <Field.Label>Languages</Field.Label>
                     <Input name="languages" value={formData.languages} onChange={onChange} paddingX={2} alignContent="center" />
+                    <Field.ErrorText>{errors.languages}</Field.ErrorText>
                   </Field.Root>
-                  <Field.Root required>
+                  <Field.Root required invalid={Boolean(errors.tags)}>
                     <Field.Label>Tags</Field.Label>
                     <Input name="tags" value={formData.tags} onChange={onChange} paddingX={2} alignContent="center" />
+                    <Field.ErrorText>{errors.tags}</Field.ErrorText>
                   </Field.Root>
-                  <Field.Root required>
+                  <Field.Root required invalid={Boolean(errors.status)}>
                     <Field.Label htmlFor="status-select">Project Status</Field.Label>
                     <NativeSelect.Root>
                       <NativeSelect.Field
@@ -197,6 +207,7 @@ export default function ProjectEditorDialog({
                       </NativeSelect.Field>
                       <NativeSelect.Indicator />
                     </NativeSelect.Root>
+                    <Field.ErrorText>{errors.status}</Field.ErrorText>
                   </Field.Root>
                   <Field.Root required>
                     <Field.Label>Upload Date</Field.Label>
@@ -204,17 +215,18 @@ export default function ProjectEditorDialog({
                   </Field.Root>
 
                   <Flex align="center" gap={4}>
-                    <Field.Root>
+                    <Field.Root invalid={Boolean(errors.imageUrl)}>
                       <Field.Label>Preview Image</Field.Label>
                       <FileUpload.Root accept="image/*">
-                        <FileUpload.HiddenInput aria-label="Select preview image" onChange={onUploadImage} />
+                        <FileUpload.HiddenInput aria-label="Select preview image" onChange={onUploadImage} disabled={isUploading || isSaving} />
                         <FileUpload.Trigger asChild>
-                          <Button size="sm" variant="outline" aria-label="Upload image">
+                          <Button size="sm" variant="outline" aria-label="Upload image" loading={isUploading} disabled={isSaving}>
                             <RiImageAddLine />
                           </Button>
                         </FileUpload.Trigger>
                         <FileUploadList />
                       </FileUpload.Root>
+                      <Field.ErrorText>{errors.imageUrl}</Field.ErrorText>
                     </Field.Root>
 
                     <Field.Root>
@@ -240,12 +252,10 @@ export default function ProjectEditorDialog({
 
             <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
               <ButtonGroup gap={3}>
-                <Dialog.ActionTrigger asChild>
-                  <Button onClick={onSubmit} variant="solid" disabled={isUploading}>
-                    {editMode ? 'Update' : 'Create'}
-                  </Button>
-                </Dialog.ActionTrigger>
-                <Button onClick={onCancel} variant="ghost">Cancel</Button>
+                <Button onClick={onSubmit} variant="solid" loading={isSaving} disabled={isUploading}>
+                  {editMode ? 'Update' : 'Create'}
+                </Button>
+                <Button onClick={onCancel} variant="ghost" disabled={isSaving}>Cancel</Button>
               </ButtonGroup>
             </Dialog.Footer>
           </Dialog.Content>

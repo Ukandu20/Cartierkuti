@@ -54,7 +54,7 @@ describe('Admin dashboard components', () => {
     )
 
     fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'admin' } })
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'secret' } })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), { target: { value: 'secret' } })
     fireEvent.click(screen.getByRole('button', { name: /login/i }))
 
     expect(setUsername).toHaveBeenCalledWith('admin')

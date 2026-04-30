@@ -23,6 +23,7 @@ export default function ResumeEditorDialog({
   setResumeForm,
   resumeLoading,
   saveResume,
+  isSavingResume,
   onCancel,
   addMetric,
   updateMetric,
@@ -221,8 +222,10 @@ export default function ResumeEditorDialog({
 
             <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
               <ButtonGroup gap={3}>
-                <Button variant="solid" onClick={saveResume}>Save Resume</Button>
-                <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+                <Button variant="solid" onClick={saveResume} loading={isSavingResume} disabled={resumeLoading}>
+                  Save Resume
+                </Button>
+                <Button variant="ghost" onClick={onCancel} disabled={isSavingResume}>Cancel</Button>
               </ButtonGroup>
             </Dialog.Footer>
           </Dialog.Content>

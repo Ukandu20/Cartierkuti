@@ -1,22 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import apiClient from '@/utils/axiosConfig'
 import { normalizeProjects } from '@/utils/projectNormalizer'
 import {
-  Input,
-  Portal,
-  Flex,
-  Text,
-  IconButton,
-  Stack,
-  HStack,
-  Skeleton,
-  Box,
-  Button,
-  Tabs,
-  Select,
-  createListCollection,
   ButtonGroup,
+  Flex,
+  HStack,
+  IconButton,
+  Input,
   Pagination,
+  Portal,
+  Select,
+  Skeleton,
+  Stack,
+  Tabs,
+  createListCollection,
 } from '@chakra-ui/react'
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { Helmet } from 'react-helmet-async'
@@ -26,46 +23,40 @@ import { PROJECT_CATEGORIES, isProjectInCategory } from '@/utils/projectCategori
 import ProjectList from './ProjectList'
 import classes from './Portfolio.module.css'
 
-/* ───────────────── constants ───────────────── */
 const TABS = PROJECT_CATEGORIES
 const PAGE_SIZE = 9
 
-/* ───────────────── component ───────────────── */
 export default function Portfolio() {
   const accent = 'brand.500'
 
-  /* palette */
-  const idleTxt    = 'fg.muted'
-  const fieldBg    = 'bg.subtle'
-  const fieldBd    = 'border.subtle'
-  const fieldTx    = 'fg.default'
-  const phColor    = 'fg.muted'
+  const idleTxt = 'fg.muted'
+  const fieldBg = 'bg.subtle'
+  const fieldBd = 'border.subtle'
+  const fieldTx = 'fg.default'
+  const phColor = 'fg.muted'
   const skeletonBg = 'bg.surface'
 
-  /* sort-list collection (for headless Select) */
   const sortOptions = useMemo(
     () =>
       createListCollection({
         items: [
-          { label: 'Newest',      value: 'date'  },
-          { label: 'Title A-Z',   value: 'title' },
+          { label: 'Newest', value: 'date' },
+          { label: 'Title A-Z', value: 'title' },
           { label: 'Most Viewed', value: 'views' },
         ],
       }),
     []
   )
 
-  /* ───────────── state ───────────── */
   const [projects, setProjects] = useState([])
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
-  const [fav,      setFav]      = useState([])
-  const [tabIdx,   setTabIdx]   = useState(0)
-  const [search,   setSearch]   = useState('')
-  const [sort,     setSort]     = useState('date')
-  const [page,     setPage]     = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [fav, setFav] = useState([])
+  const [tabIdx, setTabIdx] = useState(0)
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState('date')
+  const [page, setPage] = useState(1)
 
-  /* ───────────── fetch once ───────────── */
   const fetchProjects = async () => {
     setLoading(true)
     try {
@@ -83,10 +74,8 @@ export default function Portfolio() {
     fetchProjects()
   }, [])
 
-  /* reset page whenever filter changes */
   useEffect(() => setPage(1), [search, sort, tabIdx])
 
-  /* ───────────── helpers ───────────── */
   const toggleFav = id =>
     setFav(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]))
 
@@ -98,7 +87,6 @@ export default function Portfolio() {
     window.open(url, '_blank')
   }
 
-  /* skeleton card */
   const SkeletonLoader = () => (
     <Stack
       borderRadius="md"
@@ -121,7 +109,6 @@ export default function Portfolio() {
     </Stack>
   )
 
-  /* ───────────── derive list ───────────── */
   const currentCategory = TABS[tabIdx]
   const filtered = useMemo(() => {
     return projects.filter(
@@ -133,173 +120,157 @@ export default function Portfolio() {
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      if (sort === 'date')  return new Date(b.createdDate || 0) - new Date(a.createdDate || 0)
-      if (sort === 'views') return (b.views ?? 0)  - (a.views ?? 0)
+      if (sort === 'date') return new Date(b.createdDate || 0) - new Date(a.createdDate || 0)
+      if (sort === 'views') return (b.views ?? 0) - (a.views ?? 0)
       return a.title.localeCompare(b.title)
     })
   }, [filtered, sort])
 
   const pagesCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  /* ───────────── UI ───────────── */
   return (
     <div className={classes.container}>
-        <Helmet>
-          <title>Portfolio | Preston</title>
-        </Helmet>
+      <Helmet>
+        <title>Portfolio | Preston</title>
+      </Helmet>
 
-        <h1 className={classes.title}>My Projects</h1>
+      <h1 className={classes.title}>My Projects</h1>
 
-        {/* ——— tabs ——— */}
-        <Tabs.Root
-          value={String(tabIdx)}
-          onValueChange={(details) => setTabIdx(Number(details.value))}
+      <Tabs.Root
+        value={String(tabIdx)}
+        onValueChange={(details) => setTabIdx(Number(details.value))}
+        variant="unstyled"
+      >
+        <Tabs.List justifyContent="center" className={classes.tabs}>
+          {TABS.map((t, i) => (
+            <Tabs.Trigger
+              key={t.value}
+              value={String(i)}
+              fontSize="md"
+              px={5}
+              py={2}
+              color={idleTxt}
+              fontWeight={tabIdx === i ? 'bold' : 'normal'}
+              bg="transparent"
+              border="none"
+              _hover={{ color: accent, fontWeight: 'bold' }}
+              _selected={{ color: accent, borderBottom: `2px solid ${accent}` }}
+            >
+              {t.label}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
 
-          variant="unstyled"
+        <Flex
+          mt={8}
+          mb={6}
+          gap={4}
+          direction={{ base: 'column', md: 'row' }}
+          justify="center"
+          align="center"
+          wrap="wrap"
         >
-          <Tabs.List justifyContent="center" className={classes.tabs}>
-            {TABS.map((t, i) => (
-              <Tabs.Trigger
-                key={i}
-                value={String(i)}
-                fontSize="md"
-                px={5}
-                py={2}
-                color={idleTxt}
-                fontWeight={tabIdx === i ? 'bold' : 'normal'}
-                bg="transparent"
-                border="none"
-                _hover={{ color: accent, fontWeight: 'bold' }}
-                _selected={{ color: accent, borderBottom: `2px solid ${accent}` }}
-              >
-                {t.label}
-              </Tabs.Trigger>
-            ))}
-          </Tabs.List>
+          <Input
+            w={{ base: '100%', md: '260px' }}
+            px={2}
+            placeholder="Search projects..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            bg={fieldBg}
+            color={fieldTx}
+            borderColor={fieldBd}
+            _placeholder={{ color: phColor }}
+            _focusVisible={{
+              borderColor: accent,
+              boxShadow: `0 0 0 1px ${accent}`,
+            }}
+          />
 
-          {/* ——— search & sort ——— */}
-          <Flex
-            mt={8}
-            mb={6}
-            gap={4}
-            direction={{ base: 'column', md: 'row' }}
-            justify="center"
-            align="center"
-            wrap="wrap"
+          <Select.Root
+            collection={sortOptions}
+            value={sort}
+            onValueChange={item => setSort(item.value)}
+            size="sm"
+            width={{ base: '100%', md: '220px' }}
           >
-            <Input
-              w={{ base: '100%', md: '260px' }}
-              px={2}
-              placeholder="Search projects..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+            <Select.HiddenSelect />
+            <Select.Label srOnly>Sort projects</Select.Label>
+
+            <Select.Control
               bg={fieldBg}
               color={fieldTx}
               borderColor={fieldBd}
-              _placeholder={{ color: phColor }}
               _focusVisible={{
                 borderColor: accent,
                 boxShadow: `0 0 0 1px ${accent}`,
               }}
-            />
-
-            {/* headless Select */}
-            <Select.Root
-              collection={sortOptions}
-              value={sort}
-              onValueChange={item => setSort(item.value)}
-              size="sm"
-              width={{ base: '100%', md: '220px' }}
             >
-              <Select.HiddenSelect />
-              <Select.Label srOnly>Sort projects</Select.Label>
+              <Select.Trigger>
+                <Select.ValueText placeholder="Sort By" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
 
-              <Select.Control
-                bg={fieldBg}
-                color={fieldTx}
-                borderColor={fieldBd}
-                _focusVisible={{
-                  borderColor: accent,
-                  boxShadow: `0 0 0 1px ${accent}`,
-                }}
-              >
-                <Select.Trigger>
-                  <Select.ValueText placeholder="Sort By" />
-                </Select.Trigger>
-                <Select.IndicatorGroup>
-                  <Select.Indicator />
-                </Select.IndicatorGroup>
-              </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {sortOptions.items.map(opt => (
+                    <Select.Item key={opt.value} item={opt}>
+                      {opt.label}
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
+        </Flex>
 
-              <Portal>
-                <Select.Positioner>
-                  <Select.Content>
-                    {sortOptions.items.map(opt => (
-                      <Select.Item key={opt.value} item={opt}>
-                        {opt.label}
-                        <Select.ItemIndicator />
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select.Positioner>
-              </Portal>
-            </Select.Root>
-          </Flex>
+        <Tabs.Content value={String(tabIdx)}>
+          {loading ? (
+            <Flex wrap="wrap" gap={8} justify="center">
+              {[...Array(PAGE_SIZE)].map((_, idx) => (
+                <SkeletonLoader key={idx} />
+              ))}
+            </Flex>
+          ) : error ? (
+            <ErrorState
+              title={error}
+              description="Check the API connection and try again."
+              onRetry={fetchProjects}
+            />
+          ) : paginated.length === 0 ? (
+            <EmptyState
+              title="No projects found."
+              description="Try a different category, search, or sort option."
+            />
+          ) : (
+            <ProjectList
+              searchedProjects={paginated}
+              favorites={fav}
+              handleFavorite={toggleFav}
+              hitAndOpen={hitAndOpen}
+            />
+          )}
 
-          {/* ——— tab panel (no animation) ——— */}
-          <Tabs.Content value={String(tabIdx)}>
-            {loading ? (
-              <Flex wrap="wrap" gap={8} justify="center">
-                {[...Array(PAGE_SIZE)].map((_, idx) => (
-                  <SkeletonLoader key={idx} />
-                ))}
-              </Flex>
-            ) : error ? (
-              <ErrorState
-                title={error}
-                description="Check the API connection and try again."
-                onRetry={fetchProjects}
-              />
-            ) : paginated.length === 0 ? (
-              <EmptyState
-                title="No projects found."
-                description="Try a different category, search, or sort option."
-              />
-            ) : (
-              <ProjectList
-                searchedProjects={paginated}
-                favorites={fav}
-                handleFavorite={toggleFav}
-                hitAndOpen={hitAndOpen}
-              />
-            )}
-
-            {/* ───── Pagination ───── */}
-            {pagesCount > 1 && (
-              <Flex
-                justify="center"
-                mt={8}
-                gap={2}
-                wrap="wrap"
-                >
-                  <Pagination.Root
-                /* total items & page size let the hook compute count for you      */
+          {pagesCount > 1 && (
+            <Flex justify="center" mt={8} gap={2} wrap="wrap">
+              <Pagination.Root
                 count={sorted.length}
                 pageSize={PAGE_SIZE}
-                /* controlled page state                                            */
                 page={page}
-                onPageChange={(e) => setPage(e.page)}   // ← e.page is the new page #
+                onPageChange={(e) => setPage(e.page)}
               >
                 <ButtonGroup variant="ghost" size="sm" mt={8} gap={2}>
-                  {/* Prev */}
                   <Pagination.PrevTrigger asChild>
                     <IconButton aria-label="Previous">
                       <HiChevronLeft />
                     </IconButton>
                   </Pagination.PrevTrigger>
 
-                  {/* Page buttons  */}
                   <Pagination.Items
                     render={(pageObj) => (
                       <IconButton
@@ -311,7 +282,6 @@ export default function Portfolio() {
                     )}
                   />
 
-                  {/* Next */}
                   <Pagination.NextTrigger asChild>
                     <IconButton aria-label="Next">
                       <HiChevronRight />
@@ -320,10 +290,9 @@ export default function Portfolio() {
                 </ButtonGroup>
               </Pagination.Root>
             </Flex>
-            )}
-
-          </Tabs.Content>
-        </Tabs.Root>
+          )}
+        </Tabs.Content>
+      </Tabs.Root>
     </div>
   )
 }

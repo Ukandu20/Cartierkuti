@@ -55,7 +55,7 @@ export default function Contact() {
         colorPalette="teal"
         fontWeight="semibold"
       >
-        <a href="mailto:cartierkuti@gmail.com">Say Hello</a>
+        <a href="mailto:okechiukandu@gmail.com">Say Hello</a>
       </Button>
 
       <Text
@@ -64,23 +64,23 @@ export default function Contact() {
         color="fg.muted"
       >
         or email me directly at{' '}
-        <Link href="mailto:cartierkuti@gmail.com" color={accent} fontWeight="medium">
-          cartierkuti@gmail.com
+        <Link href="mailto:okechiukandu@gmail.com" color={accent} fontWeight="medium">
+          okechiukandu@gmail.com
         </Link>
       </Text>
 
       <HStack mt={10} gap={8} justify="center">
         <Link
-          href="https://linkedin.com/in/YOUR-HANDLE"
+          href="https://linkedin.com/in/okechiukandu"
           isExternal
           aria-label="LinkedIn"
         >
           <Icon as={FaLinkedin} boxSize={6} color={accent} _hover={{ color: accentHover }} />
         </Link>
-        <Link href="https://github.com/YOUR-HANDLE" isExternal aria-label="GitHub">
+        <Link href="https://github.com/ukandu20" isExternal aria-label="GitHub">
           <Icon as={FaGithub} boxSize={6} color={accent} _hover={{ color: accentHover }} />
         </Link>
-        <Link href="https://behance.net/YOUR-HANDLE" isExternal aria-label="Behance">
+        <Link href="https://behance.net/cartierkuti" isExternal aria-label="Behance">
           <Icon as={FaBehance} boxSize={6} color={accent} _hover={{ color: accentHover }} />
         </Link>
       </HStack>
