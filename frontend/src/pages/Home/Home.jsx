@@ -43,7 +43,7 @@ const getEditorialTokens = (colorMode) => ({
 const Hero = () => {
   const { colorMode } = useColorMode()
   const tokens = getEditorialTokens(colorMode)
-  const resumeUrl = useResumeDownload()
+  const resumeDownload = useResumeDownload()
 
   return (
     <Box as="section" role="region" aria-labelledby="hero-heading" bg={tokens.bg}>
@@ -130,7 +130,7 @@ const Hero = () => {
               colorPalette="teal"
               fontFamily={editorialFonts.body}
             >
-              <a href={resumeUrl} download>
+              <a href={resumeDownload.url} download={resumeDownload.filename}>
                 <Icon as={FaDownload} aria-hidden="true" />
                 Download Resume
               </a>

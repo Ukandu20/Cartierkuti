@@ -20,7 +20,7 @@ import { Link } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa'
 import apiClient from '@/utils/axiosConfig'
 import { useColorMode } from '@/components/Theme/color-mode'
-import { getResumeDownloadUrl } from '@/hooks/useResumeDownload'
+import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { absoluteUrl } from '@/utils/siteConfig'
 
 const editorialFonts = {
@@ -140,6 +140,7 @@ export default function About() {
   const [resume, setResume] = useState(DEFAULT_RESUME)
   const [loading, setLoading] = useState(true)
   const resumeUrl = getResumeDownloadUrl(resume)
+  const resumeFilename = getResumeDownloadFilename(resume)
 
   useEffect(() => {
     let active = true
@@ -199,7 +200,7 @@ export default function About() {
               colorPalette="teal"
               fontFamily={editorialFonts.body}
             >
-              <a href={resumeUrl} download>
+              <a href={resumeUrl} download={resumeFilename}>
                 <Icon as={FaDownload} aria-hidden="true" />
                 Download Resume
               </a>

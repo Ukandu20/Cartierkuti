@@ -26,7 +26,7 @@ const navLinks = [
 
 export default function Navbar() {
   const { pathname } = useLocation()
-  const resumeUrl = useResumeDownload()
+  const resumeDownload = useResumeDownload()
 
   const activeStyle = { fontWeight: 'bold', color: 'brand.600' }
 
@@ -91,7 +91,7 @@ export default function Navbar() {
         colorPalette="teal"
         aria-label="Download resume (PDF)"
       >
-        <a href={resumeUrl} download>
+        <a href={resumeDownload.url} download={resumeDownload.filename}>
           <Icon as={FaDownload} boxSize={4} aria-hidden="true" />
           <Box as="span" display={{ base: 'none', md: 'inline' }}>
             Resume
