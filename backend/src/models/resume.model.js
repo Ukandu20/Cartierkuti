@@ -53,6 +53,9 @@ const resumeSchema = new mongoose.Schema(
       secondary: { type: [String], default: [] },
       tools: { type: [String], default: [] },
     },
+    resumeFileUrl: { type: String, default: '' },
+    resumeFileName: { type: String, default: '' },
+    resumeFileUpdatedAt: { type: Date },
   },
   { timestamps: true }
 )

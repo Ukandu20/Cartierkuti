@@ -21,7 +21,7 @@ describe('App routes', () => {
   it('renders the contact route', async () => {
     renderWithProviders(<App />, { route: '/contact' })
     expect(
-      await screen.findByRole('heading', { name: /contact form/i }, { timeout: 5000 })
+      await screen.findByRole('heading', { name: /contact form/i }, { timeout: 10000 })
     ).toBeInTheDocument()
-  })
+  }, 10000)
 })

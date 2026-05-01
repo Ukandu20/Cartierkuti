@@ -1,11 +1,19 @@
 import React from 'react'
-import { describe, expect, it } from 'vitest'
-import { screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { screen, waitFor } from '@testing-library/react'
 import Navbar from './Navbar'
 import { renderWithProviders } from '../../test-utils'
 
+vi.mock('@/utils/axiosConfig', () => ({
+  default: {
+    get: vi.fn(() => Promise.resolve({
+      data: { resumeFileUrl: 'https://example.com/current-resume.pdf' },
+    })),
+  },
+}))
+
 describe('Navbar', () => {
-  it('renders valid navigation links and omits the removed Blog link', () => {
+  it('renders valid navigation links and resolves the uploaded resume link', async () => {
     renderWithProviders(<Navbar />)
 
     expect(screen.getByRole('link', { name: /navigate to home/i })).toBeInTheDocument()
@@ -14,5 +22,11 @@ describe('Navbar', () => {
     expect(screen.getByRole('link', { name: /navigate to contact/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /blog/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute('href', '/resume.pdf')
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute(
+        'href',
+        'https://example.com/current-resume.pdf',
+      )
+    })
   })
 })

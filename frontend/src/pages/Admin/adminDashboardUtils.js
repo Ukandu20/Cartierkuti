@@ -28,6 +28,9 @@ export const emptyResumeForm = {
   skillsPrimaryText: '',
   skillsSecondaryText: '',
   skillsToolsText: '',
+  resumeFileUrl: '',
+  resumeFileName: '',
+  resumeFileUpdatedAt: '',
 }
 
 export const splitLines = (value) =>
@@ -74,6 +77,9 @@ export const normalizeResumeForm = (data = {}) => {
       issuer: item?.issuer || '',
       year: item?.year || '',
     })),
+    resumeFileUrl: data.resumeFileUrl || '',
+    resumeFileName: data.resumeFileName || '',
+    resumeFileUpdatedAt: data.resumeFileUpdatedAt || '',
     skillsPrimaryText: safeArray(data?.skills?.primary).join('\n'),
     skillsSecondaryText: safeArray(data?.skills?.secondary).join('\n'),
     skillsToolsText: safeArray(data?.skills?.tools).join('\n'),

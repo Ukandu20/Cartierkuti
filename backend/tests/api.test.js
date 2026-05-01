@@ -1,13 +1,23 @@
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import request from 'supertest'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import app from '../src/app.js'
 import Project from '../src/models/project.model.js'
 
 let mongo
 let token
+
+const uploadStreamMock = vi.hoisted(() => vi.fn())
+
+vi.mock('../src/config/cloudinary.js', () => ({
+  default: {
+    uploader: {
+      upload_stream: uploadStreamMock,
+    },
+  },
+}))
 
 const validProject = {
   category: 'Web Development',
@@ -30,12 +40,22 @@ beforeAll(async () => {
   process.env.ADMIN_PASSWORD_HASH = bcrypt.hashSync('correct-password', 10)
   process.env.JWT_SECRET = 'test-jwt-secret'
   process.env.ADMIN_TOKEN_TTL = '30m'
+  process.env.CLOUDINARY_CLOUD_NAME = 'test-cloud'
+  process.env.CLOUDINARY_API_KEY = 'test-key'
+  process.env.CLOUDINARY_API_SECRET = 'test-secret'
 
   mongo = await MongoMemoryServer.create()
   await mongoose.connect(mongo.getUri())
 }, 60_000)
 
 beforeEach(async () => {
+  uploadStreamMock.mockReset()
+  uploadStreamMock.mockImplementation((_options, callback) => ({
+    end: () => callback(null, {
+      secure_url: 'https://res.cloudinary.com/test/raw/upload/cartierkuti/resume/resume.pdf',
+    }),
+  }))
+
   await mongoose.connection.db.dropDatabase()
   const login = await request(app)
     .post('/api/admin/login')
@@ -164,6 +184,60 @@ describe('reviews and resume', () => {
       .put('/api/resume')
       .set('Authorization', `Bearer ${token}`)
       .send({ headline: 42 })
+      .expect(400)
+  })
+
+  it('uploads the downloadable resume PDF with admin auth', async () => {
+    const uploaded = await request(app)
+      .post('/api/resume/file')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('resume', Buffer.from('%PDF-1.4 test'), {
+        filename: 'Preston-Resume.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(200)
+
+    expect(uploaded.body).toMatchObject({
+      resumeFileUrl: 'https://res.cloudinary.com/test/raw/upload/cartierkuti/resume/resume.pdf',
+      resumeFileName: 'Preston-Resume.pdf',
+    })
+
+    const resume = await request(app).get('/api/resume').expect(200)
+    expect(resume.body.resumeFileUrl).toBe(uploaded.body.resumeFileUrl)
+    expect(resume.body.resumeFileName).toBe('Preston-Resume.pdf')
+    expect(resume.body.resumeFileUpdatedAt).toBeTruthy()
+  })
+
+  it('rejects unauthorized, missing, non-PDF, and oversized resume uploads', async () => {
+    await request(app)
+      .post('/api/resume/file')
+      .attach('resume', Buffer.from('%PDF-1.4 test'), {
+        filename: 'resume.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(401)
+
+    await request(app)
+      .post('/api/resume/file')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400)
+
+    await request(app)
+      .post('/api/resume/file')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('resume', Buffer.from('not a pdf'), {
+        filename: 'resume.txt',
+        contentType: 'text/plain',
+      })
+      .expect(400)
+
+    await request(app)
+      .post('/api/resume/file')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('resume', Buffer.alloc((5 * 1024 * 1024) + 1), {
+        filename: 'large-resume.pdf',
+        contentType: 'application/pdf',
+      })
       .expect(400)
   })
 })

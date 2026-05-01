@@ -60,6 +60,31 @@ export function useAdminProjects() {
     }
   }, [resumeForm])
 
+  const uploadResumeFile = useCallback(async (file) => {
+    try {
+      const body = new FormData()
+      body.append('resume', file)
+      const { data } = await apiClient.post('/api/resume/file', body)
+      setResumeForm((current) => ({
+        ...current,
+        resumeFileUrl: data.resumeFileUrl || '',
+        resumeFileName: data.resumeFileName || '',
+        resumeFileUpdatedAt: data.resumeFileUpdatedAt || '',
+      }))
+      toaster.create({ title: 'Resume PDF uploaded', type: 'success', closable: true })
+      return true
+    } catch (error) {
+      reportAdminError(error)
+      toaster.create({
+        title: 'Resume PDF upload failed',
+        description: error?.response?.data?.message || 'Please choose a PDF and try again.',
+        type: 'error',
+        closable: true,
+      })
+      return false
+    }
+  }, [])
+
   return {
     projects,
     loading,
@@ -70,5 +95,6 @@ export function useAdminProjects() {
     resumeLoading,
     fetchResume,
     saveResume,
+    uploadResumeFile,
   }
 }

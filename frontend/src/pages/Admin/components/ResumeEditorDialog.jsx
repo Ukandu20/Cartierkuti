@@ -24,6 +24,8 @@ export default function ResumeEditorDialog({
   resumeLoading,
   saveResume,
   isSavingResume,
+  onUploadResumeFile,
+  isUploadingResumeFile,
   onCancel,
   addMetric,
   updateMetric,
@@ -42,6 +44,14 @@ export default function ResumeEditorDialog({
   dialogBorder,
   closeHoverBg,
 }) {
+  const resumeFileDate = resumeForm.resumeFileUpdatedAt
+    ? new Date(resumeForm.resumeFileUpdatedAt).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+    : ''
+
   return (
     <Dialog.Root placement="center" open={open} onOpenChange={onOpenChange} scrollBehavior="inside">
       <Portal>
@@ -82,6 +92,41 @@ export default function ResumeEditorDialog({
               ) : (
                 <Fieldset.Root size="lg">
                   <Fieldset.Content gap={4}>
+                    <Box p={5} bg={bg} borderRadius="md">
+                      <Flex
+                        justify="space-between"
+                        align={{ base: 'flex-start', md: 'center' }}
+                        gap={4}
+                        direction={{ base: 'column', md: 'row' }}
+                      >
+                        <Box>
+                          <Text fontWeight="bold">Resume PDF</Text>
+                          <Text color="fg.muted" fontSize="sm">
+                            {resumeForm.resumeFileName
+                              ? `${resumeForm.resumeFileName}${resumeFileDate ? ` - updated ${resumeFileDate}` : ''}`
+                              : 'No uploaded PDF yet. The site will use /resume.pdf as fallback.'}
+                          </Text>
+                        </Box>
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          loading={isUploadingResumeFile}
+                          disabled={isUploadingResumeFile}
+                        >
+                          <label>
+                            Upload PDF
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={onUploadResumeFile}
+                              hidden
+                            />
+                          </label>
+                        </Button>
+                      </Flex>
+                    </Box>
+
                     <Field.Root>
                       <Field.Label>Headline</Field.Label>
                       <Input
