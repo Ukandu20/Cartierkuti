@@ -201,11 +201,29 @@ describe('reviews and resume', () => {
       resumeFileUrl: 'https://res.cloudinary.com/test/raw/upload/cartierkuti/resume/resume.pdf',
       resumeFileName: 'Preston-Resume.pdf',
     })
+    expect(uploadStreamMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        public_id: 'resume.pdf',
+        resource_type: 'raw',
+      }),
+      expect.any(Function),
+    )
 
     const resume = await request(app).get('/api/resume').expect(200)
     expect(resume.body.resumeFileUrl).toBe(uploaded.body.resumeFileUrl)
     expect(resume.body.resumeFileName).toBe('Preston-Resume.pdf')
     expect(resume.body.resumeFileUpdatedAt).toBeTruthy()
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(Buffer.from('%PDF-1.4 test')),
+    })
+
+    const downloaded = await request(app).get('/api/resume/file/download').expect(200)
+    expect(downloaded.headers['content-type']).toMatch(/application\/pdf/)
+    expect(downloaded.headers['content-disposition']).toBe('attachment; filename="Preston-Resume.pdf"')
+    expect(fetchMock).toHaveBeenCalledWith(uploaded.body.resumeFileUrl)
+    fetchMock.mockRestore()
   })
 
   it('rejects unauthorized, missing, non-PDF, and oversized resume uploads', async () => {

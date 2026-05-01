@@ -66,6 +66,16 @@ const DEFAULT_RESUME = {
   resumeFileName: '',
 }
 
+const getSafePdfFilename = (value) => {
+  const filename = (value || 'Preston-Ukandu-Resume.pdf')
+    .replace(/[^\w .-]/g, '')
+    .trim()
+
+  return filename.toLowerCase().endsWith('.pdf')
+    ? filename
+    : 'Preston-Ukandu-Resume.pdf'
+}
+
 resumeRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
@@ -112,7 +122,7 @@ resumeRouter.post(
         {
           folder: 'cartierkuti/resume',
           resource_type: 'raw',
-          public_id: 'resume',
+          public_id: 'resume.pdf',
           overwrite: true,
           use_filename: false,
         },
@@ -143,6 +153,32 @@ resumeRouter.post(
       resumeFileName: updated.resumeFileName,
       resumeFileUpdatedAt: updated.resumeFileUpdatedAt,
     })
+  })
+)
+
+resumeRouter.get(
+  '/file/download',
+  asyncHandler(async (_req, res) => {
+    const resume = await Resume.findOne()
+    if (!resume?.resumeFileUrl) {
+      return res.status(404).json({ message: 'No resume PDF has been uploaded' })
+    }
+
+    const response = await fetch(resume.resumeFileUrl)
+    if (!response.ok) {
+      return res.status(502).json({ message: 'Could not fetch resume PDF' })
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer())
+    const filename = getSafePdfFilename(resume.resumeFileName)
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'private, max-age=300',
+    })
+    res.send(buffer)
   })
 )
 

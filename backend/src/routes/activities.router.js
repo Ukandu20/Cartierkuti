@@ -3,6 +3,8 @@ import { Router } from 'express';
 import asyncHandler from 'express-async-handler';
 import rateLimit from 'express-rate-limit';
 import Activity from '../models/activity.model.js';
+import Project from '../models/project.model.js';
+import ArchivedProject from '../models/archive.model.js';
 import requireAdmin from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { activityWriteSchema } from '../validation/schemas.js';
@@ -11,6 +13,32 @@ const activitiesRouter = Router();
 
 // (Optional) limit how often clients can write activities
 const writeLimiter = rateLimit({ windowMs: 60_000, max: 20 });
+
+const getProductionProjectActivityFilter = async (projectId) => {
+  if (process.env.NODE_ENV !== 'production') return {};
+
+  if (projectId) {
+    const [activeProject, archivedProject] = await Promise.all([
+      Project.exists({ _id: projectId }),
+      ArchivedProject.exists({ originalId: projectId }),
+    ]);
+
+    return activeProject || archivedProject
+      ? { projectId }
+      : { projectId: { $in: [] } };
+  }
+
+  const [activeProjectIds, archivedProjectIds] = await Promise.all([
+    Project.distinct('_id'),
+    ArchivedProject.distinct('originalId'),
+  ]);
+
+  return {
+    projectId: {
+      $in: [...activeProjectIds, ...archivedProjectIds],
+    },
+  };
+};
 
 /* ──────────── CREATE ACTIVITY ──────────────────────────── */
 activitiesRouter.post(
@@ -38,8 +66,8 @@ activitiesRouter.get(
       limit = 50,
     } = req.query;
 
-    const filter = {};
-    if (projectId) filter.projectId = projectId;
+    const filter = await getProductionProjectActivityFilter(projectId);
+    if (projectId && process.env.NODE_ENV !== 'production') filter.projectId = projectId;
     if (type)      filter.type      = type;
 
     // add date-range filter on `timestamp`
