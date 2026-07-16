@@ -14,8 +14,7 @@ export default function App() {
       {/* Navbar fixed at the top */}
       <Navbar />
 
-      {/* Main content pushes below fixed navbar (assumes navbar height = 64px) */}
-      <Flex as="main" direction="column" pt="64px" minH="100vh">
+      <Flex as="main" direction="column" minH="calc(100vh - 90px)">
         <AppRoutes flex="1" />
         <Footer />
       </Flex>
