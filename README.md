@@ -84,6 +84,7 @@ The previous `x-admin-secret` flow has been removed.
 ## Deployment Notes
 
 - Netlify builds the frontend from `frontend/`.
-- Backend Docker builds from `backend/Dockerfile`.
+- Backend Docker builds from `backend/Dockerfile`; MongoDB is not published to the host by default.
+- Production startup never runs a destructive seed automatically. `npm run seed:prod` performs idempotent upserts and must be invoked explicitly when bundled starter data changes.
 - Production must define `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`, `MONGODB_URI`, `CLIENT_URL`, Cloudinary values, and any EmailJS frontend values.
 - Keep `JWT_SECRET` and the admin password hash out of committed files.
