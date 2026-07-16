@@ -1,9 +1,10 @@
-import './config/env.js'
+import { validateEnvironment } from './config/env.js'
 import mongoose from 'mongoose'
 import app from './app.js'
 import logger from './logger.js'
 import { connectDB } from './config/db.js'
 
+validateEnvironment()
 await connectDB()
 
 const PORT = process.env.PORT || 5000

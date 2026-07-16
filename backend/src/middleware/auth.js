@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken'
 
+const JWT_ISSUER = 'cartierkuti-api'
+const JWT_AUDIENCE = 'cartierkuti-admin'
+
 export function requireAdmin(req, res, next) {
   const authHeader = req.header('Authorization') || ''
   const token = authHeader.replace(/^Bearer\s+/i, '')
@@ -13,7 +16,11 @@ export function requireAdmin(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256'],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    })
     if (payload?.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden' })
     }
