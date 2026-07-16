@@ -30,6 +30,7 @@ export default function ProjectDetails({
   const [tempStars, setTempStars] = useState(0);
   const [comment,   setComment]   = useState("");
   const [loadingRv, setLoadingRv] = useState(false);
+  const [submittingRv, setSubmittingRv] = useState(false);
   const [isHoveringFav, setIsHoveringFav] = useState(false);
 
   const projectId = project?._id ?? project?.id;
@@ -59,7 +60,7 @@ export default function ProjectDetails({
       setLoadingRv(true);
       try {
         const { data } = await apiClient.get(`/api/projects/${projectId}/reviews`);
-        setReviews(Array.isArray(data) ? data : []);
+        setReviews(Array.isArray(data) ? data : (data?.reviews ?? []));
       } catch {
         setReviews([]);
       } finally {
@@ -71,30 +72,30 @@ export default function ProjectDetails({
 
   /* submit review */
   const submitReview = async () => {
-    if (!projectId) return;
+    if (!projectId || submittingRv) return;
+    setSubmittingRv(true);
     try {
-      const newReview = {
+      const payload = {
         stars: tempStars,
-        comment,
-        date: new Date().toISOString(),
+        comment: comment.trim(),
       };
-
-      // Optimistic UI
-      setReviews((r) => [newReview, ...r]);
+      const { data } = await apiClient.post(`/api/projects/${projectId}/reviews`, payload);
+      setReviews((current) => data?.review ? [data.review, ...current] : current);
       setTempStars(0);
       setComment("");
-
-      await apiClient.post(`/api/projects/${projectId}/reviews`, newReview);
-
-      toaster({
+      toaster.create({
+        title: "Review submitted",
         description: "Thanks for the review!",
-        status: "success",
+        type: "success",
       });
     } catch {
-      toaster({
+      toaster.create({
+        title: "Review not saved",
         description: "Could not save review.",
-        status: "error",
+        type: "error",
       });
+    } finally {
+      setSubmittingRv(false);
     }
   };
 
@@ -185,8 +186,8 @@ export default function ProjectDetails({
             No reviews yet.
           </Text>
         ) : (
-          reviews.map((rv) => (
-            <Box key={rv.date}>
+          reviews.map((rv, index) => (
+            <Box key={rv._id ?? `${rv.date}-${index}`}>
               <HStack gap={1} mb={1}>
                 {Array.from({ length: 5 }).map((_, j) => (
                   <Icon
@@ -247,6 +248,8 @@ export default function ProjectDetails({
           colorPalette="teal"
           size="sm"
           disabled={!tempStars || comment.trim() === ""}
+          loading={submittingRv}
+          loadingText="Submitting"
         >
           Submit
         </Button>

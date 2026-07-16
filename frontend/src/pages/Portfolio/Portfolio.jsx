@@ -19,6 +19,7 @@ import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { Helmet } from 'react-helmet-async'
 import { EmptyState, ErrorState } from '@/components/ui/StateFeedback'
 import { PROJECT_CATEGORIES, isProjectInCategory } from '@/utils/projectCategories'
+import { sortProjects } from '@/utils/projectSorting'
 
 import ProjectList from './ProjectList'
 import classes from './Portfolio.module.css'
@@ -83,8 +84,8 @@ export default function Portfolio() {
     e?.preventDefault?.()
     e?.stopPropagation?.()
     if (!url) return
-    apiClient.patch(`/api/projects/${id}/hit`)
-    window.open(url, '_blank')
+    apiClient.patch(`/api/projects/${id}/hit`).catch(() => {})
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const SkeletonLoader = () => (
@@ -118,13 +119,7 @@ export default function Portfolio() {
     )
   }, [projects, currentCategory, search])
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      if (sort === 'date') return new Date(b.createdDate || 0) - new Date(a.createdDate || 0)
-      if (sort === 'views') return (b.views ?? 0) - (a.views ?? 0)
-      return a.title.localeCompare(b.title)
-    })
-  }, [filtered, sort])
+  const sorted = useMemo(() => sortProjects(filtered, sort), [filtered, sort])
 
   const pagesCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -189,8 +184,8 @@ export default function Portfolio() {
 
           <Select.Root
             collection={sortOptions}
-            value={sort}
-            onValueChange={item => setSort(item.value)}
+            value={[sort]}
+            onValueChange={({ value }) => setSort(value[0] || 'date')}
             size="sm"
             width={{ base: '100%', md: '220px' }}
           >

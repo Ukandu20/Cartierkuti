@@ -18,7 +18,6 @@ import {
 import { Toaster, toaster } from '@/components/ui/toaster'
 import { ErrorState, LoadingState } from '@/components/ui/StateFeedback'
 import apiClient from '@/utils/axiosConfig'
-import { normalizeProject } from '@/utils/projectNormalizer'
 import {
   buildProjectPayload,
   emptyProjectErrors,
@@ -115,6 +114,7 @@ export default function AdminDashboard() {
     isLoggingIn,
     handleLogin,
     handleUnauthorized,
+    logout,
   } = useAdminAuth({ onAuthenticated: handleAuthenticated })
 
   const {
@@ -340,29 +340,11 @@ export default function AdminDashboard() {
       const payload = buildProjectPayload(formData)
 
       if (editMode) {
-        const { data: updated } = await apiClient.put(`/api/projects/${current.id}`, payload)
-        const normalizedUpdated = normalizeProject(updated)
+        await apiClient.put(`/api/projects/${current.id}`, payload)
         toaster.create({ title: 'Project updated', type: 'success', closable: true })
-
-        const changed = Object.keys(payload).filter((key) =>
-          JSON.stringify(payload[key]) !== JSON.stringify(current[key])
-        )
-        await apiClient.post('/api/activities', {
-          projectId: normalizedUpdated.id,
-          type: 'Updated',
-          title: normalizedUpdated.title,
-          detail: changed.length ? `Changed: ${changed.join(', ')}` : '',
-        })
       } else {
-        const { data: created } = await apiClient.post('/api/projects', payload)
-        const normalizedCreated = normalizeProject(created)
+        await apiClient.post('/api/projects', payload)
         toaster.create({ title: 'Project created', type: 'success', closable: true })
-        await apiClient.post('/api/activities', {
-          projectId: normalizedCreated.id,
-          type: 'Created',
-          title: normalizedCreated.title,
-          detail: `Added a new project ${normalizedCreated.title}, Category: ${normalizedCreated.category}; Languages: ${normalizedCreated.languages.join(', ')}; Status: ${normalizedCreated.status}`,
-        })
       }
 
       await fetchActivities()
@@ -398,11 +380,6 @@ export default function AdminDashboard() {
     try {
       await apiClient.delete(`/api/projects/${toDelete.id}`)
       toaster.create({ title: 'Project deleted', type: 'success', closable: true })
-      await apiClient.post('/api/activities', {
-        projectId: toDelete.id,
-        type: 'Deleted',
-        title: toDelete.title,
-      })
       await fetchActivities()
       await fetchProjects()
       setDeleteOpen(false)
@@ -510,6 +487,7 @@ export default function AdminDashboard() {
           dialogBorder={dialogBorder}
           onOpenCreate={onOpenCreate}
           onOpenAnalytics={() => setAnalyticsOpen(true)}
+          onLogout={logout}
         />
 
         <Box mb={8}>
