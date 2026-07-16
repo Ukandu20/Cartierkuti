@@ -29,6 +29,8 @@ const archivedSchema = new mongoose.Schema(
   }
 );
 
+archivedSchema.index({ originalId: 1, deletedAt: -1 });
+
 export default mongoose.model(
   'ArchivedProject',
   archivedSchema,

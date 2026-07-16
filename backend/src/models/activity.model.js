@@ -23,12 +23,12 @@ const ActivitySchema = new Schema({
     type: String,
     default: null,
   },
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-  },
+  actor: { type: String, default: 'system', trim: true },
 }, {
   timestamps: { createdAt: 'timestamp', updatedAt: false }
 });
+
+ActivitySchema.index({ timestamp: -1 });
+ActivitySchema.index({ type: 1, timestamp: -1 });
 
 export default mongoose.model('Activity', ActivitySchema);

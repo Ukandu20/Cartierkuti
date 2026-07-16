@@ -5,12 +5,40 @@ const text = (max) => z.string().trim().min(1).max(max)
 const optionalText = (max) => z.string().trim().max(max).optional()
 const url = z.string().trim().url().max(2048)
 const optionalUrl = z.union([z.literal(''), url]).optional()
+const objectId = z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
+  message: 'Invalid Mongo ObjectId',
+})
+const dateInput = z.string().trim().max(40).refine(
+  (value) => !Number.isNaN(Date.parse(value)),
+  { message: 'Invalid date' },
+)
 
 export const objectIdSchema = z.object({
-  id: z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
-    message: 'Invalid Mongo ObjectId',
-  }),
+  id: objectId,
 })
+
+export const archiveQuerySchema = z
+  .object({
+    projectId: objectId.optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict()
+
+export const activityQuerySchema = z
+  .object({
+    projectId: objectId.optional(),
+    type: z.enum(['Created', 'Updated', 'Deleted']).optional(),
+    startDate: dateInput.optional(),
+    endDate: dateInput.optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict()
+  .refine(
+    ({ startDate, endDate }) => !startDate || !endDate || new Date(startDate) <= new Date(endDate),
+    { message: 'startDate must not be after endDate', path: ['startDate'] },
+  )
 
 export const authLoginSchema = z
   .object({
@@ -45,6 +73,13 @@ export const reviewWriteSchema = z
   .object({
     stars: z.coerce.number().int().min(1).max(5),
     comment: text(1000),
+  })
+  .strict()
+
+export const reviewQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
   })
   .strict()
 
@@ -114,22 +149,5 @@ export const resumeWriteSchema = z
       })
       .strict()
       .default({ primary: [], secondary: [], tools: [] }),
-  })
-  .strict()
-
-export const activityWriteSchema = z
-  .object({
-    projectId: z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
-      message: 'Invalid projectId',
-    }),
-    type: z.enum(['Created', 'Updated', 'Deleted']),
-    title: text(160),
-    detail: z.string().trim().max(1000).optional(),
-    userId: z
-      .string()
-      .refine((value) => mongoose.Types.ObjectId.isValid(value), {
-        message: 'Invalid userId',
-      })
-      .optional(),
   })
   .strict()
