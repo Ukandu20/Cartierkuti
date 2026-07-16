@@ -1,5 +1,4 @@
 import './config/env.js'
-import 'express-async-errors'
 import path from 'path'
 import express from 'express'
 import helmet from 'helmet'
@@ -16,6 +15,10 @@ import adminRouter from './routes/admin.router.js'
 import { errorHandler, notFoundHandler } from './middleware/errorhandler.js'
 
 const app = express()
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
 
 app.use(pinoHttp({ logger }))
 app.use(helmet())

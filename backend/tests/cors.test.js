@@ -26,7 +26,7 @@ describe('CORS configuration', () => {
       .expect(200)
 
     expect(response.headers['access-control-allow-origin']).toBe('https://portfolio.example.com')
-    expect(response.headers['access-control-allow-credentials']).toBe('true')
+    expect(response.headers['access-control-allow-credentials']).toBeUndefined()
   })
 
   it('rejects an unapproved browser origin', async () => {

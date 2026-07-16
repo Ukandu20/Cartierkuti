@@ -1,12 +1,7 @@
 import axios from 'axios';
+import { requireApiBaseUrl } from './apiConfig';
 
-const API_URL = import.meta.env.VITE_API_URL;
-if (!API_URL) {
-  throw new Error(
-    'Missing VITE_API_URL environment variable. ' +
-    'Define it in .env.development as VITE_API_URL=http://localhost:5050'
-  );
-}
+const API_URL = requireApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -20,7 +15,8 @@ apiClient.interceptors.request.use(
     const needsAuth = ['post', 'put', 'patch', 'delete'].includes(method);
     const protectedRead =
       config.url?.includes('/api/admin/verify') ||
-      config.url?.includes('/api/projects/archived');
+      config.url?.includes('/api/projects/archived') ||
+      config.url?.includes('/api/activities');
     const isFormData =
       typeof FormData !== 'undefined' && config.data instanceof FormData;
     const headers = config.headers ?? {};

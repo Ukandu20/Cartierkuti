@@ -19,10 +19,17 @@ async function importData() {
       serverApi: { version: '1', strict: true, deprecationErrors: true },
     })
 
-    await Project.deleteMany({})
-    await Project.insertMany(projectData)
+    await Project.bulkWrite(
+      projectData.map((project) => ({
+        updateOne: {
+          filter: { githubLink: project.githubLink },
+          update: { $set: project },
+          upsert: true,
+        },
+      })),
+    )
 
-    console.log(`Seeded ${projectData.length} real projects`)
+    console.log(`Upserted ${projectData.length} real projects without deleting live data`)
     process.exit(0)
   } catch (err) {
     console.error('Error importing project data:', err)

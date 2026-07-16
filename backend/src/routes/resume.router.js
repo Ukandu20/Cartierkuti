@@ -8,6 +8,11 @@ import { resumeWriteSchema } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
 
 const resumeRouter = Router()
+const RESUME_KEY = 'primary'
+
+const findResume = () => Resume.findOne({ key: RESUME_KEY }).then(
+  (resume) => resume || Resume.findOne({ key: { $exists: false } }),
+)
 
 const resumeUpload = multer({
   storage: multer.memoryStorage(),
@@ -79,11 +84,8 @@ const getSafePdfFilename = (value) => {
 resumeRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    let resume = await Resume.findOne()
-    if (!resume) {
-      resume = await Resume.create(DEFAULT_RESUME)
-    }
-    res.json(resume)
+    const resume = await findResume()
+    res.json(resume || { ...DEFAULT_RESUME, key: RESUME_KEY })
   })
 )
 
@@ -92,7 +94,11 @@ resumeRouter.put(
   requireAdmin,
   validate({ body: resumeWriteSchema }),
   asyncHandler(async (req, res) => {
-    const updated = await Resume.findOneAndUpdate({}, req.body, {
+    const existing = await findResume()
+    const updated = await Resume.findOneAndUpdate(existing ? { _id: existing._id } : { key: RESUME_KEY }, {
+      ...req.body,
+      key: RESUME_KEY,
+    }, {
       new: true,
       upsert: true,
       setDefaultsOnInsert: true,
@@ -108,6 +114,9 @@ resumeRouter.post(
   asyncHandler(async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No resume file received' })
+    }
+    if (req.file.buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      return res.status(400).json({ message: 'Uploaded file is not a valid PDF' })
     }
     if (
       !process.env.CLOUDINARY_CLOUD_NAME ||
@@ -134,9 +143,11 @@ resumeRouter.post(
       stream.end(req.file.buffer)
     })
 
+    const existing = await findResume()
     const updated = await Resume.findOneAndUpdate(
-      {},
+      existing ? { _id: existing._id } : { key: RESUME_KEY },
       {
+        key: RESUME_KEY,
         resumeFileUrl: result.secure_url,
         resumeFileName: req.file.originalname,
         resumeFileUpdatedAt: new Date(),
@@ -159,7 +170,7 @@ resumeRouter.post(
 resumeRouter.get(
   '/file/download',
   asyncHandler(async (_req, res) => {
-    const resume = await Resume.findOne()
+    const resume = await findResume()
     if (!resume?.resumeFileUrl) {
       return res.status(404).json({ message: 'No resume PDF has been uploaded' })
     }

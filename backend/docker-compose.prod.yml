@@ -6,21 +6,18 @@ services:
     ports:
       - "5050:5000"
     depends_on:
-      - mongo
-
-  seed:
-    image: cartierkuti/backend-api:prod
-    env_file:
-      - .env.production
-    entrypoint: ["npm", "run", "seed:prod"]
-    depends_on:
-      - api
-    restart: "no"
+      mongo:
+        condition: service_healthy
 
   mongo:
     image: mongo:6.0
     volumes:
       - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
 volumes:
   mongo-data:

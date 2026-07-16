@@ -1,5 +1,6 @@
 // src/routes/project.router.js
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import multer from 'multer'
 import asyncHandler from 'express-async-handler'
 import rateLimit from 'express-rate-limit'
@@ -9,16 +10,34 @@ import requireAdmin from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import {
   objectIdSchema,
+  archiveQuerySchema,
   projectUpdateSchema,
   projectWriteSchema,
+  reviewQuerySchema,
   reviewWriteSchema,
 } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
-import logger from '../logger.js'
+import {
+  archiveAndDeleteProject,
+  createProject,
+  updateProject,
+} from '../services/project.service.js'
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 })
 const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 })
 const projectRouter = Router()
+
+const hasImageSignature = (buffer) => {
+  if (!buffer?.length) return false
+  const hex = buffer.subarray(0, 12).toString('hex')
+  return (
+    hex.startsWith('ffd8ff') ||
+    hex.startsWith('89504e470d0a1a0a') ||
+    hex.startsWith('474946383761') ||
+    hex.startsWith('474946383961') ||
+    (hex.startsWith('52494646') && buffer.subarray(8, 12).toString('ascii') === 'WEBP')
+  )
+}
 
 /* MULTER SETUP */
 const upload = multer({
@@ -40,6 +59,9 @@ projectRouter.post(
   asyncHandler(async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No file received' })
+    }
+    if (!hasImageSignature(req.file.buffer)) {
+      return res.status(400).json({ message: 'Uploaded file is not a supported image' })
     }
     if (
       !process.env.CLOUDINARY_CLOUD_NAME ||
@@ -68,7 +90,7 @@ projectRouter.post(
 projectRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const projects = await Project.find()
+    const projects = await Project.find().select('category title description languages status tags metadata externalLink githubLink liveDemoLink imageUrl featured views reviews.stars createdDate lastUpdatedDate')
     res.json(projects)
   }),
 )
@@ -76,20 +98,21 @@ projectRouter.get(
 projectRouter.get(
   '/archived',
   requireAdmin,
+  validate({ query: archiveQuerySchema }),
   asyncHandler(async (req, res) => {
     const { projectId, limit = 50, page = 1 } = req.query
     const filter = {}
     if (projectId) filter.originalId = projectId
 
-    const skip = (Math.max(page, 1) - 1) * limit
+    const skip = (page - 1) * limit
     const docs = await ArchivedProject.find(filter)
       .sort({ deletedAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit, 10))
+      .limit(limit)
       .lean()
 
     const total = await ArchivedProject.countDocuments(filter)
-    res.json({ archived: docs, total, page: +page, limit: +limit })
+    res.json({ archived: docs, total, page, limit })
   }),
 )
 
@@ -123,8 +146,8 @@ projectRouter.post(
   requireAdmin,
   validate({ body: projectWriteSchema }),
   asyncHandler(async (req, res) => {
-    const project = await Project.create(req.body)
-    res.json(project)
+    const project = await createProject(req.body, req.user?.username)
+    res.status(201).json(project)
   }),
 )
 
@@ -133,11 +156,7 @@ projectRouter.put(
   requireAdmin,
   validate({ params: objectIdSchema, body: projectUpdateSchema }),
   asyncHandler(async (req, res) => {
-    const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    const project = await updateProject(req.params.id, req.body, req.user?.username)
     res.json(project)
   }),
 )
@@ -147,36 +166,7 @@ projectRouter.delete(
   requireAdmin,
   validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
-    // Load the project before archiving it.
-    const project = await Project.findById(req.params.id).lean()
-    if (!project) {
-      return res.status(404).json({ message: 'Project not found' })
-    }
-
-    // Pull out _id so Mongo will generate a new one in archive.
-    const { _id: originalId, ...rest } = project
-
-    // Attempt to archive before removing the live project.
-    try {
-      await ArchivedProject.create({
-        originalId,
-        ...rest,
-        deletedAt: new Date(),
-        deletedBy: req.user?.id || 'system',
-      })
-    } catch (err) {
-      logger.error({ err, projectId: req.params.id }, 'Failed to archive project')
-      return res.status(500).json({ message: 'Could not archive project' })
-    }
-
-    // Finally remove it from the live collection.
-    try {
-      await Project.findByIdAndDelete(originalId)
-    } catch (err) {
-      logger.error({ err, projectId: req.params.id }, 'Failed to delete project after archiving')
-      return res.status(500).json({ message: 'Could not delete project' })
-    }
-
+    await archiveAndDeleteProject(req.params.id, req.user?.username)
     res.status(204).send()
   }),
 )
@@ -184,11 +174,27 @@ projectRouter.delete(
 /* REVIEWS */
 projectRouter.get(
   '/:id/reviews',
-  validate({ params: objectIdSchema }),
+  validate({ params: objectIdSchema, query: reviewQuerySchema }),
   asyncHandler(async (req, res) => {
-    const project = await Project.findById(req.params.id).select('reviews')
-    if (!project) return res.status(404).json({ message: 'Project not found' })
-    res.json(project.reviews)
+    const { page = 1, limit = 20 } = req.query
+    const skip = (page - 1) * limit
+    const [result] = await Project.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(req.params.id) } },
+      {
+        $project: {
+          total: { $size: { $ifNull: ['$reviews', []] } },
+          reviews: {
+            $slice: [
+              { $reverseArray: { $ifNull: ['$reviews', []] } },
+              skip,
+              limit,
+            ],
+          },
+        },
+      },
+    ])
+    if (!result) return res.status(404).json({ message: 'Project not found' })
+    res.json({ reviews: result.reviews, total: result.total, page, limit })
   }),
 )
 
@@ -201,10 +207,14 @@ projectRouter.post(
     const project = await Project.findById(req.params.id)
     if (!project) return res.status(404).json({ message: 'Project not found' })
 
+    if (project.reviews.length >= 500) {
+      return res.status(409).json({ message: 'This project is not accepting more reviews' })
+    }
     project.reviews.push({ stars, comment, date: new Date() })
     await project.save()
 
-    res.json({ avgStars: project.avgStars, total: project.reviews.length })
+    const review = project.reviews.at(-1)
+    res.status(201).json({ review, avgStars: project.avgStars, total: project.reviews.length })
   }),
 )
 

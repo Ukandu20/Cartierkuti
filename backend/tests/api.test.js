@@ -5,6 +5,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import app from '../src/app.js'
 import Project from '../src/models/project.model.js'
+import Activity from '../src/models/activity.model.js'
+import ArchivedProject from '../src/models/archive.model.js'
 
 let mongo
 let token
@@ -101,7 +103,7 @@ describe('project API', () => {
       .post('/api/projects')
       .set('Authorization', `Bearer ${token}`)
       .send(validProject)
-      .expect(200)
+      .expect(201)
 
     expect(created.body.title).toBe(validProject.title)
     expect(created.body.featured).toBe(true)
@@ -114,10 +116,18 @@ describe('project API', () => {
 
     expect(updated.body.title).toBe('Updated Portfolio API')
 
+    const afterUpdate = await Activity.find({ projectId: created.body._id }).sort({ timestamp: 1 }).lean()
+    expect(afterUpdate.map(({ type }) => type)).toEqual(['Created', 'Updated'])
+
     await request(app)
       .delete(`/api/projects/${created.body._id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(204)
+
+    expect(await Project.exists({ _id: created.body._id })).toBeNull()
+    expect(await ArchivedProject.exists({ originalId: created.body._id })).toBeTruthy()
+    const activityTypes = await Activity.find({ projectId: created.body._id }).distinct('type')
+    expect(activityTypes.sort()).toEqual(['Created', 'Deleted', 'Updated'])
   })
 
   it('rejects malformed project bodies and bad ObjectIds', async () => {
@@ -147,20 +157,95 @@ describe('project API', () => {
       ],
     })
   })
+
+  it('rolls back a project when its audit record cannot be written', async () => {
+    const activityCreate = vi.spyOn(Activity, 'create').mockRejectedValueOnce(new Error('audit unavailable'))
+
+    await request(app)
+      .post('/api/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validProject)
+      .expect(500)
+
+    expect(await Project.countDocuments()).toBe(0)
+    activityCreate.mockRestore()
+  })
+
+  it('does not create audit noise for public view counters', async () => {
+    const created = await request(app)
+      .post('/api/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validProject)
+      .expect(201)
+
+    await request(app).patch(`/api/projects/${created.body._id}/hit`).expect(200)
+    expect(await Activity.countDocuments({ projectId: created.body._id })).toBe(1)
+  })
+
+  it('rejects image content that does not match its declared MIME type', async () => {
+    await request(app)
+      .post('/api/projects/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('image', Buffer.from('not an image'), {
+        filename: 'forged.png',
+        contentType: 'image/png',
+      })
+      .expect(400)
+
+    await request(app)
+      .post('/api/projects/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('image', Buffer.from('89504e470d0a1a0a00000000', 'hex'), {
+        filename: 'valid-signature.png',
+        contentType: 'image/png',
+      })
+      .expect(200)
+  })
 })
 
 describe('reviews and resume', () => {
   it('validates public review submissions', async () => {
     const project = await Project.create(validProject)
 
-    await request(app)
+    const submitted = await request(app)
       .post(`/api/projects/${project._id}/reviews`)
       .send({ stars: 5, comment: 'Strong work.' })
+      .expect(201)
+
+    expect(submitted.body.review).toMatchObject({ stars: 5, comment: 'Strong work.' })
+
+    const reviews = await request(app)
+      .get(`/api/projects/${project._id}/reviews?limit=1`)
       .expect(200)
+    expect(reviews.body).toMatchObject({ total: 1, page: 1, limit: 1 })
+    expect(reviews.body.reviews).toHaveLength(1)
+
+    await request(app)
+      .get(`/api/projects/${project._id}/reviews?limit=51`)
+      .expect(400)
 
     await request(app)
       .post(`/api/projects/${project._id}/reviews`)
       .send({ stars: 9, comment: 'Invalid score.' })
+      .expect(400)
+
+    await request(app)
+      .post(`/api/projects/${project._id}/reviews`)
+      .send({ stars: 5, comment: 'Extra field.', date: new Date().toISOString() })
+      .expect(400)
+  })
+
+  it('protects and validates activity history queries', async () => {
+    await request(app).get('/api/activities').expect(401)
+
+    await request(app)
+      .get('/api/activities?limit=101')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400)
+
+    await request(app)
+      .get('/api/activities?startDate=not-a-date')
+      .set('Authorization', `Bearer ${token}`)
       .expect(400)
   })
 
@@ -246,6 +331,15 @@ describe('reviews and resume', () => {
       .attach('resume', Buffer.from('not a pdf'), {
         filename: 'resume.txt',
         contentType: 'text/plain',
+      })
+      .expect(400)
+
+    await request(app)
+      .post('/api/resume/file')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('resume', Buffer.from('not really a pdf'), {
+        filename: 'forged.pdf',
+        contentType: 'application/pdf',
       })
       .expect(400)
 

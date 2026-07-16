@@ -9,16 +9,6 @@ export function useAdminActivities({ isAuth, pageSize }) {
   const [filterEnd, setFilterEnd] = useState('')
   const [page, setPage] = useState(1)
 
-  useEffect(() => {
-    const cached = localStorage.getItem('activities')
-    if (!cached) return
-    try {
-      setActivities(JSON.parse(cached))
-    } catch {
-      localStorage.removeItem('activities')
-    }
-  }, [])
-
   const fetchActivities = useCallback(async () => {
     const params = {
       page,
@@ -27,9 +17,16 @@ export function useAdminActivities({ isAuth, pageSize }) {
       ...(filterStart && { startDate: filterStart }),
       ...(filterEnd && { endDate: filterEnd }),
     }
-    const { data } = await apiClient.get('/api/activities', { params })
-    setActivities(data.activities)
-    setTotalActivities(data.total)
+    try {
+      const { data } = await apiClient.get('/api/activities', { params })
+      setActivities(Array.isArray(data.activities) ? data.activities : [])
+      setTotalActivities(Number(data.total) || 0)
+      return true
+    } catch {
+      setActivities([])
+      setTotalActivities(0)
+      return false
+    }
   }, [filterEnd, filterStart, filterType, page, pageSize])
 
   useEffect(() => {

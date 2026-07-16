@@ -19,6 +19,7 @@ export function useAdminAuth({ onAuthenticated }) {
   const clearAdminSession = useCallback(() => {
     sessionStorage.removeItem('isAdminAuthenticated')
     sessionStorage.removeItem('loginTime')
+    sessionStorage.removeItem('adminExpiresAt')
     sessionStorage.removeItem('adminToken')
     setIsAuth(false)
   }, [])
@@ -28,8 +29,9 @@ export function useAdminAuth({ onAuthenticated }) {
       const auth = sessionStorage.getItem('isAdminAuthenticated')
       const time = sessionStorage.getItem('loginTime')
       const token = sessionStorage.getItem('adminToken')
+      const expiresAt = Number(sessionStorage.getItem('adminExpiresAt')) || (Number(time) + ADMIN_SESSION_MS)
 
-      if (auth && time && token && Date.now() - Number(time) < ADMIN_SESSION_MS) {
+      if (auth && time && token && Date.now() < expiresAt) {
         try {
           await apiClient.get('/api/admin/verify', {
             headers: { Authorization: `Bearer ${token}` },
@@ -56,7 +58,7 @@ export function useAdminAuth({ onAuthenticated }) {
       return undefined
     }
 
-    const expiresAt = time + ADMIN_SESSION_MS
+    const expiresAt = Number(sessionStorage.getItem('adminExpiresAt')) || (time + ADMIN_SESSION_MS)
     const msUntilExpiry = expiresAt - Date.now()
     if (msUntilExpiry <= 0) {
       clearAdminSession()
@@ -106,6 +108,7 @@ export function useAdminAuth({ onAuthenticated }) {
       sessionStorage.setItem('isAdminAuthenticated', 'true')
       sessionStorage.setItem('loginTime', `${Date.now()}`)
       sessionStorage.setItem('adminToken', data.token)
+      sessionStorage.setItem('adminExpiresAt', `${Number(data.expiresAt) || (Date.now() + ADMIN_SESSION_MS)}`)
       setIsAuth(true)
       onAuthenticated()
       setPassword('')
@@ -127,5 +130,6 @@ export function useAdminAuth({ onAuthenticated }) {
     isLoggingIn,
     handleLogin,
     handleUnauthorized,
+    logout: clearAdminSession,
   }
 }

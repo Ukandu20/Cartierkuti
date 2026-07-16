@@ -1,10 +1,9 @@
 // middleware/errorHandler.js
-import createError from 'http-errors'
 import logger from '../logger.js'
 
 // catch-all 404 -> JSON
 export function notFoundHandler(req, res, next) {
-  next(new createError.NotFound(`Route ${req.originalUrl} not found`))
+  next(Object.assign(new Error(`Route ${req.originalUrl} not found`), { status: 404 }))
 }
 
 export function errorHandler(err, req, res, next) {
@@ -40,6 +39,9 @@ export function errorHandler(err, req, res, next) {
 
   if (process.env.NODE_ENV !== 'production') {
     payload.stack = err.stack
+  } else if (status >= 500) {
+    payload.message = 'Internal Server Error'
+    delete payload.errors
   }
 
   if (status >= 500) {

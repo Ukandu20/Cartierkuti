@@ -69,9 +69,11 @@ async function seed() {
     serverApi: { version: '1', strict: true, deprecationErrors: true },
   })
 
-  console.log('Clearing existing projects and activities...')
-  await Project.deleteMany()
-  await Activity.deleteMany()
+  if (process.argv.includes('--wipe')) {
+    console.log('Clearing existing development projects and activities...')
+    await Project.deleteMany()
+    await Activity.deleteMany()
+  }
 
   const docs = generateFakeProjects(50)
   let createdCount = 0

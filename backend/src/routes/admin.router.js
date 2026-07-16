@@ -8,6 +8,8 @@ import { validate } from '../middleware/validate.js'
 import { authLoginSchema } from '../validation/schemas.js'
 
 const adminRouter = Router()
+const JWT_ISSUER = 'cartierkuti-api'
+const JWT_AUDIENCE = 'cartierkuti-admin'
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -15,6 +17,7 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts' },
+  skip: () => process.env.NODE_ENV === 'test',
 })
 
 adminRouter.post(
@@ -44,12 +47,16 @@ adminRouter.post(
       {
         subject: username,
         expiresIn,
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE,
       }
     )
+    const expiresAt = jwt.decode(token).exp * 1000
 
     res.json({
       token,
       expiresIn,
+      expiresAt,
       user: { username, role: 'admin' },
     })
   })
