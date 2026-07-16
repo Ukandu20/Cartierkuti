@@ -64,7 +64,7 @@ const setupApi = async (page) => {
     loginAttempts: [],
   }
 
-  await page.route('http://127.0.0.1:5050/api/**', async (route) => {
+  await page.route('**/api/**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
     const method = request.method()
@@ -153,7 +153,7 @@ const login = async (page) => {
   await page.getByLabel('Username').fill('admin')
   await page.locator('input[name="password"]').fill('valid-password')
   await page.getByRole('button', { name: 'Login' }).click()
-  await expect(page.getByText('Existing Projects')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
 }
 
 const fillProjectForm = async (page, title) => {
@@ -177,6 +177,18 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.clear())
 })
 
+test('home page leads with data science and sports analytics work', async ({ page }) => {
+  await setupApi(page)
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { name: /turning complex data into clear decisions/i })).toBeVisible()
+  await expect(page.getByText(/data science & sports analytics/i)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /view selected work/i })).toHaveAttribute('href', '/portfolio')
+  await expect(page.getByRole('link', { name: /start a conversation/i })).toHaveAttribute('href', '/contact')
+  await expect(page.locator('main')).toHaveCount(1)
+})
+
 test('admin login succeeds and invalid login fails', async ({ page }) => {
   await setupApi(page)
 
@@ -188,7 +200,7 @@ test('admin login succeeds and invalid login fails', async ({ page }) => {
 
   await page.locator('input[name="password"]').fill('valid-password')
   await page.getByRole('button', { name: 'Login' }).click()
-  await expect(page.getByText('Existing Projects')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
 })
 
 test('project form rejects invalid data before submit', async ({ page }) => {
@@ -203,6 +215,24 @@ test('project form rejects invalid data before submit', async ({ page }) => {
   expect(api.projectWrites).toHaveLength(0)
 })
 
+test('project editor warns before discarding unsaved changes', async ({ page }) => {
+  await setupApi(page)
+  await login(page)
+  await clickNewProject(page)
+  await page.getByLabel('Project Title').fill('Unsaved project')
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('Discard your unsaved project changes?')
+    await dialog.dismiss()
+  })
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('heading', { name: 'New Project' })).toBeVisible()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('heading', { name: 'New Project' })).toHaveCount(0)
+})
+
 test('create project sends the backend write contract payload', async ({ page }) => {
   const api = await setupApi(page)
   await login(page)
@@ -211,7 +241,7 @@ test('create project sends the backend write contract payload', async ({ page })
   await fillProjectForm(page, 'Gamma Launch')
   await page.getByRole('button', { name: 'Create' }).click()
 
-  await expect(page.getByText('Gamma Launch')).toBeVisible()
+  await expect(page.getByText('Gamma Launch').filter({ visible: true })).toBeVisible()
   expect(api.projectWrites[0]).toEqual({
     title: 'Gamma Launch',
     description: 'Gamma Launch description',
@@ -233,12 +263,12 @@ test('edit project updates displayed data', async ({ page }) => {
   const api = await setupApi(page)
   await login(page)
 
-  const alphaRow = page.getByText('Alpha Analytics').locator('..').locator('..')
-  await alphaRow.getByRole('button', { name: 'Edit' }).click()
+  await page.getByRole('button', { name: 'Actions for Alpha Analytics' }).click()
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
   await page.getByLabel('Project Title').fill('Alpha Analytics Updated')
   await page.getByRole('button', { name: 'Update' }).click()
 
-  await expect(page.getByText('Alpha Analytics Updated', { exact: true })).toBeVisible()
+  await expect(page.getByText('Alpha Analytics Updated', { exact: true }).filter({ visible: true })).toBeVisible()
   expect(api.projectWrites.at(-1).title).toBe('Alpha Analytics Updated')
 })
 
@@ -246,11 +276,26 @@ test('delete project removes it from the admin list', async ({ page }) => {
   await setupApi(page)
   await login(page)
 
-  const betaRow = page.getByText('Beta Portfolio').locator('..').locator('..')
-  await betaRow.getByRole('button', { name: 'Delete' }).click()
+  await page.getByRole('button', { name: 'Actions for Beta Portfolio' }).click()
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Delete' }).last().click()
 
   await expect(page.getByText('Beta Portfolio')).toHaveCount(0)
+})
+
+test('admin project search and status filters narrow the management view', async ({ page }) => {
+  await setupApi(page)
+  await login(page)
+  const projectsSection = page.locator('[aria-labelledby="admin-projects-heading"]')
+
+  await page.getByLabel('Search projects').fill('Beta')
+  await expect(projectsSection.getByText('Beta Portfolio').filter({ visible: true })).toBeVisible()
+  await expect(projectsSection.getByText('Alpha Analytics')).toHaveCount(0)
+
+  await page.getByLabel('Search projects').fill('')
+  await page.getByLabel('Filter by status').selectOption('In Progress')
+  await expect(projectsSection.getByText('Alpha Analytics').filter({ visible: true })).toBeVisible()
+  await expect(projectsSection.getByText('Beta Portfolio')).toHaveCount(0)
 })
 
 test('portfolio category filtering supports AI aliases', async ({ page }) => {

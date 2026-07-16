@@ -54,7 +54,6 @@ export default defineConfig({
     include: [
       "@chakra-ui/react",
       "@emotion/react",
-      "@emotion/styled",
       "framer-motion",
       "next-themes",
       "react-icons/lu",

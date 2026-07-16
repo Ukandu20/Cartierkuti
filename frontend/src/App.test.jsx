@@ -16,6 +16,8 @@ describe('App routes', () => {
   it('renders the home route', async () => {
     renderWithProviders(<App />)
     expect(await screen.findByRole('link', { name: /navigate to home/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /turning complex data into clear decisions/i })).toBeInTheDocument()
+    expect(document.querySelectorAll('main')).toHaveLength(1)
   })
 
   it('renders the contact route', async () => {

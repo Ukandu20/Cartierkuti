@@ -20,24 +20,9 @@ import { Link } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa'
 import { getPublicResume } from '@/services/resumeService'
 import { useColorMode } from '@/components/Theme/color-mode'
+import { editorialFonts, getEditorialTokens } from '@/utils/editorialTheme'
 import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { absoluteUrl } from '@/utils/siteConfig'
-
-const editorialFonts = {
-  heading: "'Playfair Display', serif",
-  body: "'Source Sans 3', system-ui, sans-serif",
-  mono: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
-}
-
-const getEditorialTokens = (colorMode) => ({
-  bg: colorMode === 'light' ? '#F6F4F1' : '#141414',
-  surface: colorMode === 'light' ? '#FFFFFF' : '#1B1B1B',
-  surfaceAlt: colorMode === 'light' ? '#FBFAF8' : '#222222',
-  ink: colorMode === 'light' ? '#1A1A1A' : 'gray.100',
-  muted: colorMode === 'light' ? '#4B4B4B' : 'gray.400',
-  rule: colorMode === 'light' ? '#E2DED8' : 'gray.700',
-  accentData: '#0F766E',
-})
 
 const DEFAULT_RESUME = {
   headline: 'Data science and analytics practitioner',
