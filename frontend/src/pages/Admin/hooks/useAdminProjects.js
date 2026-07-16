@@ -39,11 +39,14 @@ export function useAdminProjects() {
     setResumeLoading(true)
     try {
       const { data } = await apiClient.get('/api/resume')
-      setResumeForm(normalizeResumeForm(data))
+      const normalized = normalizeResumeForm(data)
+      setResumeForm(normalized)
+      return normalized
     } catch (error) {
       reportAdminError(error)
       toaster.create({ title: 'Error loading resume', type: 'error', closable: true })
       setResumeForm(emptyResumeForm)
+      return emptyResumeForm
     } finally {
       setResumeLoading(false)
     }

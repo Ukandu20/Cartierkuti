@@ -58,14 +58,13 @@ export default function ResumeEditorDialog({
         <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
         <Dialog.Positioner>
           <Dialog.Content
-            w={{ base: '98vw', md: '1100px', lg: '1200px' }}
-            maxW="none"
-            minW={{ md: '900px' }}
-            maxH="88vh"
+            w={{ base: 'calc(100vw - 16px)', md: 'calc(100vw - 48px)' }}
+            maxW="1200px"
+            maxH={{ base: '96vh', md: '92vh' }}
             overflowY="auto"
             bg={dialogBg}
             color="fg.default"
-            p={{ base: 5, md: 8 }}
+            p={0}
             rounded="lg"
             shadow="xl"
             borderWidth="1px"
@@ -75,8 +74,12 @@ export default function ResumeEditorDialog({
               display="flex"
               justifyContent="space-between"
               alignItems="center"
-              mb={4}
-              pb={3}
+              px={{ base: 4, md: 8 }}
+              py={4}
+              position="sticky"
+              top={0}
+              zIndex={2}
+              bg={dialogBg}
               borderBottomWidth="1px"
               borderColor={dialogBorder}
             >
@@ -86,7 +89,7 @@ export default function ResumeEditorDialog({
               </Dialog.CloseTrigger>
             </Dialog.Header>
 
-            <Dialog.Body px={0}>
+            <Dialog.Body px={{ base: 4, md: 8 }} py={5}>
               {resumeLoading ? (
                 <Text color="fg.muted">Loading resume...</Text>
               ) : (
@@ -265,9 +268,20 @@ export default function ResumeEditorDialog({
               )}
             </Dialog.Body>
 
-            <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+            <Dialog.Footer
+              display="flex"
+              justifyContent="flex-end"
+              px={{ base: 4, md: 8 }}
+              py={4}
+              position="sticky"
+              bottom={0}
+              zIndex={2}
+              bg={dialogBg}
+              borderTopWidth="1px"
+              borderColor={dialogBorder}
+            >
               <ButtonGroup gap={3}>
-                <Button variant="solid" onClick={saveResume} loading={isSavingResume} disabled={resumeLoading}>
+                <Button colorPalette="brand" variant="solid" onClick={saveResume} loading={isSavingResume} disabled={resumeLoading}>
                   Save Resume
                 </Button>
                 <Button variant="ghost" onClick={onCancel} disabled={isSavingResume}>Cancel</Button>

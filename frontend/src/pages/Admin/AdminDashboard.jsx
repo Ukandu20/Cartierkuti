@@ -1,19 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
-  SimpleGrid,
-  Stack,
   Text,
 } from '@chakra-ui/react'
 import {
-  HiDocumentText,
   HiEye,
   HiFolderOpen,
-  HiPencil,
   HiPlay,
-  HiPlus,
   HiStar,
-  HiTrash,
 } from 'react-icons/hi'
 import { Toaster, toaster } from '@/components/ui/toaster'
 import { ErrorState, LoadingState } from '@/components/ui/StateFeedback'
@@ -25,7 +19,6 @@ import {
   getAvgStars,
   getFilteredProjects,
   getProjectAnalytics,
-  getProjectCounts,
   getProjectFilterLabel,
   isInProgress,
   projectToFormData,
@@ -40,8 +33,6 @@ import ActivityLogSection from './components/ActivityLogSection'
 import ProjectAnalyticsDialog from './components/ProjectAnalyticsDialog'
 import ProjectEditorDialog from './components/ProjectEditorDialog'
 import ProjectTableSection from './components/ProjectTableSection'
-import QuickActionsSection from './components/QuickActionsSection'
-import QuickInsightsSection from './components/QuickInsightsSection'
 import ResumeEditorDialog from './components/ResumeEditorDialog'
 import { useAdminActivities } from './hooks/useAdminActivities'
 import { useAdminAuth } from './hooks/useAdminAuth'
@@ -134,6 +125,9 @@ export default function AdminDashboard() {
 
   const [projectPage, setProjectPage] = useState(1)
   const [projectFilter, setProjectFilter] = useState('all')
+  const [projectSearch, setProjectSearch] = useState('')
+  const [projectStatusFilter, setProjectStatusFilter] = useState('all')
+  const [projectCategoryFilter, setProjectCategoryFilter] = useState('all')
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
   const [formData, setFormData] = useState(emptyProjectForm)
@@ -141,8 +135,6 @@ export default function AdminDashboard() {
 
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [isDeleteOpen, setDeleteOpen] = useState(false)
-  const [isQuickEditOpen, setQuickEditOpen] = useState(false)
-  const [isQuickDeleteOpen, setQuickDeleteOpen] = useState(false)
   const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
   const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
   const [isResumeOpen, setResumeOpen] = useState(false)
@@ -157,6 +149,7 @@ export default function AdminDashboard() {
   const [projectAnalyticsLoading, setProjectAnalyticsLoading] = useState(false)
   const cancelRef = useRef()
   const listRef = useRef(null)
+  const resumeBaselineRef = useRef('')
 
   const pageCount = Math.ceil(totalActivities / ACTIVITY_PAGE_SIZE)
 
@@ -171,6 +164,19 @@ export default function AdminDashboard() {
     } finally {
       setIsSavingResume(false)
     }
+  }
+
+  const openAboutEditor = async () => {
+    const loadedResume = await fetchResume()
+    resumeBaselineRef.current = JSON.stringify(loadedResume)
+    setResumeOpen(true)
+  }
+
+  const requestCloseResume = () => {
+    const hasChanges = resumeBaselineRef.current
+      && JSON.stringify(resumeForm) !== resumeBaselineRef.current
+    if (hasChanges && !window.confirm('Discard your unsaved About page changes?')) return
+    setResumeOpen(false)
   }
 
   const onUploadResumeFile = async (event) => {
@@ -188,13 +194,23 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setProjectPage(1)
-  }, [projectFilter])
+  }, [projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter])
 
   useEffect(() => {
-    const filteredLength = getFilteredProjects(projects, projectFilter).length
+    const filteredLength = getFilteredProjects(projects, projectFilter)
+      .filter((project) => projectStatusFilter === 'all' || project.status === projectStatusFilter)
+      .filter((project) => projectCategoryFilter === 'all' || project.category === projectCategoryFilter)
+      .filter((project) => {
+        const query = projectSearch.trim().toLowerCase()
+        if (!query) return true
+        return [project.title, project.category, project.status, ...(project.tags || [])]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query))
+      })
+      .length
     const maxPage = Math.max(1, Math.ceil(filteredLength / PROJECT_PAGE_SIZE))
     if (projectPage > maxPage) setProjectPage(maxPage)
-  }, [projects, projectFilter, projectPage])
+  }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter, projectPage])
 
   const onChange = (event) => {
     const { name, value, type, checked } = event.target
@@ -227,8 +243,18 @@ export default function AdminDashboard() {
     setCreateOpen(true)
   }
 
+  const requestCloseProjectEditor = () => {
+    const initialForm = editMode ? projectToFormData(current) : emptyProjectForm
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialForm)
+    if (hasChanges && !window.confirm('Discard your unsaved project changes?')) return
+    setCreateOpen(false)
+  }
+
   const handleProjectFilter = (filter) => {
     setProjectFilter(filter)
+    setProjectSearch('')
+    setProjectStatusFilter('all')
+    setProjectCategoryFilter('all')
     setProjectPage(1)
     listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -432,29 +458,16 @@ export default function AdminDashboard() {
     { label: 'Featured Projects', value: projects.filter((project) => project.featured).length, desc: 'your best', icon: HiStar, onClick: () => handleProjectFilter('featured') },
   ], [projects, mostViewedProject, mostViewedMeta])
 
-  const quickActions = [
-    { label: 'Add Project', value: '', desc: 'create new', icon: HiPlus, onClick: onOpenCreate },
-    { label: 'Edit Project', value: projects.length, desc: 'modify', icon: HiPencil, onClick: () => setQuickEditOpen(true) },
-    { label: 'Delete Project', value: projects.length, desc: 'remove', icon: HiTrash, onClick: () => setQuickDeleteOpen(true) },
-    { label: 'View Analytics', value: '', desc: 'charts', icon: HiEye, onClick: () => setAnalyticsOpen(true) },
-    {
-      label: 'Edit About Page',
-      value: '',
-      desc: 'about page',
-      icon: HiDocumentText,
-      onClick: () => {
-        fetchResume()
-        setResumeOpen(true)
-      },
-    },
-  ]
-
-  const counts = useMemo(() => getProjectCounts(projects), [projects])
   const analytics = useMemo(() => getProjectAnalytics(projects), [projects])
-  const filteredProjects = useMemo(
-    () => getFilteredProjects(projects, projectFilter),
-    [projects, projectFilter],
-  )
+  const filteredProjects = useMemo(() => {
+    const query = projectSearch.trim().toLowerCase()
+    return getFilteredProjects(projects, projectFilter)
+      .filter((project) => projectStatusFilter === 'all' || project.status === projectStatusFilter)
+      .filter((project) => projectCategoryFilter === 'all' || project.category === projectCategoryFilter)
+      .filter((project) => !query || [project.title, project.category, project.status, ...(project.tags || [])]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)))
+  }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter])
   const projectFilterLabel = getProjectFilterLabel(projectFilter)
   const projectPageCount = Math.max(1, Math.ceil(filteredProjects.length / PROJECT_PAGE_SIZE))
   const paginatedProjects = filteredProjects.slice(
@@ -481,50 +494,19 @@ export default function AdminDashboard() {
   return (
     <>
       <Toaster />
-      <Box p={{ base: 4, md: 8 }}>
+      <Box w="full" maxW="1440px" mx="auto" p={{ base: 4, md: 8 }}>
         <AdminOverviewHeader
           dialogBg={dialogBg}
           dialogBorder={dialogBorder}
           onOpenCreate={onOpenCreate}
           onOpenAnalytics={() => setAnalyticsOpen(true)}
+          onOpenAbout={openAboutEditor}
           onLogout={logout}
         />
 
         <Box mb={8}>
           <DashboardStats statCards={kpis.map((kpi) => ({ ...kpi, disabled: !kpi.onClick }))} />
         </Box>
-
-        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6} alignItems="stretch" mb={8}>
-          <ActivityLogSection
-            activities={activities}
-            totalActivities={totalActivities}
-            page={page}
-            pageCount={pageCount}
-            pageSize={ACTIVITY_PAGE_SIZE}
-            filterType={filterType}
-            setFilterType={setFilterType}
-            filterStart={filterStart}
-            setFilterStart={setFilterStart}
-            filterEnd={filterEnd}
-            setFilterEnd={setFilterEnd}
-            setPage={setPage}
-            fetchActivities={fetchActivities}
-            clearFilters={clearFilters}
-            bg={bg}
-            dialogBg={dialogBg}
-            dialogBorder={dialogBorder}
-          />
-
-          <Stack gap={6} h="full">
-            <QuickInsightsSection counts={counts} dialogBg={dialogBg} dialogBorder={dialogBorder} />
-            <QuickActionsSection
-              quickActions={quickActions}
-              projectsCount={projects.length}
-              dialogBg={dialogBg}
-              dialogBorder={dialogBorder}
-            />
-          </Stack>
-        </SimpleGrid>
 
         {loading && <LoadingState label="Loading projects..." />}
         {error && (
@@ -535,31 +517,61 @@ export default function AdminDashboard() {
           />
         )}
         <Box ref={listRef}>
-          <Text fontSize="sm" color="fg.muted" mb={2}>{projectFilterLabel} projects</Text>
+          {projectFilter !== 'all' && <Text fontSize="sm" color="fg.muted" mb={2}>Showing {projectFilterLabel.toLowerCase()} projects</Text>}
           <ProjectTableSection
             projects={projects}
             paginatedProjects={paginatedProjects}
+            filteredProjectCount={filteredProjects.length}
             projectPage={projectPage}
             projectPageCount={projectPageCount}
             projectPageSize={PROJECT_PAGE_SIZE}
             onProjectPageChange={setProjectPage}
-            onOpenCreate={onOpenCreate}
             onOpenEdit={onOpenEdit}
             onConfirmDelete={confirmDelete}
-            isQuickEditOpen={isQuickEditOpen}
-            setQuickEditOpen={setQuickEditOpen}
-            isQuickDeleteOpen={isQuickDeleteOpen}
-            setQuickDeleteOpen={setQuickDeleteOpen}
-            bg={bg}
+            onOpenAnalytics={openProjectAnalytics}
+            search={projectSearch}
+            onSearchChange={setProjectSearch}
+            statusFilter={projectStatusFilter}
+            onStatusFilterChange={setProjectStatusFilter}
+            categoryFilter={projectCategoryFilter}
+            onCategoryFilterChange={setProjectCategoryFilter}
+            onClearFilters={() => {
+              setProjectFilter('all')
+              setProjectSearch('')
+              setProjectStatusFilter('all')
+              setProjectCategoryFilter('all')
+            }}
             dialogBg={dialogBg}
             dialogBorder={dialogBorder}
-            closeHoverBg={closeHoverBg}
           />
         </Box>
 
+        <ActivityLogSection
+          activities={activities}
+          totalActivities={totalActivities}
+          page={page}
+          pageCount={pageCount}
+          pageSize={ACTIVITY_PAGE_SIZE}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterStart={filterStart}
+          setFilterStart={setFilterStart}
+          filterEnd={filterEnd}
+          setFilterEnd={setFilterEnd}
+          setPage={setPage}
+          fetchActivities={fetchActivities}
+          clearFilters={clearFilters}
+          bg={bg}
+          dialogBg={dialogBg}
+          dialogBorder={dialogBorder}
+        />
+
         <ResumeEditorDialog
           open={isResumeOpen}
-          onOpenChange={(details) => setResumeOpen(details.open)}
+          onOpenChange={(details) => {
+            if (details.open) setResumeOpen(true)
+            else requestCloseResume()
+          }}
           resumeForm={resumeForm}
           setResumeForm={setResumeForm}
           resumeLoading={resumeLoading}
@@ -567,7 +579,7 @@ export default function AdminDashboard() {
           isSavingResume={isSavingResume}
           onUploadResumeFile={onUploadResumeFile}
           isUploadingResumeFile={isUploadingResumeFile}
-          onCancel={() => setResumeOpen(false)}
+          onCancel={requestCloseResume}
           addMetric={addMetric}
           updateMetric={updateMetric}
           removeMetric={removeMetric}
@@ -616,12 +628,15 @@ export default function AdminDashboard() {
 
         <ProjectEditorDialog
           open={isCreateOpen}
-          onOpenChange={(details) => setCreateOpen(details.open)}
+          onOpenChange={(details) => {
+            if (details.open) setCreateOpen(true)
+            else requestCloseProjectEditor()
+          }}
           editMode={editMode}
           formData={formData}
           onChange={onChange}
           onSubmit={onSubmit}
-          onCancel={() => setCreateOpen(false)}
+          onCancel={requestCloseProjectEditor}
           onUploadImage={onUploadImage}
           isUploading={isUploading}
           isSaving={isSavingProject}

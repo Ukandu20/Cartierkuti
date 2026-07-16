@@ -1,6 +1,12 @@
 import React from 'react'
 import { Box, Flex, SimpleGrid, Text } from '@chakra-ui/react'
 
+const handleActionKey = (event, action, disabled) => {
+  if (disabled || !action || !['Enter', ' '].includes(event.key)) return
+  event.preventDefault()
+  action()
+}
+
 const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra }) => {
   const accent = 'brand.600'
   const border = 'border.subtle'
@@ -22,7 +28,12 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
         boxShadow: !disabled ? 'md' : undefined,
         cursor: !disabled ? 'pointer' : undefined,
       }}
+      _focusVisible={{ outline: '2px solid', outlineColor: accent, outlineOffset: '3px' }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={!disabled && onClick ? 0 : undefined}
+      aria-disabled={disabled || undefined}
       onClick={!disabled ? onClick : undefined}
+      onKeyDown={(event) => handleActionKey(event, onClick, disabled)}
       opacity={disabled ? 0.6 : 1}
     >
       <Flex align="flex-start" justify="space-between" mb={3} gap={4}>
@@ -70,13 +81,17 @@ export const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabl
       borderRadius="lg"
       boxShadow="sm"
       role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
       _hover={{
         borderColor: accent,
         boxShadow: 'lg',
         transform: 'translateY(-2px)',
       }}
       transition="all 0.15s ease"
+      _focusVisible={{ outline: '2px solid', outlineColor: accent, outlineOffset: '3px' }}
       onClick={!disabled ? onClick : undefined}
+      onKeyDown={(event) => handleActionKey(event, onClick, disabled)}
       opacity={disabled ? 0.6 : 1}
       cursor={disabled ? 'not-allowed' : 'pointer'}
     >

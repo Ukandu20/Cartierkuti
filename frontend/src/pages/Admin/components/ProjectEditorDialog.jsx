@@ -68,12 +68,13 @@ export default function ProjectEditorDialog({
         <Dialog.Backdrop bg="blackAlpha.600" backdropFilter="blur(3px)" />
         <Dialog.Positioner>
           <Dialog.Content
-            w={{ base: '90vw', md: '600px' }}
-            maxH="85vh"
+            w={{ base: 'calc(100vw - 16px)', md: '760px' }}
+            maxW="760px"
+            maxH={{ base: '96vh', md: '90vh' }}
             overflowY="auto"
             bg={dialogBg}
             color="fg.default"
-            p={{ base: 4, md: 6 }}
+            p={0}
             rounded="lg"
             shadow="xl"
             borderWidth="1px"
@@ -83,8 +84,12 @@ export default function ProjectEditorDialog({
               display="flex"
               justifyContent="space-between"
               alignItems="center"
-              mb={4}
-              pb={3}
+              px={{ base: 4, md: 6 }}
+              py={4}
+              position="sticky"
+              top={0}
+              zIndex={2}
+              bg={dialogBg}
               borderBottomWidth="1px"
               borderColor={dialogBorder}
             >
@@ -101,7 +106,7 @@ export default function ProjectEditorDialog({
               </Dialog.CloseTrigger>
             </Dialog.Header>
 
-            <Dialog.Body px={0}>
+            <Dialog.Body px={{ base: 4, md: 6 }} py={5}>
               <Fieldset.Root size="lg" maxW="2xl">
                 <Fieldset.Content>
                   <Field.Root required invalid={Boolean(errors.title)}>
@@ -121,7 +126,7 @@ export default function ProjectEditorDialog({
                     <Field.ErrorText>{errors.description}</Field.ErrorText>
                   </Field.Root>
 
-                  <Flex wrap="wrap" gap={2} mb={4}>
+                  <Flex direction={{ base: 'column', md: 'row' }} gap={4} mb={4}>
                     <Field.Root flex="1" required invalid={Boolean(errors.externalLink)}>
                       <Field.Label>External Link</Field.Label>
                       <Input
@@ -250,9 +255,20 @@ export default function ProjectEditorDialog({
               </Fieldset.Root>
             </Dialog.Body>
 
-            <Dialog.Footer display="flex" justifyContent="flex-end" mt={4}>
+            <Dialog.Footer
+              display="flex"
+              justifyContent="flex-end"
+              px={{ base: 4, md: 6 }}
+              py={4}
+              position="sticky"
+              bottom={0}
+              zIndex={2}
+              bg={dialogBg}
+              borderTopWidth="1px"
+              borderColor={dialogBorder}
+            >
               <ButtonGroup gap={3}>
-                <Button onClick={onSubmit} variant="solid" loading={isSaving} disabled={isUploading}>
+                <Button colorPalette="brand" onClick={onSubmit} variant="solid" loading={isSaving} disabled={isUploading}>
                   {editMode ? 'Update' : 'Create'}
                 </Button>
                 <Button onClick={onCancel} variant="ghost" disabled={isSaving}>Cancel</Button>

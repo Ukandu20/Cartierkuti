@@ -90,34 +90,45 @@ describe('Admin dashboard components', () => {
       id: 'normalized-id',
       title: 'Portfolio API',
       category: 'Web Development',
+      status: 'Completed',
       featured: true,
+      views: 42,
       createdDate: '2025-01-01',
+      lastUpdatedDate: '2025-03-14',
     }
+    const onSearchChange = vi.fn()
 
     renderWithProviders(
       <ProjectTableSection
         projects={[project]}
         paginatedProjects={[project]}
+        filteredProjectCount={1}
         projectPage={1}
         projectPageCount={1}
         projectPageSize={8}
         onProjectPageChange={vi.fn()}
-        onOpenCreate={vi.fn()}
         onOpenEdit={vi.fn()}
         onConfirmDelete={vi.fn()}
-        isQuickEditOpen={false}
-        setQuickEditOpen={vi.fn()}
-        isQuickDeleteOpen={false}
-        setQuickDeleteOpen={vi.fn()}
-        bg="bg.subtle"
+        onOpenAnalytics={vi.fn()}
+        search=""
+        onSearchChange={onSearchChange}
+        statusFilter="all"
+        onStatusFilterChange={vi.fn()}
+        categoryFilter="all"
+        onCategoryFilterChange={vi.fn()}
+        onClearFilters={vi.fn()}
         dialogBg="bg.surface"
         dialogBorder="border.subtle"
-        closeHoverBg="bg.subtle"
       />
     )
 
-    expect(screen.getByText('Portfolio API')).toBeInTheDocument()
-    expect(screen.getByText(/featured/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument()
+    expect(screen.getAllByText('Portfolio API')).not.toHaveLength(0)
+    expect(screen.getAllByText(/featured/i)).not.toHaveLength(0)
+    expect(screen.getAllByText('42')).not.toHaveLength(0)
+    expect(screen.getAllByText(/mar 14, 2025/i)).not.toHaveLength(0)
+    expect(screen.getAllByRole('button', { name: /actions for portfolio api/i })).not.toHaveLength(0)
+
+    fireEvent.change(screen.getByRole('textbox', { name: /search projects/i }), { target: { value: 'api' } })
+    expect(onSearchChange).toHaveBeenCalledWith('api')
   })
 })

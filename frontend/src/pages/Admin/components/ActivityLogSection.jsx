@@ -1,5 +1,6 @@
-import React from 'react'
-import { Box, Button, ButtonGroup, Flex, Heading, Input, NativeSelect, SimpleGrid, Text } from '@chakra-ui/react'
+import React, { useState } from 'react'
+import { Badge, Box, Button, ButtonGroup, Flex, Heading, Input, NativeSelect, SimpleGrid, Text } from '@chakra-ui/react'
+import { HiFilter } from 'react-icons/hi'
 import PaginationControls from '@/components/pagination/pagination'
 import { EmptyState } from '@/components/ui/StateFeedback'
 import { niceDate } from '@/utils/formatDate'
@@ -24,37 +25,45 @@ export default function ActivityLogSection({
   dialogBg,
   dialogBorder,
 }) {
+  const hasFilters = Boolean(filterType || filterStart || filterEnd)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
   return (
-    <Box p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="lg" shadow="sm" h="full">
-      <Flex justify="space-between" align="center" mb={4}>
-        <Heading size="md">Activity Log</Heading>
-        <Text fontSize="xs" color="fg.muted">{totalActivities} events</Text>
+    <Box p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="xl" shadow="sm" h="full">
+      <Flex justify="space-between" align="center" mb={hasFilters ? 3 : 4} gap={3} wrap="wrap">
+        <Box>
+          <Heading size="md">Recent activity</Heading>
+          <Text fontSize="xs" color="fg.muted">{totalActivities} events</Text>
+        </Box>
+        <Button size="sm" variant={filtersOpen ? 'subtle' : 'outline'} onClick={() => setFiltersOpen((current) => !current)} aria-expanded={filtersOpen}>
+          <HiFilter /> Filters {hasFilters ? '(active)' : ''}
+        </Button>
       </Flex>
-      <Flex mb={4} py={2} gap={3} align="center" wrap="wrap">
-        <NativeSelect.Root>
-          <NativeSelect.Field
-            placeholder="All"
-            value={filterType}
-            onChange={(event) => setFilterType(event.target.value)}
-            bg={bg}
-            px={2}
-            borderRadius={4}
-            height={10}
-            minW={{ base: '100%', md: '160px' }}
-          >
-            {['Created', 'Updated', 'Deleted'].map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </NativeSelect.Field>
-          <NativeSelect.Indicator />
-        </NativeSelect.Root>
-        <Input type="date" value={filterStart} onChange={(event) => setFilterStart(event.target.value)} bg={bg} px={3} borderRadius={4} height={10} minW={{ base: '100%', md: '170px' }} />
-        <Input type="date" value={filterEnd} onChange={(event) => setFilterEnd(event.target.value)} bg={bg} px={3} borderRadius={4} height={10} minW={{ base: '100%', md: '170px' }} />
-        <ButtonGroup size="sm" gap={3} w={{ base: '100%', md: 'auto' }}>
-          <Button size="sm" colorPalette="teal" onClick={() => { setPage(1); fetchActivities() }}>Apply</Button>
-          <Button size="sm" variant="outline" colorPalette="teal" onClick={clearFilters}>Clear</Button>
-        </ButtonGroup>
-      </Flex>
+      {hasFilters && !filtersOpen && (
+        <Flex mb={4} gap={2} wrap="wrap" align="center">
+          {filterType && <Badge variant="subtle">Type: {filterType}</Badge>}
+          {filterStart && <Badge variant="subtle">From: {filterStart}</Badge>}
+          {filterEnd && <Badge variant="subtle">To: {filterEnd}</Badge>}
+          <Button size="xs" variant="ghost" onClick={clearFilters}>Clear</Button>
+        </Flex>
+      )}
+      {filtersOpen && (
+        <Flex mb={4} p={4} gap={3} align="center" wrap="wrap" bg={bg} borderRadius="lg">
+          <NativeSelect.Root maxW={{ base: '100%', md: '180px' }}>
+            <NativeSelect.Field value={filterType} onChange={(event) => setFilterType(event.target.value)} bg={dialogBg} aria-label="Filter activity type">
+              <option value="">All activity</option>
+              {['Created', 'Updated', 'Deleted'].map((item) => <option key={item} value={item}>{item}</option>)}
+            </NativeSelect.Field>
+            <NativeSelect.Indicator />
+          </NativeSelect.Root>
+          <Input aria-label="Activity start date" type="date" value={filterStart} onChange={(event) => setFilterStart(event.target.value)} bg={dialogBg} maxW={{ base: '100%', md: '180px' }} />
+          <Input aria-label="Activity end date" type="date" value={filterEnd} onChange={(event) => setFilterEnd(event.target.value)} bg={dialogBg} maxW={{ base: '100%', md: '180px' }} />
+          <ButtonGroup size="sm" gap={2}>
+            <Button colorPalette="brand" onClick={() => { setPage(1); fetchActivities(); setFiltersOpen(false) }}>Apply</Button>
+            <Button variant="outline" onClick={clearFilters}>Clear</Button>
+          </ButtonGroup>
+        </Flex>
+      )}
       <SimpleGrid columns={1} gap={2}>
         {activities.length > 0 ? (
           activities.map((activity) => (
