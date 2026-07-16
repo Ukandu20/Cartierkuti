@@ -25,7 +25,7 @@ import { toaster } from '@/components/ui/toaster'
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
-import emailjs from 'emailjs-com'
+import emailjs from '@emailjs/browser'
 import { absoluteUrl, siteName } from '@/utils/siteConfig'
 
 const MotionBox = motion(Box)
@@ -61,18 +61,18 @@ export default function ContactPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
-      toaster.create({ title: 'Email service not configured', status: 'error' })
+      toaster.create({ title: 'Email service not configured', type: 'error' })
       return
     }
     setLoading(true)
 
     try {
       await emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, PUBLIC_KEY)
-      toaster.create({ title: 'Message sent!', status: 'success' })
+      toaster.create({ title: 'Message sent!', type: 'success' })
       formRef.current.reset()
     } catch (err) {
       console.error(err)
-      toaster.create({ title: 'Failed to send. Please try again later.', status: 'error' })
+      toaster.create({ title: 'Failed to send. Please try again later.', type: 'error' })
     } finally {
       setLoading(false)
     }
