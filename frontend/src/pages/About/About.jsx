@@ -18,7 +18,7 @@ import {
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { FaDownload } from 'react-icons/fa'
-import apiClient from '@/utils/axiosConfig'
+import { getPublicResume } from '@/services/resumeService'
 import { useColorMode } from '@/components/Theme/color-mode'
 import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { absoluteUrl } from '@/utils/siteConfig'
@@ -144,9 +144,8 @@ export default function About() {
 
   useEffect(() => {
     let active = true
-    apiClient
-      .get('/api/resume')
-      .then(({ data }) => {
+    getPublicResume()
+      .then((data) => {
         if (active) setResume(normalizeResume(data))
       })
       .catch(() => {

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import apiClient from '@/utils/axiosConfig'
 import { normalizeProjects } from '@/utils/projectNormalizer'
 import { toaster } from '@/components/ui/toaster'
+import { invalidateResumeCache } from '@/services/resumeService'
 import {
   buildResumePayload,
   emptyResumeForm,
@@ -51,6 +52,7 @@ export function useAdminProjects() {
   const saveResume = useCallback(async () => {
     try {
       await apiClient.put('/api/resume', buildResumePayload(resumeForm))
+      invalidateResumeCache()
       toaster.create({ title: 'Resume updated', type: 'success', closable: true })
       return true
     } catch (error) {
@@ -65,6 +67,7 @@ export function useAdminProjects() {
       const body = new FormData()
       body.append('resume', file)
       const { data } = await apiClient.post('/api/resume/file', body)
+      invalidateResumeCache()
       setResumeForm((current) => ({
         ...current,
         resumeFileUrl: data.resumeFileUrl || '',

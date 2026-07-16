@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import apiClient from '@/utils/axiosConfig'
+import { apiUrl } from '@/utils/apiConfig'
+import { getPublicResume } from '@/services/resumeService'
 
 export const FALLBACK_RESUME_URL = '/resume.pdf'
 export const FALLBACK_RESUME_FILENAME = 'Preston-Ukandu-Resume.pdf'
-const API_URL = import.meta.env.VITE_API_URL
 
 export function getResumeDownloadUrl(resume) {
   return resume?.resumeFileUrl
-    ? `${API_URL}/api/resume/file/download`
+    ? apiUrl('/api/resume/file/download')
     : FALLBACK_RESUME_URL
 }
 
@@ -36,9 +36,8 @@ export function useResumeDownload(initialResume) {
       }
     }
 
-    apiClient
-      .get('/api/resume')
-      .then(({ data }) => {
+    getPublicResume()
+      .then((data) => {
         if (active) {
           setResumeDownload({
             url: getResumeDownloadUrl(data),

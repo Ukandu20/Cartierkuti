@@ -32,7 +32,7 @@ describe('Navbar', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute(
         'href',
-        'http://localhost:5000/api/resume/file/download',
+        '/api/resume/file/download',
       )
       expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute(
         'download',
