@@ -7,6 +7,7 @@ import {
   createSystem,
   defaultConfig,
   defineConfig,
+  defineRecipe,
 } from '@chakra-ui/react'
 
 /* ------------------------------------------------------------------
@@ -15,16 +16,16 @@ import {
 const tokens = {
   colors: {
     brand: {
-      50:  { value: '#e0fcfa' },
-      100: { value: '#b2f4f0' },
-      200: { value: '#80e9e6' },
-      300: { value: '#4ededa' },
-      400: { value: '#23d4d0' },
-      500: { value: '#05e2d7' },
-      600: { value: '#02c7be' },
-      700: { value: '#029ca0' },
-      800: { value: '#027274' },
-      900: { value: '#014948' },
+      50:  { value: '#F0FDFA' },
+      100: { value: '#CCFBF1' },
+      200: { value: '#99F6E4' },
+      300: { value: '#5EEAD4' },
+      400: { value: '#2DD4BF' },
+      500: { value: '#0F766E' },
+      600: { value: '#0D6861' },
+      700: { value: '#115E59' },
+      800: { value: '#134E4A' },
+      900: { value: '#123A36' },
     },
 
     /* hard-coded surfaces */
@@ -62,8 +63,9 @@ const tokens = {
   },
 
   fonts: {
-    heading: { value: "'Poppins', sans-serif" },
-    body:    { value: "'Poppins', sans-serif" },
+    heading: { value: "'Playfair Display', Georgia, serif" },
+    body:    { value: "'Source Sans 3', system-ui, sans-serif" },
+    mono:    { value: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
   },
 }
 
@@ -72,6 +74,23 @@ const tokens = {
  * ----------------------------------------------------------------- */
 const semanticTokens = {
   colors: {
+    /* One accent contract for every Chakra color-palette component. */
+    brand: {
+      solid: { value: { _light: '#0F766E', _dark: '#5EEAD4' } },
+      contrast: { value: { _light: '#FFFFFF', _dark: '#092B28' } },
+      fg: { value: { _light: '#0F766E', _dark: '#5EEAD4' } },
+      subtle: { value: { _light: '#DDF3EF', _dark: '#123A36' } },
+      muted: { value: { _light: '#BDE8E1', _dark: '#164E48' } },
+      emphasized: { value: { _light: '#99D8CF', _dark: '#1F625B' } },
+      border: { value: { _light: '#78C6BB', _dark: '#2B7A72' } },
+      focusRing: { value: { _light: '#0F766E', _dark: '#5EEAD4' } },
+    },
+
+    accent: {
+      DEFAULT: { value: { _light: '#0F766E', _dark: '#5EEAD4' } },
+      default: { value: { _light: '#0F766E', _dark: '#5EEAD4' } },
+      subtle: { value: { _light: '#DDF3EF', _dark: '#123A36' } },
+    },
     /* page background */
     'bg.canvas': {
       value: {
@@ -153,6 +172,20 @@ const semanticTokens = {
       },
     },
 
+    'bg.raised': {
+      value: {
+        base: '{colors.surface.light}',
+        _dark: '#222222',
+      },
+    },
+
+    'bg.navigation': {
+      value: {
+        base: 'rgba(246, 244, 241, 0.94)',
+        _dark: 'rgba(20, 20, 20, 0.94)',
+      },
+    },
+
     /* borders */
     'border.subtle': {
       value: {
@@ -162,6 +195,43 @@ const semanticTokens = {
     },
   },
 }
+
+const buttonRecipe = defineRecipe({
+  base: {
+    borderRadius: 'md',
+    fontFamily: 'body',
+    fontWeight: '700',
+    letterSpacing: '0.01em',
+    transitionDuration: 'fast',
+    _motionReduce: { transition: 'none' },
+  },
+})
+
+const fieldRecipe = defineRecipe({
+  base: {
+    borderRadius: 'md',
+    bg: 'bg.surface',
+    borderColor: 'border.subtle',
+    '--focus-color': 'colors.brand.focusRing',
+  },
+})
+
+const headingRecipe = defineRecipe({
+  base: {
+    fontFamily: 'heading',
+    fontWeight: '600',
+    color: 'fg.default',
+    letterSpacing: '-0.02em',
+  },
+})
+
+const badgeRecipe = defineRecipe({
+  base: {
+    borderRadius: 'full',
+    fontFamily: 'body',
+    fontWeight: '600',
+  },
+})
 
 /* ------------------------------------------------------------------
  * 4 ·  Global styles (use semantic aliases)
@@ -182,15 +252,21 @@ const globalCss = {
     textDecoration: 'none',
     color: 'inherit',
     transition: 'color .2s ease',
-    _hover: { color: 'brand.500' },
+    _hover: { color: 'accent.default' },
   },
 
   img: { maxWidth: '100%', height: 'auto', display: 'block' },
 
-  h1: { fontWeight: '700', fontSize: '2.5rem', lineHeight: '1.2' },
-  h2: { fontWeight: '700', fontSize: '2rem',   lineHeight: '1.2' },
+  '::selection': { bg: 'accent.subtle', color: 'fg.default' },
 
-  p: { color: 'fg.muted', mb: 4 },
+  ':focus-visible': {
+    outlineColor: 'accent.default',
+  },
+
+  '[data-admin-shell] .chakra-heading': {
+    fontFamily: 'body',
+    letterSpacing: '-0.01em',
+  },
 }
 
 /* ------------------------------------------------------------------
@@ -213,6 +289,13 @@ const config = defineConfig({
   theme: {
     tokens: mergedTokens,
     semanticTokens,
+    recipes: {
+      button: buttonRecipe,
+      input: fieldRecipe,
+      textarea: fieldRecipe,
+      heading: headingRecipe,
+      badge: badgeRecipe,
+    },
   },
 
   globalCss,

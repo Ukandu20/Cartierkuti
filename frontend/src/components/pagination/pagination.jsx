@@ -24,7 +24,7 @@ export default function PaginationControls({
     >
       <ButtonGroup variant={variant} size={size} gap={2}>
         <ChakraPagination.PrevTrigger asChild>
-          <IconButton aria-label="Previous">
+          <IconButton aria-label="Previous page" colorPalette="brand">
             <HiChevronLeft />
           </IconButton>
         </ChakraPagination.PrevTrigger>
@@ -34,6 +34,9 @@ export default function PaginationControls({
             <IconButton
               key={pageObj.value}
               variant={pageObj.isCurrent ? 'solid' : 'outline'}
+              colorPalette="brand"
+              aria-label={`Page ${pageObj.value}`}
+              aria-current={pageObj.isCurrent ? 'page' : undefined}
               onClick={() => onPageChange(pageObj.value)}
             >
               {pageObj.value}
@@ -42,7 +45,7 @@ export default function PaginationControls({
         />
 
         <ChakraPagination.NextTrigger asChild>
-          <IconButton aria-label="Next">
+          <IconButton aria-label="Next page" colorPalette="brand">
             <HiChevronRight />
           </IconButton>
         </ChakraPagination.NextTrigger>

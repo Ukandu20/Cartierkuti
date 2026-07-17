@@ -1,62 +1,16 @@
-/* index.css */
-
-/* ================== */
-/* 📚 Google Fonts     */
-/* ================== */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
-
-/* ================== */
-/* 🌐 Global Resets    */
-/* ================== */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 
 html {
-  scroll-behavior: smooth;
   font-size: 16px;
+  scroll-behavior: smooth;
 }
 
-/* ================== */
-/* 📦 Layout Utils     */
-/* ================== */
-.container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 0;
+body {
+  margin: 0;
 }
 
-.flex {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
-
-.flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* ================== */
-/* ✍️ Typography Utils */
-/* ================== */
-small {
-  font-size: 0.8rem;
-  color: gray;
-}
-
-/* ================== */
-/* 🔘 Button Reset */
-/* ================== */
-/* ================== */
-/* ✨ Spacing Utils     */
-/* ================== */
-.mt-sm { margin-top: 1rem; }
-.mt-md { margin-top: 2rem; }
-.mt-lg { margin-top: 4rem; }
-
-.mb-sm { margin-bottom: 1rem; }
-.mb-md { margin-bottom: 2rem; }
-.mb-lg { margin-bottom: 4rem; }
