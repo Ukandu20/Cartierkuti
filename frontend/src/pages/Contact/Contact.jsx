@@ -1,222 +1,134 @@
-// src/pages/Contact/ContactPage.jsx
-'use client'
-
 import React, { useRef, useState } from 'react'
 import {
   Box,
-  SimpleGrid,
-  GridItem,
+  Button,
+  Field,
+  Flex,
   Heading,
-  Text,
-  VStack,
   HStack,
   Icon,
   Input,
-  Textarea,
-  Button,
-  Field,
-  NativeSelect,
-  chakra,
-  useBreakpointValue,
   Link,
-  Flex,
+  NativeSelect,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+  chakra,
 } from '@chakra-ui/react'
-import { toaster } from '@/components/ui/toaster'
-import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from 'react-icons/fa'
-import { motion } from 'framer-motion'
 import { Helmet } from 'react-helmet-async'
 import emailjs from '@emailjs/browser'
+import { FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa'
+import { SectionLabel, SurfaceCard, fieldStyles } from '@/components/ui/DesignSystem'
+import { toaster } from '@/components/ui/toaster'
 import { absoluteUrl, siteName } from '@/utils/siteConfig'
 
-const MotionBox = motion(Box)
+const contactMethods = [
+  { icon: FaMapMarkerAlt, label: 'Location', value: 'Windsor, ON' },
+  { icon: FaPhoneAlt, label: 'Phone', value: '+1 226 123 4567', href: 'tel:+12261234567' },
+  { icon: FaEnvelope, label: 'Email', value: 'okechiukandu@gmail.com', href: 'mailto:okechiukandu@gmail.com' },
+]
 
 export default function ContactPage() {
-  // EmailJS ids via env vars
-  const SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID
-  const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
-  const PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
+  const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
+  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
   const [loading, setLoading] = useState(false)
   const formRef = useRef(null)
 
-  /* theme tokens */
-  const accent   = 'brand.500'
-  const bgCard   = 'bg.surface'
-  const bgField  = 'bg.subtle'
-  const border   = 'border.subtle'
-  const txtSec   = 'fg.muted'
-
-  const cols = useBreakpointValue({ base: 1, md: 2 })
-
-  const fieldSharedProps = {
-    bg: bgField,
-    borderColor: border,
-    _focusVisible: {
-      borderColor: accent,
-      boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
-    },
-  }
-
-  /* -------------------- Handlers -------------------- */
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
-      toaster.create({ title: 'Email service not configured', type: 'error' })
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!serviceId || !templateId || !publicKey) {
+      toaster.create({ title: 'Email service not configured', type: 'error', closable: true })
       return
     }
-    setLoading(true)
 
+    setLoading(true)
     try {
-      await emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, PUBLIC_KEY)
-      toaster.create({ title: 'Message sent!', type: 'success' })
+      await emailjs.sendForm(serviceId, templateId, formRef.current, publicKey)
+      toaster.create({ title: 'Message sent', description: 'Thanks — I will get back to you shortly.', type: 'success', closable: true })
       formRef.current.reset()
-    } catch (err) {
-      console.error(err)
-      toaster.create({ title: 'Failed to send. Please try again later.', type: 'error' })
+    } catch (error) {
+      if (import.meta.env.DEV) console.error(error)
+      toaster.create({ title: 'Message could not be sent', description: 'Please try again later or email me directly.', type: 'error', closable: true })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Box as="main"  py={{ base: 16, md: 24 }} px={4} bg="bg.canvas">
+    <Box as="main" bg="bg.canvas" px={{ base: 5, md: 10 }} py={{ base: 14, md: 20 }}>
       <Helmet>
         <title>Contact | {siteName}</title>
         <meta name="description" content={`Contact ${siteName} for analytics, security-minded data work, collaborations, or general inquiries.`} />
         <link rel="canonical" href={absoluteUrl('/contact')} />
       </Helmet>
 
-      <SimpleGrid columns={cols} gap={{ base: 10, md: 16 }} maxW="6xl" mx="auto">
-        {/* Left – Info */}
-        <GridItem>
-          <VStack
-            p={{ base: 6, md: 10 }}
-            gap={8}
-            align="stretch"
-          >
-            <Box>
-              <Heading size="lg" mb={2}>Let’s get in touch</Heading>
-              <Text color={txtSec}>
-                Have a project, feedback or idea? Fill out the form or reach me through the channels below.
-              </Text>
-            </Box>
-            <VStack align="start" gap={4} fontSize="sm">
-              <HStack gap={3}>
-                <Icon as={FaMapMarkerAlt} color={accent} />
-                <Text>Windsor, ON</Text>
+      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 16 }} maxW="7xl" mx="auto" alignItems="start">
+        <Stack gap={8} pt={{ lg: 6 }}>
+          <Stack gap={5} maxW="2xl">
+            <SectionLabel number="01">Start a conversation</SectionLabel>
+            <Heading as="h1" fontSize={{ base: '4xl', md: '6xl' }} lineHeight="1.05">
+              Let&apos;s make the next decision clearer.
+            </Heading>
+            <Text color="fg.muted" fontSize={{ base: 'lg', md: 'xl' }} lineHeight="1.7">
+              Have a project, collaboration, or analytical question in mind? Share the context and the outcome you are working toward.
+            </Text>
+          </Stack>
+
+          <Stack gap={0} borderTop="1px solid" borderColor="border.subtle">
+            {contactMethods.map(({ icon, label, value, href }) => (
+              <HStack key={label} gap={4} py={5} borderBottom="1px solid" borderColor="border.subtle" align="flex-start">
+                <Flex boxSize="10" borderRadius="md" bg="accent.subtle" color="accent.default" align="center" justify="center" flexShrink={0}>
+                  <Icon as={icon} />
+                </Flex>
+                <Box>
+                  <Text fontFamily="mono" fontSize="xs" textTransform="uppercase" letterSpacing="0.14em" color="fg.muted">{label}</Text>
+                  {href ? <Link href={href} fontWeight="700" _hover={{ color: 'accent.default' }}>{value}</Link> : <Text fontWeight="700">{value}</Text>}
+                </Box>
               </HStack>
-              <HStack gap={3}>
-                <Icon as={FaPhoneAlt} color={accent} />
-                <Link href="tel:+12261234567">+1 226 123 4567</Link>
-              </HStack>
-              <HStack gap={3}>
-                <Icon as={FaEnvelope} color={accent} />
-                <Link href="mailto:okechiukandu@gmail.com">okechiukandu@gmail.com</Link>
-              </HStack>
-            </VStack>
-          </VStack>
-        </GridItem>
+            ))}
+          </Stack>
+        </Stack>
 
-        {/* Right – Form */}
-        <GridItem>
-          <MotionBox
-            bg={bgCard}
-            p={{ base: 6, md: 10 }}
-            rounded="2xl"
-            shadow="lg"
-            borderWidth="1px"
-            borderColor={border}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <Heading size="lg" mb={6}>Contact Form</Heading>
-            <chakra.form
-              ref={formRef}
-              onSubmit={handleSubmit}
-              display="grid"
-              gridTemplateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }}
-              gap={6}
-            >
-              {/* Name */}
-              <Field.Root>
-                <Field.Label htmlFor="user_name">Name</Field.Label>
-                <Input
-                  id="user_name"
-                  name="user_name"
-                  placeholder="Your Name"
-                  size="md"
-                  paddingX={2}
-                  required
-                  {...fieldSharedProps}
-                />
-              </Field.Root>
+        <SurfaceCard as="section" aria-labelledby="contact-form-heading" p={{ base: 5, sm: 7, md: 9 }}>
+          <SectionLabel number="02">Project brief</SectionLabel>
+          <Heading id="contact-form-heading" as="h2" fontSize={{ base: '3xl', md: '4xl' }} mt={3} mb={2}>Tell me what you are exploring</Heading>
+          <Text color="fg.muted" mb={7}>A few useful details are enough to begin.</Text>
 
-              {/* Email */}
-              <Field.Root>
-                <Field.Label htmlFor="user_email">Email</Field.Label>
-                <Input
-                  id="user_email"
-                  name="user_email"
-                  type="email"
-                  placeholder="you@example.com"
-                  size="md"
-                  paddingX={2}
-                  required
-                  {...fieldSharedProps}
-                />
-              </Field.Root>
+          <chakra.form ref={formRef} onSubmit={handleSubmit} display="grid" gridTemplateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={5}>
+            <Field.Root required>
+              <Field.Label htmlFor="user_name">Name <Field.RequiredIndicator /></Field.Label>
+              <Input id="user_name" name="user_name" placeholder="Your name" required {...fieldStyles} />
+            </Field.Root>
 
-              {/* Subject */}
-              <Field.Root gridColumn={{ md: '1 / -1' }}>
-                <Field.Label htmlFor="subject" >Subject</Field.Label>
-                <NativeSelect.Root id="subject" name="subject" size="md" width="full">
-                  <NativeSelect.Field
-                    placeholder="Choose subject"
-                    bg={bgField}
-                    borderColor={border}
-                    paddingX={2}
-                    _focusVisible={{ borderColor: accent }}
-                  >
-                    <option value="Project Inquiry">Project Inquiry</option>
-                    <option value="Collaboration">Collaboration</option>
-                    <option value="General Question">General Question</option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator color={accent} />
-                </NativeSelect.Root>
-              </Field.Root>
+            <Field.Root required>
+              <Field.Label htmlFor="user_email">Email <Field.RequiredIndicator /></Field.Label>
+              <Input id="user_email" name="user_email" type="email" placeholder="you@example.com" required {...fieldStyles} />
+            </Field.Root>
 
-              {/* Message */}
-              <Field.Root gridColumn={{ md: '1 / -1' }}>
-                <Field.Label htmlFor="message">Message</Field.Label>
-                <Textarea
-                  id="message"
-                  name="message"
-                  rows={6}
-                  placeholder="Tell me about your project..."
-                  padding={2}
-                  required
-                  {...fieldSharedProps}
-                />
-              </Field.Root>
+            <Field.Root gridColumn={{ md: '1 / -1' }}>
+              <Field.Label htmlFor="subject">Subject</Field.Label>
+              <NativeSelect.Root id="subject" name="subject" width="full">
+                <NativeSelect.Field placeholder="Choose a subject" {...fieldStyles}>
+                  <option value="Project Inquiry">Project inquiry</option>
+                  <option value="Collaboration">Collaboration</option>
+                  <option value="General Question">General question</option>
+                </NativeSelect.Field>
+                <NativeSelect.Indicator color="accent.default" />
+              </NativeSelect.Root>
+            </Field.Root>
 
-              {/* Submit */}
-              <Flex gridColumn={{ md: '1 / -1' }}>
-                <Button
-                  type="submit"
-                  colorPalette="brand"
-                  size="lg"
-                  ml="auto"
-                  loading={loading}
-                  loadingText="Sending"
-                >
-                  Send Message
-                </Button>
-              </Flex>
-            </chakra.form>
-          </MotionBox>
-        </GridItem>
+            <Field.Root required gridColumn={{ md: '1 / -1' }}>
+              <Field.Label htmlFor="message">Message <Field.RequiredIndicator /></Field.Label>
+              <Textarea id="message" name="message" rows={7} placeholder="What problem are you trying to solve?" required {...fieldStyles} />
+            </Field.Root>
+
+            <Button type="submit" colorPalette="brand" size="lg" gridColumn={{ md: '1 / -1' }} justifySelf={{ base: 'stretch', sm: 'end' }} w={{ base: 'full', sm: 'auto' }} loading={loading} loadingText="Sending">
+              Send message
+            </Button>
+          </chakra.form>
+        </SurfaceCard>
       </SimpleGrid>
     </Box>
   )
