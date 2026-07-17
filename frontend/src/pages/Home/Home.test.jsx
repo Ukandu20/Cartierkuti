@@ -1,14 +1,16 @@
 import React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Home from './Home'
 import { renderWithProviders } from '../../test-utils'
 
 const apiGet = vi.fn()
+const apiPatch = vi.fn()
 
 vi.mock('@/utils/axiosConfig', () => ({
   default: {
     get: (...args) => apiGet(...args),
+    patch: (...args) => apiPatch(...args),
   },
 }))
 
@@ -30,11 +32,27 @@ describe('Home', () => {
               featured: true,
               views: 25,
             },
+            {
+              id: 'decision-dashboard',
+              title: 'Decision Intelligence Dashboard',
+              description: 'A dashboard that turns operational signals into decision-ready evidence.',
+              category: 'Data Analysis',
+              languages: ['SQL', 'Power BI'],
+              imageUrl: '/placeholder.svg',
+              externalLink: 'https://example.com/dashboard',
+              githubLink: 'https://github.com/example/dashboard',
+              featured: false,
+              views: 18,
+            },
           ],
         })
       }
       return Promise.resolve({ data: {} })
     })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('presents the data science and sports analytics role with clear actions', async () => {
@@ -48,12 +66,48 @@ describe('Home', () => {
     expect(screen.getByRole('heading', { name: /let's turn it into something decision-ready/i })).toBeInTheDocument()
   })
 
-  it('renders API-backed selected work as an accessible project article', async () => {
+  it('renders selected work with the featured case-study card treatment', async () => {
     renderWithProviders(<Home />)
 
     expect(await screen.findByRole('heading', { name: 'Match Performance Model' })).toBeInTheDocument()
-    expect(screen.getByRole('article')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /open project/i })).toHaveAttribute('href', 'https://example.com/model')
-    expect(screen.getByRole('link', { name: /source/i })).toHaveAttribute('href', 'https://github.com/example/model')
+    const carousel = screen.getByRole('region', { name: 'Selected projects' })
+    expect(within(carousel).getByRole('article')).toBeInTheDocument()
+    expect(within(carousel).getByRole('button', { name: /view case study/i })).toBeInTheDocument()
+    expect(within(carousel).getByRole('button', { name: /live project/i })).toBeInTheDocument()
+    expect(within(carousel).getByRole('button', { name: /source/i })).toBeInTheDocument()
+  })
+
+  it('auto-advances the carousel and suspends autoplay while hovered', async () => {
+    let autoplayCallback = null
+    const autoplayId = 501
+
+    vi.spyOn(window, 'setInterval').mockImplementation((callback, delay) => {
+      if (delay === 5000) {
+        autoplayCallback = callback
+        return autoplayId
+      }
+      return 999
+    })
+    vi.spyOn(window, 'clearInterval').mockImplementation((id) => {
+      if (id === autoplayId) autoplayCallback = null
+    })
+
+    renderWithProviders(<Home />)
+
+    const carousel = await screen.findByRole('region', { name: 'Selected projects' })
+    const slides = carousel.querySelectorAll('[aria-roledescription="slide"]')
+    expect(slides).toHaveLength(2)
+    expect(slides[0]).toHaveAttribute('aria-hidden', 'false')
+    expect(slides[1]).toHaveAttribute('aria-hidden', 'true')
+
+    act(() => autoplayCallback())
+    expect(slides[0]).toHaveAttribute('aria-hidden', 'true')
+    expect(slides[1]).toHaveAttribute('aria-hidden', 'false')
+
+    fireEvent.mouseEnter(carousel)
+    expect(autoplayCallback).toBeNull()
+
+    fireEvent.mouseLeave(carousel)
+    expect(autoplayCallback).toEqual(expect.any(Function))
   })
 })
