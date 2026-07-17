@@ -42,6 +42,8 @@ export default function AdminLoginPanel({
   return (
     <Flex
       as="main"
+      data-admin-shell
+      fontFamily="body"
       minH={{ base: 'calc(100vh - 96px)', md: 'calc(100vh - 112px)' }}
       align="center"
       justify="center"
@@ -74,8 +76,8 @@ export default function AdminLoginPanel({
               placeItems="center"
               boxSize="48px"
               borderRadius="md"
-              bg="brand.600"
-              color="white"
+              bg="accent.default"
+              color="brand.contrast"
             >
               <Icon as={HiShieldCheck} boxSize={6} />
             </Box>
@@ -106,7 +108,7 @@ export default function AdminLoginPanel({
                 borderWidth="1px"
                 borderColor={border}
               >
-                <Icon as={HiLockClosed} color="brand.600" />
+                <Icon as={HiLockClosed} color="accent.default" />
               </Box>
               <Box>
                 <Text mb={0} fontWeight="semibold" color="fg.default">
@@ -127,7 +129,7 @@ export default function AdminLoginPanel({
                 borderWidth="1px"
                 borderColor={border}
               >
-                <Icon as={HiSparkles} color="brand.600" />
+                <Icon as={HiSparkles} color="accent.default" />
               </Box>
               <Box>
                 <Text mb={0} fontWeight="semibold" color="fg.default">
@@ -235,7 +237,7 @@ export default function AdminLoginPanel({
                 mt={7}
                 w="full"
                 h="11"
-                colorPalette="teal"
+                colorPalette="brand"
                 loading={isLoggingIn}
               >
                 Login

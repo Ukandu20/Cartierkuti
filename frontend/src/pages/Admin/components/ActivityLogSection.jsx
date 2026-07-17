@@ -4,6 +4,7 @@ import { HiFilter } from 'react-icons/hi'
 import PaginationControls from '@/components/pagination/pagination'
 import { EmptyState } from '@/components/ui/StateFeedback'
 import { niceDate } from '@/utils/formatDate'
+import { fieldStyles, SurfaceCard } from '@/components/ui/DesignSystem'
 import ActivityCard from '../activity'
 
 export default function ActivityLogSection({
@@ -29,7 +30,7 @@ export default function ActivityLogSection({
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   return (
-    <Box p={{ base: 4, md: 5 }} bg={dialogBg} borderWidth="1px" borderColor={dialogBorder} borderRadius="xl" shadow="sm" h="full">
+    <SurfaceCard p={{ base: 4, md: 5 }} bg={dialogBg} borderColor={dialogBorder} h="full">
       <Flex justify="space-between" align="center" mb={hasFilters ? 3 : 4} gap={3} wrap="wrap">
         <Box>
           <Heading size="md">Recent activity</Heading>
@@ -50,14 +51,14 @@ export default function ActivityLogSection({
       {filtersOpen && (
         <Flex mb={4} p={4} gap={3} align="center" wrap="wrap" bg={bg} borderRadius="lg">
           <NativeSelect.Root maxW={{ base: '100%', md: '180px' }}>
-            <NativeSelect.Field value={filterType} onChange={(event) => setFilterType(event.target.value)} bg={dialogBg} aria-label="Filter activity type">
+            <NativeSelect.Field value={filterType} onChange={(event) => setFilterType(event.target.value)} {...fieldStyles} aria-label="Filter activity type">
               <option value="">All activity</option>
               {['Created', 'Updated', 'Deleted'].map((item) => <option key={item} value={item}>{item}</option>)}
             </NativeSelect.Field>
             <NativeSelect.Indicator />
           </NativeSelect.Root>
-          <Input aria-label="Activity start date" type="date" value={filterStart} onChange={(event) => setFilterStart(event.target.value)} bg={dialogBg} maxW={{ base: '100%', md: '180px' }} />
-          <Input aria-label="Activity end date" type="date" value={filterEnd} onChange={(event) => setFilterEnd(event.target.value)} bg={dialogBg} maxW={{ base: '100%', md: '180px' }} />
+          <Input aria-label="Activity start date" type="date" value={filterStart} onChange={(event) => setFilterStart(event.target.value)} {...fieldStyles} maxW={{ base: '100%', md: '180px' }} />
+          <Input aria-label="Activity end date" type="date" value={filterEnd} onChange={(event) => setFilterEnd(event.target.value)} {...fieldStyles} maxW={{ base: '100%', md: '180px' }} />
           <ButtonGroup size="sm" gap={2}>
             <Button colorPalette="brand" onClick={() => { setPage(1); fetchActivities(); setFiltersOpen(false) }}>Apply</Button>
             <Button variant="outline" onClick={clearFilters}>Clear</Button>
@@ -76,7 +77,7 @@ export default function ActivityLogSection({
             />
           ))
         ) : (
-          <EmptyState title="No activity yet." />
+          <EmptyState title="No activity yet." compact />
         )}
       </SimpleGrid>
 
@@ -90,6 +91,6 @@ export default function ActivityLogSection({
           />
         </Flex>
       )}
-    </Box>
+    </SurfaceCard>
   )
 }

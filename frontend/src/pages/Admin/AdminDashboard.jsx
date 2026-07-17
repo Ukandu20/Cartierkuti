@@ -9,7 +9,7 @@ import {
   HiPlay,
   HiStar,
 } from 'react-icons/hi'
-import { Toaster, toaster } from '@/components/ui/toaster'
+import { toaster } from '@/components/ui/toaster'
 import { ErrorState, LoadingState } from '@/components/ui/StateFeedback'
 import apiClient from '@/utils/axiosConfig'
 import {
@@ -72,7 +72,7 @@ const getApiFieldErrors = (error) => {
 }
 
 export default function AdminDashboard() {
-  const accent = 'brand.600'
+  const accent = 'accent.default'
   const bg = 'bg.subtle'
   const dialogBg = 'bg.surface'
   const dialogBorder = 'border.subtle'
@@ -477,8 +477,6 @@ export default function AdminDashboard() {
 
   if (!isAuth) {
     return (
-      <>
-        <Toaster />
         <AdminLoginPanel
           username={username}
           setUsername={setUsername}
@@ -487,14 +485,11 @@ export default function AdminDashboard() {
           isLoggingIn={isLoggingIn}
           handleLogin={handleLogin}
         />
-      </>
     )
   }
 
   return (
-    <>
-      <Toaster />
-      <Box w="full" maxW="1440px" mx="auto" p={{ base: 4, md: 8 }}>
+    <Box data-admin-shell w="full" maxW="1440px" mx="auto" p={{ base: 4, md: 8 }} fontFamily="body">
         <AdminOverviewHeader
           dialogBg={dialogBg}
           dialogBorder={dialogBorder}
@@ -655,7 +650,6 @@ export default function AdminDashboard() {
           onDelete={doDelete}
           isDeleting={isDeletingProject}
         />
-      </Box>
-    </>
+    </Box>
   )
 }

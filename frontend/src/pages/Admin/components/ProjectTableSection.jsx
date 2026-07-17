@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react'
 import { HiDotsVertical, HiEye, HiPencil, HiTrash } from 'react-icons/hi'
 import PaginationControls from '@/components/pagination/pagination'
+import { fieldStyles, interactiveSurfaceStyles, SurfaceCard } from '@/components/ui/DesignSystem'
 
 const statusPalette = (status = '') => {
   const normalized = status.toLowerCase()
@@ -85,7 +86,7 @@ const ProjectActions = ({ project, onEdit, onDelete, onAnalytics }) => (
 )
 
 const ProjectCard = ({ project, onEdit, onDelete, onAnalytics }) => (
-  <Box p={4} bg="bg.surface" borderWidth="1px" borderColor="border.subtle" borderRadius="lg">
+  <Box p={4} {...interactiveSurfaceStyles}>
     <Flex justify="space-between" align="flex-start" gap={3}>
       <ProjectIdentity project={project} compact />
       <ProjectActions project={project} onEdit={onEdit} onDelete={onDelete} onAnalytics={onAnalytics} />
@@ -129,16 +130,12 @@ export default function ProjectTableSection({
   const hasFilters = Boolean(search || statusFilter !== 'all' || categoryFilter !== 'all')
 
   return (
-    <Box
+    <SurfaceCard
       as="section"
       aria-labelledby="admin-projects-heading"
       mb={8}
-      bg={dialogBg}
-      borderWidth="1px"
       borderColor={dialogBorder}
-      borderRadius="xl"
       overflow="hidden"
-      shadow="sm"
     >
       <Flex p={{ base: 4, md: 5 }} justify="space-between" align="center" wrap="wrap" gap={3} borderBottomWidth="1px" borderColor={dialogBorder}>
         <Box>
@@ -154,10 +151,11 @@ export default function ProjectTableSection({
           placeholder="Search projects…"
           aria-label="Search projects"
           bg={dialogBg}
+          {...fieldStyles}
           maxW={{ base: '100%', md: '320px' }}
         />
         <NativeSelect.Root maxW={{ base: '100%', sm: '190px' }}>
-          <NativeSelect.Field value={statusFilter} onChange={(event) => onStatusFilterChange(event.target.value)} bg={dialogBg} aria-label="Filter by status">
+          <NativeSelect.Field value={statusFilter} onChange={(event) => onStatusFilterChange(event.target.value)} {...fieldStyles} aria-label="Filter by status">
             <option value="all">All statuses</option>
             <option value="Not Started">Not Started</option>
             <option value="In Progress">In Progress</option>
@@ -166,7 +164,7 @@ export default function ProjectTableSection({
           <NativeSelect.Indicator />
         </NativeSelect.Root>
         <NativeSelect.Root maxW={{ base: '100%', sm: '210px' }}>
-          <NativeSelect.Field value={categoryFilter} onChange={(event) => onCategoryFilterChange(event.target.value)} bg={dialogBg} aria-label="Filter by category">
+          <NativeSelect.Field value={categoryFilter} onChange={(event) => onCategoryFilterChange(event.target.value)} {...fieldStyles} aria-label="Filter by category">
             <option value="all">All categories</option>
             {categories.map((category) => <option key={category} value={category}>{category}</option>)}
           </NativeSelect.Field>
@@ -222,6 +220,6 @@ export default function ProjectTableSection({
           <PaginationControls count={filteredProjectCount} pageSize={projectPageSize} page={projectPage} onPageChange={onProjectPageChange} />
         </Flex>
       )}
-    </Box>
+    </SurfaceCard>
   )
 }

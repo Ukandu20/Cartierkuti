@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Flex, SimpleGrid, Text } from '@chakra-ui/react'
+import { interactiveSurfaceStyles } from '@/components/ui/DesignSystem'
 
 const handleActionKey = (event, action, disabled) => {
   if (disabled || !action || !['Enter', ' '].includes(event.key)) return
@@ -8,7 +9,7 @@ const handleActionKey = (event, action, disabled) => {
 }
 
 const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra }) => {
-  const accent = 'brand.600'
+  const accent = 'accent.default'
   const border = 'border.subtle'
   const idleTxt = 'fg.muted'
 
@@ -19,13 +20,10 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
       minH="172px"
       display="flex"
       flexDirection="column"
-      bg="bg.surface"
-      boxShadow="sm"
-      borderRadius="lg"
-      borderWidth="1px"
-      borderColor={border}
+      {...interactiveSurfaceStyles}
       _hover={{
-        boxShadow: !disabled ? 'md' : undefined,
+        boxShadow: !disabled ? 'md' : 'sm',
+        transform: !disabled ? 'translateY(-2px)' : undefined,
         cursor: !disabled ? 'pointer' : undefined,
       }}
       _focusVisible={{ outline: '2px solid', outlineColor: accent, outlineOffset: '3px' }}
@@ -64,7 +62,7 @@ const StatCard = ({ label, value, desc, icon: IconComp, onClick, disabled, extra
 }
 
 export const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabled }) => {
-  const accent = 'brand.600'
+  const accent = 'accent.default'
   const border = 'border.subtle'
   const idleTxt = 'fg.muted'
 
@@ -75,17 +73,13 @@ export const ActionCard = ({ label, value, desc, icon: IconComp, onClick, disabl
       minH="124px"
       display="flex"
       flexDirection="column"
-      bg="bg.surface"
-      borderWidth="1px"
-      borderColor={border}
-      borderRadius="lg"
-      boxShadow="sm"
+      {...interactiveSurfaceStyles}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled || undefined}
       _hover={{
         borderColor: accent,
-        boxShadow: 'lg',
+        boxShadow: 'md',
         transform: 'translateY(-2px)',
       }}
       transition="all 0.15s ease"
