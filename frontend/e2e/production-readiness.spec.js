@@ -184,9 +184,74 @@ test('home page leads with data science and sports analytics work', async ({ pag
   await expect(page.getByRole('heading', { name: /turning complex data into clear decisions/i })).toBeVisible()
   await expect(page.getByText(/data science & sports analytics/i)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
+  const carousel = page.getByRole('region', { name: 'Selected projects' })
+  const slides = carousel.locator('[aria-roledescription="slide"]')
+  await expect(slides).toHaveCount(2)
+  await expect(slides.nth(0)).toHaveAttribute('aria-hidden', 'false')
+  await expect(carousel.getByRole('button', { name: /view case study/i })).toBeVisible()
+
+  await carousel.hover()
+  await page.waitForTimeout(5_200)
+  await expect(slides.nth(0)).toHaveAttribute('aria-hidden', 'false')
+
+  await page.getByRole('heading', { name: /turning complex data into clear decisions/i }).hover()
+  await page.waitForTimeout(5_200)
+  await expect(slides.nth(1)).toHaveAttribute('aria-hidden', 'false')
   await expect(page.getByRole('link', { name: /view selected work/i })).toHaveAttribute('href', '/portfolio')
   await expect(page.getByRole('link', { name: /start a conversation/i })).toHaveAttribute('href', '/contact')
   await expect(page.locator('main')).toHaveCount(1)
+})
+
+test('shared navigation and footer adapt to the active viewport', async ({ page }) => {
+  await setupApi(page)
+  await page.goto('/about')
+
+  await expect(page.getByRole('link', { name: /Preston Ukandu home/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /skip to content/i })).toHaveAttribute('href', '#main-content')
+  await expect(page.locator('main footer')).toHaveCount(0)
+  await expect(page.getByRole('contentinfo')).toBeVisible()
+  await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Portfolio' })).toHaveAttribute('href', '/portfolio')
+
+  if ((page.viewportSize()?.width || 0) >= 768) {
+    const primaryNavigation = page.getByRole('navigation', { name: /primary navigation/i })
+    await expect(primaryNavigation).toBeVisible()
+    await expect(primaryNavigation.getByRole('link', { name: 'About' })).toHaveAttribute('aria-current', 'page')
+    const portfolioLink = primaryNavigation.getByRole('link', { name: 'Portfolio' })
+    await portfolioLink.click()
+    await expect(page).toHaveURL(/\/portfolio$/)
+    expect(await portfolioLink.evaluate((link) => window.getComputedStyle(link).outlineStyle)).toBe('none')
+  } else {
+    await page.getByRole('button', { name: /open navigation menu/i }).click()
+    const drawer = page.getByRole('dialog')
+    await expect(drawer).toBeVisible()
+    await expect(drawer.getByRole('navigation', { name: /mobile navigation/i })).toBeVisible()
+    await expect(drawer.getByRole('link', { name: 'About' })).toHaveAttribute('aria-current', 'page')
+  }
+})
+
+test('about page headings keep readable spacing when text wraps', async ({ page }) => {
+  await setupApi(page)
+  await page.goto('/about')
+
+  await expect(page.getByRole('heading', { name: /I make analytical work useful, explainable/i })).toBeVisible()
+
+  const headingMetrics = await page.locator('main h1, main h2, main h3').evaluateAll((headings) =>
+    headings.map((heading) => {
+      const styles = window.getComputedStyle(heading)
+      return {
+        text: heading.textContent?.trim(),
+        fontSize: Number.parseFloat(styles.fontSize),
+        lineHeight: Number.parseFloat(styles.lineHeight),
+        whiteSpace: styles.whiteSpace,
+      }
+    })
+  )
+
+  expect(headingMetrics.length).toBeGreaterThan(0)
+  headingMetrics.forEach(({ text, fontSize, lineHeight, whiteSpace }) => {
+    expect(lineHeight, `${text} needs enough line spacing`).toBeGreaterThanOrEqual(fontSize * 1.1)
+    expect(whiteSpace, `${text} must wrap normally`).toBe('normal')
+  })
 })
 
 test('admin login succeeds and invalid login fails', async ({ page }) => {
@@ -307,11 +372,65 @@ test('portfolio category filtering supports AI aliases', async ({ page }) => {
   await expect(page.getByText('Beta Portfolio')).toHaveCount(0)
 })
 
+test('portfolio cards open a structured case-study view', async ({ page }) => {
+  await setupApi(page)
+  await page.goto('/portfolio')
+
+  const firstCard = page.getByRole('article').first()
+  await expect(firstCard.getByText('Analytics dashboard for portfolio data.')).toBeVisible()
+  await expect(firstCard.getByText('React')).toBeVisible()
+  await firstCard.getByRole('button', { name: /view case study/i }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: /the question, method, and delivery/i })).toBeVisible()
+  await expect(dialog.getByText('Project overview')).toBeVisible()
+  await expect(dialog.getByText('Approach and delivery')).toBeVisible()
+})
+
 test('mobile project card actions are visible without hover', async ({ page }) => {
   await setupApi(page)
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/portfolio')
 
-  await expect(page.getByRole('button', { name: 'Demo' }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: 'GitHub' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /view case study/i }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /live project/i }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /source/i }).first()).toBeVisible()
+})
+
+test('shared theme tokens drive contact controls in light and dark modes', async ({ page }) => {
+  await setupApi(page)
+  await page.goto('/contact')
+
+  const pageHeading = page.getByRole('heading', { name: /make the next decision clearer/i })
+  const submitButton = page.getByRole('button', { name: /send message/i })
+  await expect(pageHeading).toBeVisible()
+  await expect(submitButton).toBeVisible()
+
+  const lightTheme = await page.evaluate(() => ({
+    bodyFont: getComputedStyle(document.body).fontFamily,
+    headingFont: getComputedStyle(document.querySelector('h1')).fontFamily,
+    canvas: getComputedStyle(document.body).backgroundColor,
+    button: getComputedStyle(document.querySelector('button[type="submit"]')).backgroundColor,
+    hasHorizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  }))
+  expect(lightTheme.bodyFont).toContain('Source Sans 3')
+  expect(lightTheme.headingFont).toContain('Playfair Display')
+  expect(lightTheme.canvas).toBe('rgb(246, 244, 241)')
+  expect(lightTheme.button).toBe('rgb(15, 118, 110)')
+  expect(lightTheme.hasHorizontalOverflow).toBe(false)
+
+  await page.getByRole('button', { name: /toggle light or dark mode/i }).first().click()
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(20, 20, 20)')
+  await expect.poll(() => submitButton.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe('rgb(94, 234, 212)')
+})
+
+test('not-found state uses the shared responsive surface', async ({ page }) => {
+  await setupApi(page)
+  await page.goto('/missing-page')
+
+  await expect(page.getByRole('heading', { name: /this page has left the dataset/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /return home/i })).toHaveAttribute('href', '/')
+  await expect(page.getByRole('link', { name: /view portfolio/i })).toHaveAttribute('href', '/portfolio')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })

@@ -15,15 +15,17 @@ vi.mock('@/utils/axiosConfig', () => ({
 describe('App routes', () => {
   it('renders the home route', async () => {
     renderWithProviders(<App />)
-    expect(await screen.findByRole('link', { name: /navigate to home/i })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /Preston Ukandu home/i })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: /turning complex data into clear decisions/i })).toBeInTheDocument()
     expect(document.querySelectorAll('main')).toHaveLength(1)
+    expect(document.querySelector('main footer')).toBeNull()
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument()
   })
 
   it('renders the contact route', async () => {
     renderWithProviders(<App />, { route: '/contact' })
     expect(
-      await screen.findByRole('heading', { name: /contact form/i }, { timeout: 10000 })
+      await screen.findByRole('heading', { name: /tell me what you are exploring/i }, { timeout: 10000 })
     ).toBeInTheDocument()
   }, 10000)
 })
