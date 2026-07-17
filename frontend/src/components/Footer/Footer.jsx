@@ -3,97 +3,120 @@
 import React from 'react'
 import {
   Box,
-  Button,
+  Flex,
   Heading,
   HStack,
   Icon,
-  Link,
+  Link as ChakraLink,
   Separator,
+  SimpleGrid,
   Stack,
   Text,
-  useBreakpointValue,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
-import { FaArrowRight, FaBehance, FaGithub, FaLinkedinIn } from 'react-icons/fa'
+import { FaDownload, FaGithub, FaLinkedinIn } from 'react-icons/fa'
+import { useResumeDownload } from '@/hooks/useResumeDownload'
 
-/**
- * Footer - shared collaboration CTA and socials.
- */
+const footerLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/portfolio', label: 'Portfolio' },
+  { href: '/contact', label: 'Contact' },
+]
+
+const FooterLink = ({ children, ...props }) => (
+  <ChakraLink
+    color="fg.muted"
+    fontFamily={'body'}
+    fontWeight="600"
+    width="fit-content"
+    _hover={{ color: 'brand.500', textDecoration: 'none' }}
+    _focusVisible={{ outline: '2px solid', outlineColor: 'brand.500', outlineOffset: '3px' }}
+    {...props}
+  >
+    {children}
+  </ChakraLink>
+)
+
 export default function Footer() {
-  const bg = 'bg.subtle'
-  const txt = 'fg.muted'
-  const accent = 'brand.500'
-  const accentHover = 'brand.600'
-  const btnSize = useBreakpointValue({ base: 'md', md: 'lg' })
+  const resumeDownload = useResumeDownload()
 
   return (
-    <Box as="footer" bg={bg} px={{ base: 6, md: 10 }} py={{ base: 12, md: 16 }}>
-      <Stack
-        gap={{ base: 8, md: 10 }}
-        maxW="5xl"
-        mx="auto"
-        align="center"
-        textAlign="center"
-      >
-        <Stack gap={4} align="center">
-          <Text
-            fontSize="xs"
-            letterSpacing="0.2em"
-            textTransform="uppercase"
-            color={txt}
-          >
-            Collaboration
-          </Text>
-          <Heading size={{ base: '2xl', md: '3xl' }}>
-            Let&apos;s turn data into sharper decisions.
-          </Heading>
-          <Text maxW="2xl" mx="auto" fontSize={{ base: 'md', md: 'lg' }} color={txt}>
-            Open to data analytics, dashboarding, data science, and sports analytics collaborations.
-          </Text>
-          <Button
-            asChild
-            size={btnSize}
-            colorPalette="teal"
-            fontWeight="semibold"
-          >
-            <RouterLink to="/contact">
-              Say Hello
-              <Icon as={FaArrowRight} aria-hidden="true" />
-            </RouterLink>
-          </Button>
-        </Stack>
+    <Box as="footer" bg={'bg.raised'} color={'fg.default'} borderTop="1px solid" borderColor={'border.subtle'} px={{ base: 6, md: 10 }}>
+      <Box maxW="7xl" mx="auto" py={{ base: 12, md: 16 }}>
+        <SimpleGrid columns={{ base: 1, sm: 2, lg: 12 }} gap={{ base: 10, lg: 12 }}>
+          <Stack gridColumn={{ sm: 'span 2', lg: 'span 6' }} gap={4} maxW="560px">
+            <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} textTransform="uppercase" letterSpacing="0.18em">
+              Preston Ukandu
+            </Text>
+            <Heading as="h2" fontFamily={'heading'} fontSize={{ base: '3xl', md: '4xl' }} fontWeight="500" lineHeight="1.2">
+              Data science that makes the next decision clearer.
+            </Heading>
+            <Text color={'fg.muted'} fontSize="lg" lineHeight="1.75">
+              Building analytical models, dashboards, and sports-performance insights with an emphasis on useful evidence and clear communication.
+            </Text>
+          </Stack>
 
-        <Stack gap={5} align="center">
-          <Text fontSize="sm" color={txt}>
-            or email me directly at{' '}
-            <Link href="mailto:okechiukandu@gmail.com" color={accent} fontWeight="medium">
-              okechiukandu@gmail.com
-            </Link>
-          </Text>
+          <Stack gridColumn={{ lg: 'span 2' }} gap={4}>
+            <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.14em">
+              Explore
+            </Text>
+            <Stack as="nav" aria-label="Footer navigation" gap={3}>
+              {footerLinks.map(({ href, label }) => (
+                <FooterLink key={href} asChild>
+                  <RouterLink to={href}>{label}</RouterLink>
+                </FooterLink>
+              ))}
+              <FooterLink href={resumeDownload.url} download={resumeDownload.filename} display="inline-flex" alignItems="center" gap={2}>
+                <Icon as={FaDownload} aria-hidden="true" /> Résumé
+              </FooterLink>
+            </Stack>
+          </Stack>
 
-          <HStack gap={8} justify="center">
-            <Link
-              href="https://linkedin.com/in/okechiukandu"
-              isExternal
-              aria-label="LinkedIn"
-              target="_blank"
-            >
-              <Icon as={FaLinkedinIn} boxSize={6} color={accent} _hover={{ color: accentHover }} />
-            </Link>
-            <Link href="https://github.com/okechiukandu" target="_blank" isExternal aria-label="GitHub">
-              <Icon as={FaGithub} boxSize={6} color={accent} _hover={{ color: accentHover }} />
-            </Link>
-            <Link href="https://behance.net/okechiukandu" target="_blank" isExternal aria-label="Behance">
-              <Icon as={FaBehance} boxSize={6} color={accent} _hover={{ color: accentHover }} />
-            </Link>
-          </HStack>
-        </Stack>
+          <Stack gridColumn={{ lg: 'span 4' }} gap={4}>
+            <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.14em">
+              Connect
+            </Text>
+            <FooterLink href="mailto:okechiukandu@gmail.com">okechiukandu@gmail.com</FooterLink>
+            <Text color={'fg.muted'} maxW="320px">
+              Open to thoughtful data science, dashboarding, and sports analytics collaborations.
+            </Text>
+            <HStack gap={3} pt={1}>
+              {[
+                { label: 'LinkedIn', href: 'https://linkedin.com/in/okechiukandu', icon: FaLinkedinIn },
+                { label: 'GitHub', href: 'https://github.com/okechiukandu', icon: FaGithub },
+              ].map(({ label, href, icon }) => (
+                <ChakraLink
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  display="inline-flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  boxSize="42px"
+                  border="1px solid"
+                  borderColor={'border.subtle'}
+                  borderRadius="full"
+                  color={'fg.muted'}
+                  _hover={{ color: 'accent.default', borderColor: 'accent.default' }}
+                  _focusVisible={{ outline: '2px solid', outlineColor: 'accent.default', outlineOffset: '3px' }}
+                >
+                  <Icon as={icon} boxSize={5} aria-hidden="true" />
+                </ChakraLink>
+              ))}
+            </HStack>
+          </Stack>
+        </SimpleGrid>
 
-        <Separator borderColor="border.muted" />
-        <Text fontSize="xs" color={txt} textAlign="center" w="full">
-          &copy; {new Date().getFullYear()} Okechi Ukandu. All rights reserved.
-        </Text>
-      </Stack>
+        <Separator borderColor={'border.subtle'} my={{ base: 10, md: 12 }} />
+
+        <Flex direction={{ base: 'column', sm: 'row' }} justify="space-between" gap={3} color={'fg.muted'} fontFamily={'mono'} fontSize="xs">
+          <Text>&copy; {new Date().getFullYear()} Preston Ukandu. All rights reserved.</Text>
+          <Text>Data science · Sports analytics · Decision intelligence</Text>
+        </Flex>
+      </Box>
     </Box>
   )
 }
