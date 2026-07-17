@@ -45,7 +45,7 @@ describe('ProjectDetails reviews', () => {
     fireEvent.change(screen.getByPlaceholderText(/what did you think/i), {
       target: { value: '  Excellent project  ' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Submit review' }))
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(

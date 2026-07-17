@@ -1,259 +1,271 @@
-// src/components/ProjectDetails/ProjectDetails.jsx
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from 'react'
 import {
+  AspectRatio,
+  Badge,
   Box,
-  Image,
-  Text,
   Button,
   ButtonGroup,
+  Flex,
+  Heading,
   HStack,
-  IconButton,
-  Stack,
-  Tag,
-  TagLabel,
   Icon,
+  IconButton,
+  Image,
+  Separator,
+  SimpleGrid,
+  Spinner,
+  Stack,
+  Text,
   Textarea,
-} from "@chakra-ui/react";
-import { FaStar, FaHeart, FaRegStar, FaHeartBroken } from "react-icons/fa";
-import { toaster }   from "../../components/ui/toaster";             // ← use your custom toaster
-import apiClient from "@/utils/axiosConfig";
+} from '@chakra-ui/react'
+import {
+  FaExternalLinkAlt,
+  FaGithub,
+  FaHeart,
+  FaHeartBroken,
+  FaRegStar,
+  FaStar,
+} from 'react-icons/fa'
+import { toaster } from '../../components/ui/toaster'
+import apiClient from '@/utils/axiosConfig'
 
+const formatDate = (value) => {
+  if (!value) return 'Not specified'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? 'Not specified'
+    : new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(date)
+}
 
-export default function ProjectDetails({
-  project,
-  openLink,
-  handleFavorite,
-  isFavorite,
-}) {
-  /* state */
-  const [reviews,   setReviews]   = useState([]);
-  const [tempStars, setTempStars] = useState(0);
-  const [comment,   setComment]   = useState("");
-  const [loadingRv, setLoadingRv] = useState(false);
-  const [submittingRv, setSubmittingRv] = useState(false);
-  const [isHoveringFav, setIsHoveringFav] = useState(false);
+const DetailRow = ({ label, children }) => (
+  <Box py={4} borderBottom="1px solid" borderColor={'border.subtle'}>
+    <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.12em">
+      {label}
+    </Text>
+    <Text mt={1} color={'fg.default'} fontWeight="600">{children}</Text>
+  </Box>
+)
 
-  const projectId = project?._id ?? project?.id;
+export default function ProjectDetails({ project, openLink, handleFavorite, isFavorite }) {
+  const [reviews, setReviews] = useState([])
+  const [tempStars, setTempStars] = useState(0)
+  const [comment, setComment] = useState('')
+  const [loadingReviews, setLoadingReviews] = useState(false)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const projectId = project?._id ?? project?.id
+  const liveUrl = project.liveDemoLink || project.externalLink
+  const technologies = useMemo(
+    () => Array.from(new Set([...(project.languages || []), ...(project.tags || [])])),
+    [project.languages, project.tags]
+  )
 
-  /* palette */
-  const palette = useMemo(
-    () => ({
-      accent      : "brand.500",
-      hover       : "brand.600",
-      tagBg       : "bg.subtle",
-      tagColor    : "fg.default",
-      txtMuted    : "fg.muted",
-      txtSecondary: "fg.muted",
-      txtPrimary  : "fg.default",
-      starIdle    : "fg.muted",
-      textareaBg  : "bg.subtle",
-      textareaCol : "fg.default",
-      textareaBd  : "border.subtle",
-    }),
-    []
-  );
-
-  /* fetch reviews */
   useEffect(() => {
-    if (!projectId) return;
-    const load = async () => {
-      setLoadingRv(true);
-      try {
-        const { data } = await apiClient.get(`/api/projects/${projectId}/reviews`);
-        setReviews(Array.isArray(data) ? data : (data?.reviews ?? []));
-      } catch {
-        setReviews([]);
-      } finally {
-        setLoadingRv(false);
-      }
-    };
-    load();
-  }, [projectId]);
+    if (!projectId) return
+    let active = true
 
-  /* submit review */
-  const submitReview = async () => {
-    if (!projectId || submittingRv) return;
-    setSubmittingRv(true);
-    try {
-      const payload = {
-        stars: tempStars,
-        comment: comment.trim(),
-      };
-      const { data } = await apiClient.post(`/api/projects/${projectId}/reviews`, payload);
-      setReviews((current) => data?.review ? [data.review, ...current] : current);
-      setTempStars(0);
-      setComment("");
-      toaster.create({
-        title: "Review submitted",
-        description: "Thanks for the review!",
-        type: "success",
-      });
-    } catch {
-      toaster.create({
-        title: "Review not saved",
-        description: "Could not save review.",
-        type: "error",
-      });
-    } finally {
-      setSubmittingRv(false);
+    const loadReviews = async () => {
+      setLoadingReviews(true)
+      try {
+        const { data } = await apiClient.get(`/api/projects/${projectId}/reviews`)
+        if (active) setReviews(Array.isArray(data) ? data : data?.reviews ?? [])
+      } catch {
+        if (active) setReviews([])
+      } finally {
+        if (active) setLoadingReviews(false)
+      }
     }
-  };
+
+    loadReviews()
+    return () => { active = false }
+  }, [projectId])
+
+  const submitReview = async () => {
+    if (!projectId || submittingReview) return
+    setSubmittingReview(true)
+    try {
+      const payload = { stars: tempStars, comment: comment.trim() }
+      const { data } = await apiClient.post(`/api/projects/${projectId}/reviews`, payload)
+      setReviews((current) => (data?.review ? [data.review, ...current] : current))
+      setTempStars(0)
+      setComment('')
+      toaster.create({ title: 'Review submitted', description: 'Thanks for the review!', type: 'success' })
+    } catch {
+      toaster.create({ title: 'Review not saved', description: 'Could not save review.', type: 'error' })
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
 
   return (
-    <Box p={6}>
-      {/* hero image */}
-      <Image
-        src={project.imageUrl}
-        alt={project.title}
-        w="100%"
-        h="200px"
-        objectFit="cover"
-        rounded="md"
-        mb={4}
-        loading="lazy"
-      />
-
-      {/* description */}
-      <Text mb={3} fontSize="md" color={palette.txtSecondary}>
-        {project.description}
-      </Text>
-
-      {/* links */}
-      <ButtonGroup size="xs" gap={3} mb={4}>
-        <Button
-          colorPalette="teal"
-          onClick={(e) => openLink(projectId, project.externalLink, e)}
-        >
-          Live Demo
-        </Button>
-        <Button
-          variant="outline"
-          colorPalette="teal"
-          onClick={(e) => openLink(projectId, project.githubLink, e)}
-        >
-          GitHub
-        </Button>
-      </ButtonGroup>
-
-      {/* tags (headless) */}
-      <HStack gap={2} mb={4} wrap="wrap">
-        {project.tags.map((tag) => (
-          <Tag.Root
-            key={tag}
-            bg={palette.tagBg}
-            color={palette.tagColor}
-            rounded="full"
-            px={3}
-            py={1}
-          >
-            <TagLabel>{tag}</TagLabel>
-          </Tag.Root>
-        ))}
-      </HStack>
-
-      {/* favorite */}
-      <IconButton
-        variant="ghost"
-        colorPalette="red"
-        aria-label={
-          isFavorite
-            ? isHoveringFav
-              ? "Un-favourite project"
-              : "Favourite project"
-            : "Add to favourites"
-        }
-        onMouseEnter={() => setIsHoveringFav(true)}
-        onMouseLeave={() => setIsHoveringFav(false)}
-        onClick={() => handleFavorite(projectId)}
-      >
-        <Icon
-          as={isFavorite && isHoveringFav ? FaHeartBroken : FaHeart}
-          boxSize={4}
+    <Stack gap={0}>
+      <AspectRatio ratio={16 / 8} bg={'bg.raised'}>
+        <Image
+          src={project.imageUrl || '/placeholder.svg'}
+          alt={`${project.title} project overview`}
+          objectFit="cover"
+          loading="lazy"
         />
-      </IconButton>
+      </AspectRatio>
 
-      {/* reviews */}
-      <Text fontWeight="bold" mb={2} color={palette.txtPrimary}>
-        Reviews
-      </Text>
-      <Stack gap={3}>
-        {loadingRv ? (
-          <Text fontSize="sm" color={palette.txtMuted}>
-            Loading...
-          </Text>
-        ) : reviews.length === 0 ? (
-          <Text fontSize="sm" color={palette.txtMuted}>
-            No reviews yet.
-          </Text>
-        ) : (
-          reviews.map((rv, index) => (
-            <Box key={rv._id ?? `${rv.date}-${index}`}>
-              <HStack gap={1} mb={1}>
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <Icon
-                    key={j}
-                    as={FaStar}
-                    boxSize={4}
-                    color={j < rv.stars ? "yellow.400" : palette.starIdle}
-                  />
-                ))}
-                <Text fontSize="xs" color={palette.txtMuted}>
-                  {new Date(rv.date).toLocaleDateString()}
+      <Box px={{ base: 5, md: 8 }} py={{ base: 7, md: 10 }}>
+        <Stack gap={10}>
+          <SimpleGrid columns={{ base: 1, lg: 12 }} gap={{ base: 8, lg: 14 }} alignItems="start">
+            <Stack gridColumn={{ lg: 'span 8' }} gap={6}>
+              <Box>
+                <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} textTransform="uppercase" letterSpacing="0.14em">
+                  Project overview
                 </Text>
-              </HStack>
-              <Text fontSize="sm" color={palette.txtPrimary}>
-                {rv.comment}
+                <Heading as="h3" fontFamily={'heading'} fontSize={{ base: '2xl', md: '4xl' }} fontWeight="500" lineHeight="1.22" mt={3}>
+                  The question, method, and delivery.
+                </Heading>
+              </Box>
+
+              <Text fontSize={{ base: 'md', md: 'lg' }} color={'fg.muted'} lineHeight="1.8">
+                {project.description || 'This case study documents the decisions, tools, and delivery behind the project.'}
               </Text>
+
+              <ButtonGroup gap={3} flexWrap="wrap">
+                {liveUrl ? (
+                  <Button colorPalette="brand" onClick={(event) => openLink(projectId, liveUrl, event)}>
+                    Live project <FaExternalLinkAlt />
+                  </Button>
+                ) : null}
+                {project.githubLink ? (
+                  <Button variant="outline" onClick={(event) => openLink(projectId, project.githubLink, event)}>
+                    <FaGithub /> Source code
+                  </Button>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  colorPalette="red"
+                  aria-pressed={isFavorite}
+                  onClick={() => handleFavorite(projectId)}
+                >
+                  <Icon as={isFavorite ? FaHeartBroken : FaHeart} aria-hidden="true" />
+                  {isFavorite ? 'Remove favourite' : 'Save project'}
+                </Button>
+              </ButtonGroup>
+
+              <Separator borderColor={'border.subtle'} />
+
+              <Box>
+                <Heading as="h4" fontFamily={'heading'} fontSize="2xl" lineHeight="1.3" mb={3}>
+                  Approach and delivery
+                </Heading>
+                <Text color={'fg.muted'} lineHeight="1.8">
+                  {project.metadata || (
+                    technologies.length
+                      ? `The project was delivered with ${technologies.join(', ')}, connecting the technical implementation to the project objective.`
+                      : 'The implementation was shaped around the project objective and the clearest practical route to delivery.'
+                  )}
+                </Text>
+              </Box>
+
+              {technologies.length ? (
+                <Box>
+                  <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.12em" mb={3}>
+                    Methods and tools
+                  </Text>
+                  <Flex gap={2} wrap="wrap">
+                    {technologies.map((technology) => (
+                      <Badge key={technology} bg={'accent.subtle'} color={'fg.default'} borderRadius="full" px={3} py={1.5} fontWeight="600">
+                        {technology}
+                      </Badge>
+                    ))}
+                  </Flex>
+                </Box>
+              ) : null}
+            </Stack>
+
+            <Box gridColumn={{ lg: 'span 4' }} borderTop="2px solid" borderColor={'accent.default'}>
+              <DetailRow label="Discipline">{project.category || 'Not specified'}</DetailRow>
+              <DetailRow label="Status">{project.status || 'Not specified'}</DetailRow>
+              <DetailRow label="Updated">{formatDate(project.lastUpdatedDate || project.createdDate)}</DetailRow>
+              <DetailRow label="Engagement">
+                {project.views ? `${project.views} view${project.views === 1 ? '' : 's'}` : 'New project'}
+              </DetailRow>
             </Box>
-          ))
-        )}
-      </Stack>
+          </SimpleGrid>
 
-      {/* leave review */}
-      <Box mt={6}>
-        <Text fontWeight="bold" mb={2} color={palette.txtPrimary}>
-          Leave a Review
-        </Text>
+          <Box bg={'bg.raised'} border="1px solid" borderColor={'border.subtle'} p={{ base: 5, md: 7 }}>
+            <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 14 }}>
+              <Box>
+                <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} textTransform="uppercase" letterSpacing="0.14em">
+                  Community feedback
+                </Text>
+                <Heading as="h3" fontFamily={'heading'} fontSize="2xl" lineHeight="1.3" mt={2} mb={5}>
+                  Reviews
+                </Heading>
 
-        <ButtonGroup variant="ghost" gap={1} mb={2}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <IconButton
-              key={i}
-              aria-label={`${i + 1} star`}
-              variant="ghost"
-              onClick={() => setTempStars(i + 1)}
-            >
-              <Icon
-                as={i < tempStars ? FaStar : FaRegStar}
-                boxSize={3.5}
-                color={i < tempStars ? "yellow.400" : "fg.muted"}
-              />
-            </IconButton>
-          ))}
-        </ButtonGroup>
+                {loadingReviews ? (
+                  <HStack color={'fg.muted'} role="status"><Spinner size="sm" /><Text>Loading reviews</Text></HStack>
+                ) : reviews.length === 0 ? (
+                  <Text color={'fg.muted'}>No reviews yet. Be the first to leave thoughtful feedback.</Text>
+                ) : (
+                  <Stack gap={5}>
+                    {reviews.map((review, index) => (
+                      <Box key={review._id ?? `${review.date}-${index}`} pb={5} borderBottom="1px solid" borderColor={'border.subtle'}>
+                        <HStack gap={2} mb={2}>
+                          <HStack gap={0.5} aria-label={`${review.stars} out of 5 stars`}>
+                            {Array.from({ length: 5 }).map((_, starIndex) => (
+                              <Icon key={starIndex} as={FaStar} boxSize={3.5} color={starIndex < review.stars ? 'yellow.500' : 'border.subtle'} aria-hidden="true" />
+                            ))}
+                          </HStack>
+                          <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'}>
+                            {review.date ? new Date(review.date).toLocaleDateString() : ''}
+                          </Text>
+                        </HStack>
+                        <Text color={'fg.default'}>{review.comment}</Text>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
 
-        <Textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="What did you think?"
-          bg={palette.textareaBg}
-          color={palette.textareaCol}
-          borderColor={palette.textareaBd}
-          mb={3}
-          minH="80px"
-        />
-
-        <Button
-          onClick={submitReview}
-          colorPalette="teal"
-          size="sm"
-          disabled={!tempStars || comment.trim() === ""}
-          loading={submittingRv}
-          loadingText="Submitting"
-        >
-          Submit
-        </Button>
+              <Box>
+                <Heading as="h3" fontFamily={'heading'} fontSize="2xl" lineHeight="1.3" mb={2}>
+                  Leave a review
+                </Heading>
+                <Text color={'fg.muted'} mb={4}>Share a rating and a concise note about the work.</Text>
+                <HStack gap={1} mb={3} role="group" aria-label="Choose a project rating">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <IconButton
+                      key={index}
+                      aria-label={`${index + 1} star`}
+                      aria-pressed={tempStars === index + 1}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setTempStars(index + 1)}
+                    >
+                      <Icon as={index < tempStars ? FaStar : FaRegStar} color={index < tempStars ? 'yellow.500' : 'fg.muted'} />
+                    </IconButton>
+                  ))}
+                </HStack>
+                <Textarea
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  placeholder="What did you think?"
+                  bg={'bg.surface'}
+                  color={'fg.default'}
+                  borderColor={'border.subtle'}
+                  minH="110px"
+                  mb={3}
+                  _focusVisible={{ borderColor: 'accent.default', boxShadow: 'none' }}
+                />
+                <Button
+                  onClick={submitReview}
+                  colorPalette="brand"
+                  disabled={!tempStars || comment.trim() === ''}
+                  loading={submittingReview}
+                  loadingText="Submitting"
+                >
+                  Submit review
+                </Button>
+              </Box>
+            </SimpleGrid>
+          </Box>
+        </Stack>
       </Box>
-    </Box>
-  );
+    </Stack>
+  )
 }
