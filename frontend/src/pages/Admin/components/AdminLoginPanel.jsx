@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -29,6 +30,11 @@ export default function AdminLoginPanel({
   setPassword,
   isLoggingIn = false,
   handleLogin,
+  mfaRequired = false,
+  mfaCode = '',
+  setMfaCode,
+  handleMfaLogin,
+  cancelMfaLogin,
 }) {
   const [showPassword, setShowPassword] = useState(false)
   const border = 'border.subtle'
@@ -36,7 +42,8 @@ export default function AdminLoginPanel({
 
   const onSubmit = (event) => {
     event.preventDefault()
-    handleLogin()
+    if (mfaRequired) handleMfaLogin()
+    else handleLogin()
   }
 
   return (
@@ -160,13 +167,13 @@ export default function AdminLoginPanel({
                   <Heading size="xl">Admin Login</Heading>
                 </Fieldset.Legend>
                 <Fieldset.HelperText color={muted}>
-                  Use your admin credentials to continue.
+                  {mfaRequired ? 'Enter a code from your authenticator app or a recovery code.' : 'Use your admin credentials to continue.'}
                 </Fieldset.HelperText>
               </Stack>
 
               <Fieldset.Content>
                 <Stack gap={5}>
-                  <Field.Root required>
+                  {!mfaRequired ? <Field.Root required>
                     <Field.Label>Username</Field.Label>
                     <Box position="relative">
                       <Box
@@ -188,9 +195,9 @@ export default function AdminLoginPanel({
                         h="11"
                       />
                     </Box>
-                  </Field.Root>
+                  </Field.Root> : null}
 
-                  <Field.Root required>
+                  {!mfaRequired ? <Field.Root required>
                     <Field.Label>Password</Field.Label>
                     <Box position="relative">
                       <Box
@@ -228,7 +235,23 @@ export default function AdminLoginPanel({
                         <Icon as={showPassword ? HiEyeOff : HiEye} />
                       </IconButton>
                     </Box>
-                  </Field.Root>
+                  </Field.Root> : null}
+
+                  {mfaRequired ? (
+                    <Field.Root required>
+                      <Field.Label>Verification code</Field.Label>
+                      <Input
+                        name="mfaCode"
+                        value={mfaCode}
+                        onChange={(event) => setMfaCode(event.target.value)}
+                        autoComplete="one-time-code"
+                        inputMode="numeric"
+                        placeholder="123456 or recovery code"
+                        h="11"
+                        autoFocus
+                      />
+                    </Field.Root>
+                  ) : null}
                 </Stack>
               </Fieldset.Content>
 
@@ -240,8 +263,16 @@ export default function AdminLoginPanel({
                 colorPalette="brand"
                 loading={isLoggingIn}
               >
-                Login
+                {mfaRequired ? 'Verify and sign in' : 'Login'}
               </Button>
+              {mfaRequired ? (
+                <Button type="button" mt={3} w="full" variant="ghost" onClick={cancelMfaLogin}>Back to credentials</Button>
+              ) : (
+                <Flex mt={4} justify="center" gap={4} wrap="wrap" fontSize="sm">
+                  <Button asChild variant="plain" size="sm"><Link to="/admin/recover?mode=password">Forgot password?</Link></Button>
+                  <Button asChild variant="plain" size="sm"><Link to="/admin/recover?mode=username">Forgot username?</Link></Button>
+                </Flex>
+              )}
             </Fieldset.Root>
           </Box>
         </Box>

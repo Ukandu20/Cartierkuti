@@ -157,7 +157,12 @@ export default function AboutEditor() {
     password,
     setPassword,
     isLoggingIn,
+    mfaRequired,
+    mfaCode,
+    setMfaCode,
     handleLogin,
+    handleMfaLogin,
+    cancelMfaLogin,
   } = useAdminAuth({ onAuthenticated: loadAbout })
 
   const serializedForm = useMemo(() => JSON.stringify(resumeForm), [resumeForm])
@@ -306,7 +311,7 @@ export default function AboutEditor() {
   }
 
   if (!isAuth) {
-    return <AdminLoginPanel username={username} setUsername={setUsername} password={password} setPassword={setPassword} isLoggingIn={isLoggingIn} handleLogin={handleLogin} />
+    return <AdminLoginPanel username={username} setUsername={setUsername} password={password} setPassword={setPassword} isLoggingIn={isLoggingIn} handleLogin={handleLogin} mfaRequired={mfaRequired} mfaCode={mfaCode} setMfaCode={setMfaCode} handleMfaLogin={handleMfaLogin} cancelMfaLogin={cancelMfaLogin} />
   }
 
   const errorCountFor = (section) => Object.keys(errors).filter((key) => sectionForError(key) === section).length

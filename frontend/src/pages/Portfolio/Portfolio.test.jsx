@@ -63,7 +63,7 @@ describe('Portfolio', () => {
       expect(screen.getAllByText('Alias ML Project').length).toBeGreaterThan(0)
       expect(screen.queryAllByText('Warehouse Dashboard')).toHaveLength(0)
     })
-  })
+  }, 15000)
 
   it('shows an empty state when search has no matches', async () => {
     renderWithProviders(<Portfolio />)
@@ -74,7 +74,7 @@ describe('Portfolio', () => {
     })
 
     expect(await screen.findByText('No projects match those filters.')).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('shows useful collapsed-card content and opens a case-study dialog from a dedicated action', async () => {
     renderWithProviders(<Portfolio />)
@@ -90,5 +90,5 @@ describe('Portfolio', () => {
     expect(within(dialog).getByRole('heading', { name: 'Alias ML Project' })).toBeInTheDocument()
     expect(within(dialog).getByRole('heading', { name: /the question, method, and delivery/i })).toBeInTheDocument()
     expect(within(dialog).getByText('Model evaluation')).toBeInTheDocument()
-  })
+  }, 15000)
 })

@@ -1,6 +1,6 @@
 import path from 'path'
 import dotenv from 'dotenv'
-import { cleanEnv, port, str } from 'envalid'
+import { cleanEnv, email, port, str } from 'envalid'
 
 const envFile =
   process.env.NODE_ENV === 'production'
@@ -22,7 +22,11 @@ export function validateEnvironment() {
       CLIENT_URL: str(),
       ADMIN_USERNAME: str(),
       ADMIN_PASSWORD_HASH: str(),
+      ADMIN_RECOVERY_EMAIL: email(),
       JWT_SECRET: str(),
+      MFA_ENCRYPTION_KEY: str(),
+      RESEND_API_KEY: str(),
+      SECURITY_EMAIL_FROM: str(),
       CLOUDINARY_CLOUD_NAME: str(),
       CLOUDINARY_API_KEY: str(),
       CLOUDINARY_API_SECRET: str(),

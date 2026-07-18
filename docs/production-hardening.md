@@ -4,7 +4,9 @@ This document records the first production-readiness pass and why each change wa
 
 ## Admin Authentication
 
-The old admin flow used a shared secret stored in browser `sessionStorage` and sent as `x-admin-secret`. That made every protected write depend on one reusable raw secret. The backend now exposes `POST /api/admin/login`, verifies `ADMIN_USERNAME` plus a bcrypt `ADMIN_PASSWORD_HASH`, and returns a signed JWT. Protected endpoints verify `Authorization: Bearer <token>` with `JWT_SECRET` and `ADMIN_TOKEN_TTL`.
+The old admin flow used a shared secret stored in browser `sessionStorage` and sent as `x-admin-secret`. That made every protected write depend on one reusable raw secret. Bootstrap credentials now create a singleton database-backed admin identity. Login supports TOTP and one-time recovery codes, protected endpoints verify versioned JWTs, and credential changes immediately invalidate every prior token.
+
+Password recovery uses random 256-bit tokens whose SHA-256 hashes are stored in MongoDB with a 15-minute TTL. Tokens are single-use and delivered to a fixed recovery email through the backend. Username recovery returns the same public response for known and unknown addresses and sends reminders only out of band. Security events record authentication and recovery activity without passwords, reset tokens, MFA secrets, or recovery codes.
 
 This improves production posture because the browser stores a short-lived token instead of the raw admin secret, the server can reject expired or malformed tokens, and deployment secrets can be rotated independently.
 
@@ -55,8 +57,12 @@ Required production secrets are:
 - `MONGODB_URI`
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD_HASH`
+- `ADMIN_RECOVERY_EMAIL`
 - `JWT_SECRET`
 - `ADMIN_TOKEN_TTL`
+- `MFA_ENCRYPTION_KEY`
+- `RESEND_API_KEY`
+- `SECURITY_EMAIL_FROM`
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`

@@ -47,6 +47,64 @@ export const authLoginSchema = z
   })
   .strict()
 
+const accountEmail = z.string().trim().email().max(254)
+const adminUsername = z.string().trim().min(3).max(64).regex(
+  /^[A-Za-z0-9._-]+$/,
+  'Use only letters, numbers, periods, underscores, and hyphens'
+)
+const newPassword = z.string().min(12).max(128)
+
+export const passwordRecoveryRequestSchema = z.object({ email: accountEmail }).strict()
+
+export const usernameRecoveryRequestSchema = z.object({ email: accountEmail }).strict()
+
+export const passwordResetSchema = z
+  .object({
+    token: z.string().min(32).max(256),
+    password: newPassword,
+    confirmPassword: z.string().min(1).max(128),
+  })
+  .strict()
+  .refine(({ password, confirmPassword }) => password === confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match',
+  })
+
+export const credentialChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(256),
+    newUsername: adminUsername.optional(),
+    newPassword: newPassword.optional(),
+    confirmPassword: z.string().max(128).optional(),
+    mfaCode: z.string().trim().min(6).max(32).optional(),
+  })
+  .strict()
+  .refine(({ newUsername, newPassword }) => Boolean(newUsername || newPassword), {
+    message: 'Provide a new username or password',
+  })
+  .refine(({ newPassword, confirmPassword }) => !newPassword || newPassword === confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match',
+  })
+
+export const mfaSetupSchema = z.object({ currentPassword: z.string().min(1).max(256) }).strict()
+
+export const mfaCodeSchema = z.object({ code: z.string().trim().min(6).max(32) }).strict()
+
+export const mfaLoginSchema = z
+  .object({
+    challengeToken: z.string().min(32).max(4096),
+    code: z.string().trim().min(6).max(32),
+  })
+  .strict()
+
+export const mfaDisableSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(256),
+    code: z.string().trim().min(6).max(32),
+  })
+  .strict()
+
 export const projectWriteSchema = z
   .object({
     category: text(80),

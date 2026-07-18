@@ -98,7 +98,12 @@ export default function AdminDashboard() {
     password,
     setPassword,
     isLoggingIn,
+    mfaRequired,
+    mfaCode,
+    setMfaCode,
     handleLogin,
+    handleMfaLogin,
+    cancelMfaLogin,
     handleUnauthorized,
     logout,
   } = useAdminAuth({ onAuthenticated: handleAuthenticated })
@@ -405,6 +410,11 @@ export default function AdminDashboard() {
           setPassword={setPassword}
           isLoggingIn={isLoggingIn}
           handleLogin={handleLogin}
+          mfaRequired={mfaRequired}
+          mfaCode={mfaCode}
+          setMfaCode={setMfaCode}
+          handleMfaLogin={handleMfaLogin}
+          cancelMfaLogin={cancelMfaLogin}
         />
     )
   }
@@ -417,6 +427,7 @@ export default function AdminDashboard() {
           onOpenCreate={onOpenCreate}
           onOpenAnalytics={() => setAnalyticsOpen(true)}
           onOpenAbout={() => navigate('/admin/about')}
+          onOpenSecurity={() => navigate('/admin/security')}
           onLogout={logout}
         />
 

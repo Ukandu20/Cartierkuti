@@ -62,6 +62,15 @@ const setupApi = async (page) => {
     projects: baseProjects(),
     projectWrites: [],
     loginAttempts: [],
+    requireMfaAtLogin: false,
+    recoveryRequests: [],
+    credentialChanges: [],
+    account: {
+      username: 'admin',
+      recoveryEmail: 'owner@example.com',
+      passwordChangedAt: '2026-07-01T12:00:00.000Z',
+      mfaEnabled: false,
+    },
     resume: {
       ...emptyResume,
       headline: 'Data science and analytics practitioner',
@@ -86,6 +95,9 @@ const setupApi = async (page) => {
       const body = request.postDataJSON()
       state.loginAttempts.push(body)
       if (body.username === 'admin' && body.password === 'valid-password') {
+        if (state.requireMfaAtLogin) {
+          return route.fulfill({ status: 200, json: { mfaRequired: true, challengeToken: 'e2e-mfa-challenge' } })
+        }
         return route.fulfill({ status: 200, json: { token: 'e2e-token' } })
       }
       return route.fulfill({ status: 401, json: { message: 'Invalid credentials' } })
@@ -93,6 +105,55 @@ const setupApi = async (page) => {
 
     if (path === '/api/projects' && method === 'GET') {
       return route.fulfill({ status: 200, json: state.projects })
+    }
+
+    if (path === '/api/admin/login/mfa' && method === 'POST') {
+      const body = request.postDataJSON()
+      if (body.challengeToken === 'e2e-mfa-challenge' && body.code === '123456') {
+        return route.fulfill({ status: 200, json: { token: 'e2e-token' } })
+      }
+      return route.fulfill({ status: 401, json: { error: 'Invalid verification code' } })
+    }
+
+    if (path === '/api/admin/account' && method === 'GET') {
+      return route.fulfill({ status: 200, json: state.account })
+    }
+
+    if (path === '/api/admin/account/mfa/setup' && method === 'POST') {
+      return route.fulfill({ status: 200, json: { secret: 'JBSWY3DPEHPK3PXP', otpauthUri: 'otpauth://totp/test' } })
+    }
+
+    if (path === '/api/admin/account/mfa/confirm' && method === 'POST') {
+      state.account.mfaEnabled = true
+      return route.fulfill({
+        status: 200,
+        json: {
+          message: 'Two-factor authentication enabled. Save these recovery codes and sign in again.',
+          recoveryCodes: ['AAAA-BBBB-CCCC-DDDD', 'EEEE-FFFF-GGGG-HHHH'],
+          reauthenticationRequired: true,
+        },
+      })
+    }
+
+    if (path === '/api/admin/account/credentials' && method === 'POST') {
+      const payload = request.postDataJSON()
+      state.credentialChanges.push(payload)
+      if (payload.newUsername) state.account.username = payload.newUsername
+      return route.fulfill({ status: 200, json: { message: 'Credentials updated. Sign in again.', reauthenticationRequired: true } })
+    }
+
+    if (path === '/api/admin/recovery/password/request' && method === 'POST') {
+      state.recoveryRequests.push({ type: 'password', ...request.postDataJSON() })
+      return route.fulfill({ status: 202, json: { message: 'If the account details match, recovery instructions will be sent.' } })
+    }
+
+    if (path === '/api/admin/recovery/username' && method === 'POST') {
+      state.recoveryRequests.push({ type: 'username', ...request.postDataJSON() })
+      return route.fulfill({ status: 202, json: { message: 'If the account details match, recovery instructions will be sent.' } })
+    }
+
+    if (path === '/api/admin/recovery/password/reset' && method === 'POST') {
+      return route.fulfill({ status: 200, json: { message: 'Password reset complete. Sign in with your new password.' } })
     }
 
     if (path === '/api/projects/upload' && method === 'POST') {
@@ -292,11 +353,79 @@ test('admin login succeeds and invalid login fails', async ({ page }) => {
   await page.getByLabel('Username').fill('admin')
   await page.locator('input[name="password"]').fill('bad-password')
   await page.getByRole('button', { name: 'Login' }).click()
-  await expect(page.getByText('Wrong password').first()).toBeVisible()
+  await expect(page.getByText('Unable to sign in').first()).toBeVisible()
 
   await page.locator('input[name="password"]').fill('valid-password')
   await page.getByRole('button', { name: 'Login' }).click()
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
+})
+
+test('admin recovery requests remain non-enumerating and reset links accept a new password', async ({ page }) => {
+  const api = await setupApi(page)
+  await page.goto('/admin')
+
+  await page.getByRole('link', { name: 'Forgot password?' }).click()
+  await page.getByLabel('Recovery email').fill('owner@example.com')
+  await page.getByRole('button', { name: 'Email password reset link' }).click()
+  await expect(page.getByRole('status')).toContainText('If the account details match')
+
+  await page.getByRole('button', { name: 'Username' }).click()
+  await page.getByRole('button', { name: 'Email username reminder' }).click()
+  expect(api.recoveryRequests).toEqual([
+    { type: 'password', email: 'owner@example.com' },
+    { type: 'username', email: 'owner@example.com' },
+  ])
+
+  await page.goto('/admin/reset-password?token=abcdefghijklmnopqrstuvwxyz1234567890')
+  await page.getByLabel('New password', { exact: true }).fill('replacement-password')
+  await page.getByLabel('Confirm new password').fill('replacement-password')
+  await page.getByRole('button', { name: 'Reset password' }).click()
+  await expect(page.getByRole('status')).toContainText('Password reset complete')
+})
+
+test('admin login completes the second-factor challenge before creating a session', async ({ page }) => {
+  const api = await setupApi(page)
+  api.requireMfaAtLogin = true
+  await page.goto('/admin')
+  await page.getByLabel('Username').fill('admin')
+  await page.locator('input[name="password"]').fill('valid-password')
+  await page.getByRole('button', { name: 'Login' }).click()
+
+  await expect(page.getByLabel('Verification code')).toBeVisible()
+  await expect(page.getByLabel('Username')).toHaveCount(0)
+  await page.getByLabel('Verification code').fill('123456')
+  await page.getByRole('button', { name: 'Verify and sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
+})
+
+test('admin security enrolls MFA and protects credential changes with step-up verification', async ({ page }) => {
+  const api = await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Security' }).click()
+
+  await page.getByLabel('Current password').fill('valid-password')
+  await page.getByRole('button', { name: 'Start authenticator setup' }).click()
+  await expect(page.getByText('JBSWY3DPEHPK3PXP')).toBeVisible()
+  await page.getByLabel('6-digit verification code').fill('123456')
+  await page.getByRole('button', { name: 'Verify and enable 2FA' }).click()
+  await expect(page.getByRole('heading', { name: 'Save your recovery codes now' })).toBeVisible()
+  await expect(page.getByText('AAAA-BBBB-CCCC-DDDD')).toBeVisible()
+
+  await page.getByRole('button', { name: /saved them/i }).click()
+  await login(page)
+  api.account.mfaEnabled = true
+  await page.getByRole('button', { name: 'Security' }).click()
+  const credentialCard = page.getByRole('heading', { name: 'Change login credentials' }).locator('..')
+  await credentialCard.getByLabel('New username').fill('portfolio-owner')
+  await credentialCard.getByLabel('Current password').fill('valid-password')
+  await credentialCard.getByLabel('Authenticator or recovery code').fill('123456')
+  await credentialCard.getByRole('button', { name: 'Update credentials and sign out' }).click()
+  expect(api.credentialChanges).toEqual([{
+    currentPassword: 'valid-password',
+    mfaCode: '123456',
+    newUsername: 'portfolio-owner',
+  }])
+  await expect(page).toHaveURL(/\/admin$/)
 })
 
 test('project form rejects invalid data before submit', async ({ page }) => {

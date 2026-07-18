@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken'
+import AdminUser from '../models/admin-user.model.js'
 
 const JWT_ISSUER = 'cartierkuti-api'
 const JWT_AUDIENCE = 'cartierkuti-admin'
 
-export function requireAdmin(req, res, next) {
+export async function requireAdmin(req, res, next) {
   const authHeader = req.header('Authorization') || ''
   const token = authHeader.replace(/^Bearer\s+/i, '')
 
@@ -21,16 +22,24 @@ export function requireAdmin(req, res, next) {
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
     })
-    if (payload?.role !== 'admin') {
+    if (payload?.role !== 'admin' || !payload.sub || !Number.isInteger(payload.credentialVersion)) {
       return res.status(403).json({ message: 'Forbidden' })
     }
+
+    const admin = await AdminUser.findById(payload.sub)
+    if (!admin || admin.credentialVersion !== payload.credentialVersion) {
+      return res.status(401).json({ message: 'Invalid or expired token' })
+    }
+
     req.user = {
-      id: payload.sub,
-      username: payload.username,
+      id: admin.id,
+      username: admin.username,
       role: payload.role,
+      credentialVersion: admin.credentialVersion,
     }
     return next()
-  } catch {
+  } catch (error) {
+    if (error?.name !== 'JsonWebTokenError' && error?.name !== 'TokenExpiredError') return next(error)
     return res.status(401).json({ message: 'Invalid or expired token' })
   }
 }

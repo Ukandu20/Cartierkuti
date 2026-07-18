@@ -15,6 +15,7 @@ apiClient.interceptors.request.use(
     const needsAuth = ['post', 'put', 'patch', 'delete'].includes(method);
     const protectedRead =
       config.url?.includes('/api/admin/verify') ||
+      config.url?.includes('/api/admin/account') ||
       config.url?.includes('/api/projects/archived') ||
       config.url?.includes('/api/activities');
     const isFormData =
