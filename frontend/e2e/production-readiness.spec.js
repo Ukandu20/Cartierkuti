@@ -418,6 +418,31 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   expect(api.resumeFileUploads).toBe(1)
 })
 
+test('About editor keeps the sticky section navigation beside the form while scrolling', async ({ page }) => {
+  await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+
+  const navigation = page.getByRole('navigation', { name: 'About editor sections' })
+  const content = page.locator('[data-about-editor-content]')
+  await expect(navigation).toBeVisible()
+  await expect(content).toBeVisible()
+
+  if ((page.viewportSize()?.width || 0) >= 992) {
+    const expectSideBySide = async () => {
+      const navigationBox = await navigation.boundingBox()
+      const contentBox = await content.boundingBox()
+      expect(navigationBox).not.toBeNull()
+      expect(contentBox).not.toBeNull()
+      expect(navigationBox.x + navigationBox.width).toBeLessThan(contentBox.x)
+    }
+
+    await expectSideBySide()
+    await page.evaluate(() => window.scrollTo(0, 500))
+    await expectSideBySide()
+  }
+})
+
 test('About editor protects unsaved changes with the themed discard flow', async ({ page }) => {
   await setupApi(page)
   await login(page)

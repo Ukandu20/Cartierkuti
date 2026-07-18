@@ -8,6 +8,7 @@ import {
   Field,
   FileUpload,
   Flex,
+  Grid,
   Heading,
   IconButton,
   Input,
@@ -368,7 +369,7 @@ export default function AboutEditor() {
         <SurfaceCard mb={5} p={4} boxShadow="none"><Flex justify="space-between" align="center" gap={4}><Text>{undoEntry.section.replace(/^./, (letter) => letter.toUpperCase())} entry removed.</Text><Button size="sm" variant="outline" onClick={undoRemove}>Undo</Button></Flex></SurfaceCard>
       ) : null}
 
-      <SimpleGrid columns={{ base: 1, lg: '260px minmax(0, 1fr)' }} gap={6} alignItems="start">
+      <Grid templateColumns={{ base: 'minmax(0, 1fr)', lg: '260px minmax(0, 1fr)' }} gap={6} alignItems="start">
         <SurfaceCard as="nav" aria-label="About editor sections" p={3} position={{ lg: 'sticky' }} top={{ lg: 4 }} boxShadow="none">
           <Stack gap={1}>
             {sections.map((section) => {
@@ -383,7 +384,7 @@ export default function AboutEditor() {
           </Stack>
         </SurfaceCard>
 
-        <SurfaceCard p={0} minH="620px">
+        <SurfaceCard data-about-editor-content p={0} minH="620px" minW={0}>
           <Box ref={editorContentRef} p={{ base: 4, md: 7 }}>
           {resumeLoading ? <Text color="fg.muted">Loading About content…</Text> : null}
 
@@ -501,7 +502,7 @@ export default function AboutEditor() {
           ) : null}
           </Box>
         </SurfaceCard>
-      </SimpleGrid>
+      </Grid>
 
       <SurfaceCard mt={6} p={4} boxShadow="xl">
         <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={4}>
