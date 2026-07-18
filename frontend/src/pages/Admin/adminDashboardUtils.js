@@ -54,25 +54,29 @@ export const normalizeResumeForm = (data = {}) => {
     headline: data.headline || '',
     summary: data.summary || '',
     highlightsText: safeArray(data.highlights).join('\n'),
-    metrics: safeArray(data.metrics).map((metric) => ({
+    metrics: safeArray(data.metrics).map((metric, index) => ({
+      _editorId: metric?._editorId || `metric-${index}`,
       label: metric?.label || '',
       value: metric?.value || '',
       note: metric?.note || '',
     })),
-    experience: safeArray(data.experience).map((item) => ({
+    experience: safeArray(data.experience).map((item, index) => ({
+      _editorId: item?._editorId || `experience-${index}`,
       role: item?.role || '',
       company: item?.company || '',
       location: item?.location || '',
       period: item?.period || '',
       bulletsText: safeArray(item?.bullets).join('\n'),
     })),
-    education: safeArray(data.education).map((item) => ({
+    education: safeArray(data.education).map((item, index) => ({
+      _editorId: item?._editorId || `education-${index}`,
       school: item?.school || '',
       degree: item?.degree || '',
       period: item?.period || '',
       bulletsText: safeArray(item?.bullets).join('\n'),
     })),
-    certifications: safeArray(data.certifications).map((item) => ({
+    certifications: safeArray(data.certifications).map((item, index) => ({
+      _editorId: item?._editorId || `certification-${index}`,
       name: item?.name || '',
       issuer: item?.issuer || '',
       year: item?.year || '',
@@ -127,6 +131,33 @@ export const buildResumePayload = (form) => ({
     tools: splitLines(form.skillsToolsText),
   },
 })
+
+export const validateResumeForm = (form) => {
+  const errors = {}
+  if (!form.headline?.trim()) errors.headline = 'Add the About page headline.'
+  if (!form.summary?.trim()) errors.summary = 'Add the About page summary.'
+  if (form.headline?.length > 120) errors.headline = 'Keep the headline to 120 characters or fewer.'
+  if (form.summary?.length > 800) errors.summary = 'Keep the summary to 800 characters or fewer.'
+
+  ;(form.metrics || []).forEach((item, index) => {
+    if ((item.label || item.value || item.note) && !item.label?.trim()) errors[`metrics.${index}.label`] = `Metric ${index + 1} needs a label.`
+    if ((item.label || item.value || item.note) && !item.value?.trim()) errors[`metrics.${index}.value`] = `Metric ${index + 1} needs a value.`
+  })
+  ;(form.experience || []).forEach((item, index) => {
+    if ((item.role || item.company || item.period || item.bulletsText) && !item.role?.trim()) errors[`experience.${index}.role`] = `Experience ${index + 1} needs a role.`
+    if ((item.role || item.company || item.period || item.bulletsText) && !item.company?.trim()) errors[`experience.${index}.company`] = `Experience ${index + 1} needs a company.`
+  })
+  ;(form.education || []).forEach((item, index) => {
+    if ((item.school || item.degree || item.period || item.bulletsText) && !item.school?.trim()) errors[`education.${index}.school`] = `Education ${index + 1} needs a school.`
+    if ((item.school || item.degree || item.period || item.bulletsText) && !item.degree?.trim()) errors[`education.${index}.degree`] = `Education ${index + 1} needs a degree.`
+  })
+  ;(form.certifications || []).forEach((item, index) => {
+    if ((item.name || item.issuer || item.year) && !item.name?.trim()) errors[`certifications.${index}.name`] = `Certification ${index + 1} needs a name.`
+    if ((item.name || item.issuer || item.year) && !item.issuer?.trim()) errors[`certifications.${index}.issuer`] = `Certification ${index + 1} needs an issuer.`
+  })
+
+  return errors
+}
 
 export const projectToFormData = (project = {}) => ({
   ...emptyProjectForm,
@@ -187,6 +218,9 @@ export const validateProjectForm = (formData) => {
     if (!formData[key]?.trim()) errors[key] = message
   })
 
+  if (formData.title?.length > 90) errors.title = 'Project title must be 90 characters or fewer.'
+  if (formData.description?.length > 500) errors.description = 'Project description must be 500 characters or fewer.'
+
   if (!formData.externalLink?.trim()) {
     errors.externalLink = 'External link is required.'
   } else if (!isValidUrl(formData.externalLink.trim())) {
@@ -213,6 +247,8 @@ export const validateProjectForm = (formData) => {
 
   if (!splitCommaList(formData.tags).length) {
     errors.tags = 'Add at least one tag.'
+  } else if (splitCommaList(formData.tags).length > 12) {
+    errors.tags = 'Use no more than 12 tags.'
   }
 
   return errors

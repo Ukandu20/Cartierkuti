@@ -62,6 +62,14 @@ const setupApi = async (page) => {
     projects: baseProjects(),
     projectWrites: [],
     loginAttempts: [],
+    resume: {
+      ...emptyResume,
+      headline: 'Data science and analytics practitioner',
+      summary: 'I turn complex evidence into useful decisions.',
+    },
+    resumeWrites: [],
+    resumeFileUploads: 0,
+    imageUploads: 0,
   }
 
   await page.route('**/api/**', async (route) => {
@@ -85,6 +93,11 @@ const setupApi = async (page) => {
 
     if (path === '/api/projects' && method === 'GET') {
       return route.fulfill({ status: 200, json: state.projects })
+    }
+
+    if (path === '/api/projects/upload' && method === 'POST') {
+      state.imageUploads += 1
+      return route.fulfill({ status: 200, json: { imageUrl: 'https://example.com/uploads/project-preview.png' } })
     }
 
     if (path === '/api/projects' && method === 'POST') {
@@ -138,8 +151,26 @@ const setupApi = async (page) => {
       return route.fulfill({ status: 201, json: { ok: true } })
     }
 
-    if (path === '/api/resume') {
-      return route.fulfill({ status: 200, json: emptyResume })
+    if (path === '/api/resume' && method === 'GET') {
+      return route.fulfill({ status: 200, json: state.resume })
+    }
+
+    if (path === '/api/resume' && method === 'PUT') {
+      const payload = request.postDataJSON()
+      state.resume = { ...state.resume, ...payload }
+      state.resumeWrites.push(payload)
+      return route.fulfill({ status: 200, json: state.resume })
+    }
+
+    if (path === '/api/resume/file' && method === 'POST') {
+      state.resumeFileUploads += 1
+      const uploaded = {
+        resumeFileUrl: '/uploads/resume.pdf',
+        resumeFileName: 'Preston-Resume.pdf',
+        resumeFileUpdatedAt: '2026-07-17T12:00:00.000Z',
+      }
+      state.resume = { ...state.resume, ...uploaded }
+      return route.fulfill({ status: 200, json: uploaded })
     }
 
     return route.fulfill({ status: 404, json: { message: `Unhandled ${method} ${path}` } })
@@ -159,12 +190,12 @@ const login = async (page) => {
 const fillProjectForm = async (page, title) => {
   await page.getByLabel('Project Title').fill(title)
   await page.getByLabel('Project Description').fill(`${title} description`)
-  await page.getByLabel('External Link').fill('https://example.com/project')
-  await page.getByLabel('GitHub Link').fill('https://github.com/example/project')
-  await page.getByLabel('Live Link').fill('https://demo.example.com/project')
+  await page.getByLabel('Primary project URL').fill('https://example.com/project')
+  await page.getByLabel('GitHub repository').fill('https://github.com/example/project')
+  await page.getByLabel('Live demo URL').fill('https://demo.example.com/project')
   await page.locator('select[name="category"]').selectOption('Web Development')
-  await page.getByLabel('Languages').fill('React, Node.js')
-  await page.getByLabel('Tags').fill('Frontend, Portfolio')
+  await page.getByLabel('Languages and tools').fill('React, Node.js')
+  await page.getByLabel('Search tags').fill('Frontend, Portfolio')
   await page.locator('select[name="status"]').selectOption('Completed')
 }
 
@@ -273,10 +304,10 @@ test('project form rejects invalid data before submit', async ({ page }) => {
   await login(page)
 
   await clickNewProject(page)
-  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('button', { name: 'Create project' }).click()
 
-  await expect(page.getByText('Project title is required.')).toBeVisible()
-  await expect(page.getByText('External link is required.')).toBeVisible()
+  await expect(page.getByText('Project title is required.').last()).toBeVisible()
+  await expect(page.getByText('External link is required.').last()).toBeVisible()
   expect(api.projectWrites).toHaveLength(0)
 })
 
@@ -286,16 +317,16 @@ test('project editor warns before discarding unsaved changes', async ({ page }) 
   await clickNewProject(page)
   await page.getByLabel('Project Title').fill('Unsaved project')
 
-  page.once('dialog', async (dialog) => {
-    expect(dialog.message()).toContain('Discard your unsaved project changes?')
-    await dialog.dismiss()
-  })
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByRole('heading', { name: 'New Project' })).toBeVisible()
+  const discardDialog = page.getByRole('alertdialog')
+  await expect(discardDialog.getByRole('heading', { name: 'Discard project changes?' })).toBeVisible()
+  await discardDialog.getByRole('button', { name: 'Keep editing' }).click()
+  await expect(discardDialog).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /create a project/i })).toBeVisible()
 
-  page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByRole('heading', { name: 'New Project' })).toHaveCount(0)
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Discard changes' }).click()
+  await expect(page.getByRole('heading', { name: /create a project/i })).toHaveCount(0)
 })
 
 test('create project sends the backend write contract payload', async ({ page }) => {
@@ -304,9 +335,22 @@ test('create project sends the backend write contract payload', async ({ page })
 
   await clickNewProject(page)
   await fillProjectForm(page, 'Gamma Launch')
-  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByLabel('Select preview image').setInputFiles({
+    name: 'project-preview.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('project preview'),
+  })
+  await expect(page.getByAltText('Current project preview')).toHaveAttribute('src', 'https://example.com/uploads/project-preview.png')
+  const cardPreview = page.locator('details').filter({ hasText: 'Preview public card' })
+  await cardPreview.locator('summary').click()
+  await expect(cardPreview.getByRole('heading', { name: 'Gamma Launch' })).toBeVisible()
+  await page.getByRole('button', { name: 'Create project' }).click()
 
-  await expect(page.getByText('Gamma Launch').filter({ visible: true })).toBeVisible()
+  const savedProjectTitles = page.locator('[aria-labelledby="admin-projects-heading"]').getByText('Gamma Launch', { exact: true })
+  await expect.poll(() => savedProjectTitles.evaluateAll((items) => items.some((item) => {
+    const style = window.getComputedStyle(item)
+    return style.display !== 'none' && style.visibility !== 'hidden' && item.getBoundingClientRect().width > 0
+  }))).toBe(true)
   expect(api.projectWrites[0]).toEqual({
     title: 'Gamma Launch',
     description: 'Gamma Launch description',
@@ -318,10 +362,11 @@ test('create project sends the backend write contract payload', async ({ page })
     externalLink: 'https://example.com/project',
     githubLink: 'https://github.com/example/project',
     liveDemoLink: 'https://demo.example.com/project',
-    imageUrl: '',
+    imageUrl: 'https://example.com/uploads/project-preview.png',
     featured: false,
   })
   expect(api.projectWrites[0]).not.toHaveProperty('date')
+  expect(api.imageUploads).toBe(1)
 })
 
 test('edit project updates displayed data', async ({ page }) => {
@@ -331,10 +376,63 @@ test('edit project updates displayed data', async ({ page }) => {
   await page.getByRole('button', { name: 'Actions for Alpha Analytics' }).click()
   await page.getByRole('menuitem', { name: 'Edit' }).click()
   await page.getByLabel('Project Title').fill('Alpha Analytics Updated')
-  await page.getByRole('button', { name: 'Update' }).click()
+  await page.getByRole('button', { name: 'Save changes' }).click()
 
   await expect(page.getByText('Alpha Analytics Updated', { exact: true }).filter({ visible: true })).toBeVisible()
   expect(api.projectWrites.at(-1).title).toBe('Alpha Analytics Updated')
+})
+
+test('About editor structures content, stages the PDF, previews, and saves as one workflow', async ({ page }) => {
+  const api = await setupApi(page)
+  await login(page)
+
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await expect(page).toHaveURL(/\/admin\/about$/)
+  await expect(page.getByRole('heading', { name: 'Edit About page' })).toBeVisible()
+
+  await page.getByLabel('Headline').fill('Decision intelligence and sports analytics practitioner')
+  await page.getByRole('button', { name: /Metrics.*Profile proof points/i }).click()
+  await page.getByRole('button', { name: 'Add metric' }).click()
+  await page.getByLabel('Metric label').fill('Focus')
+  await page.getByLabel('Displayed value').fill('Sports analytics')
+  await page.getByLabel('Supporting note').fill('Evidence for performance decisions')
+
+  await page.getByRole('button', { name: /Résumé PDF.*Downloadable document/i }).click()
+  await page.getByLabel('Choose résumé PDF').setInputFiles({
+    name: 'Preston-Resume.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4 test'),
+  })
+  expect(api.resumeFileUploads).toBe(0)
+  await expect(page.getByText(/staged locally/i)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Preview public page' }).click()
+  const preview = page.getByRole('dialog', { name: 'About page preview' })
+  await expect(preview.getByText('Decision intelligence and sports analytics practitioner')).toBeVisible()
+  await preview.getByRole('button', { name: 'Mobile' }).click()
+  await preview.getByRole('button', { name: /close/i }).click()
+
+  await page.getByRole('button', { name: 'Save About page' }).first().click()
+  await expect(page.getByText(/saved at/i)).toBeVisible()
+  expect(api.resumeWrites.at(-1).headline).toBe('Decision intelligence and sports analytics practitioner')
+  expect(api.resumeFileUploads).toBe(1)
+})
+
+test('About editor protects unsaved changes with the themed discard flow', async ({ page }) => {
+  await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await page.getByLabel('Headline').fill('Unsaved About headline')
+
+  await page.getByRole('button', { name: 'Back to dashboard' }).click()
+  const discardDialog = page.getByRole('alertdialog')
+  await expect(discardDialog.getByRole('heading', { name: 'Discard About page changes?' })).toBeVisible()
+  await discardDialog.getByRole('button', { name: 'Keep editing' }).click()
+  await expect(page).toHaveURL(/\/admin\/about$/)
+
+  await page.getByRole('button', { name: 'Back to dashboard' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Discard changes' }).click()
+  await expect(page).toHaveURL(/\/admin$/)
 })
 
 test('delete project removes it from the admin list', async ({ page }) => {

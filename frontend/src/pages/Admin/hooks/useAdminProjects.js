@@ -56,7 +56,7 @@ export function useAdminProjects() {
     try {
       await apiClient.put('/api/resume', buildResumePayload(resumeForm))
       invalidateResumeCache()
-      toaster.create({ title: 'Resume updated', type: 'success', closable: true })
+      toaster.create({ title: 'About page updated', type: 'success', closable: true })
       return true
     } catch (error) {
       reportAdminError(error)
@@ -71,14 +71,17 @@ export function useAdminProjects() {
       body.append('resume', file)
       const { data } = await apiClient.post('/api/resume/file', body)
       invalidateResumeCache()
-      setResumeForm((current) => ({
-        ...current,
+      const uploadedFile = {
         resumeFileUrl: data.resumeFileUrl || '',
         resumeFileName: data.resumeFileName || '',
         resumeFileUpdatedAt: data.resumeFileUpdatedAt || '',
+      }
+      setResumeForm((current) => ({
+        ...current,
+        ...uploadedFile,
       }))
       toaster.create({ title: 'Resume PDF uploaded', type: 'success', closable: true })
-      return true
+      return uploadedFile
     } catch (error) {
       reportAdminError(error)
       toaster.create({

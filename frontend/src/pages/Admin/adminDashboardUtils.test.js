@@ -9,6 +9,7 @@ import {
   projectWriteContractFields,
   projectToFormData,
   validateProjectForm,
+  validateResumeForm,
 } from './adminDashboardUtils'
 
 describe('adminDashboardUtils', () => {
@@ -105,5 +106,23 @@ describe('adminDashboardUtils', () => {
       languages: 'JavaScript, Node.js',
       tags: 'api, portfolio',
     })).toEqual({})
+  })
+
+  it('validates required About content and incomplete repeatable entries', () => {
+    expect(validateResumeForm({
+      headline: '',
+      summary: '',
+      metrics: [{ label: 'Focus', value: '', note: '' }],
+      experience: [{ role: 'Analyst', company: '', period: '', bulletsText: '' }],
+      education: [{ school: 'Windsor', degree: '', period: '', bulletsText: '' }],
+      certifications: [{ name: 'Certificate', issuer: '', year: '2026' }],
+    })).toMatchObject({
+      headline: 'Add the About page headline.',
+      summary: 'Add the About page summary.',
+      'metrics.0.value': 'Metric 1 needs a value.',
+      'experience.0.company': 'Experience 1 needs a company.',
+      'education.0.degree': 'Education 1 needs a degree.',
+      'certifications.0.issuer': 'Certification 1 needs an issuer.',
+    })
   })
 })

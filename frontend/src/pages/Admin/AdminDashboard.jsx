@@ -9,6 +9,7 @@ import {
   HiPlay,
   HiStar,
 } from 'react-icons/hi'
+import { useNavigate } from 'react-router-dom'
 import { toaster } from '@/components/ui/toaster'
 import { ErrorState, LoadingState } from '@/components/ui/StateFeedback'
 import apiClient from '@/utils/axiosConfig'
@@ -33,7 +34,7 @@ import ActivityLogSection from './components/ActivityLogSection'
 import ProjectAnalyticsDialog from './components/ProjectAnalyticsDialog'
 import ProjectEditorDialog from './components/ProjectEditorDialog'
 import ProjectTableSection from './components/ProjectTableSection'
-import ResumeEditorDialog from './components/ResumeEditorDialog'
+import DiscardChangesDialog from './components/DiscardChangesDialog'
 import { useAdminActivities } from './hooks/useAdminActivities'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminProjects } from './hooks/useAdminProjects'
@@ -72,6 +73,7 @@ const getApiFieldErrors = (error) => {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate()
   const accent = 'accent.default'
   const bg = 'bg.subtle'
   const dialogBg = 'bg.surface'
@@ -83,18 +85,11 @@ export default function AdminDashboard() {
     loading,
     error,
     fetchProjects,
-    resumeForm,
-    setResumeForm,
-    resumeLoading,
-    fetchResume,
-    saveResume: persistResume,
-    uploadResumeFile,
   } = useAdminProjects()
 
   const handleAuthenticated = useCallback(() => {
     fetchProjects()
-    fetchResume()
-  }, [fetchProjects, fetchResume])
+  }, [fetchProjects])
 
   const {
     isAuth,
@@ -137,60 +132,20 @@ export default function AdminDashboard() {
   const [isDeleteOpen, setDeleteOpen] = useState(false)
   const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
   const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
-  const [isResumeOpen, setResumeOpen] = useState(false)
+  const [isProjectDiscardOpen, setProjectDiscardOpen] = useState(false)
   const [toDelete, setToDelete] = useState(null)
   const [isSavingProject, setIsSavingProject] = useState(false)
   const [isDeletingProject, setIsDeletingProject] = useState(false)
-  const [isSavingResume, setIsSavingResume] = useState(false)
-  const [isUploadingResumeFile, setIsUploadingResumeFile] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [projectAnalyticsTarget, setProjectAnalyticsTarget] = useState(null)
   const [projectAnalyticsActivities, setProjectAnalyticsActivities] = useState([])
   const [projectAnalyticsLoading, setProjectAnalyticsLoading] = useState(false)
   const cancelRef = useRef()
   const listRef = useRef(null)
-  const resumeBaselineRef = useRef('')
+  const imageUploadInFlightRef = useRef(false)
+  const lastUploadedImageKeyRef = useRef(null)
 
   const pageCount = Math.ceil(totalActivities / ACTIVITY_PAGE_SIZE)
-
-  const saveResume = async () => {
-    if (isSavingResume) return
-    setIsSavingResume(true)
-    try {
-      const saved = await persistResume()
-      if (saved) {
-        setResumeOpen(false)
-      }
-    } finally {
-      setIsSavingResume(false)
-    }
-  }
-
-  const openAboutEditor = async () => {
-    const loadedResume = await fetchResume()
-    resumeBaselineRef.current = JSON.stringify(loadedResume)
-    setResumeOpen(true)
-  }
-
-  const requestCloseResume = () => {
-    const hasChanges = resumeBaselineRef.current
-      && JSON.stringify(resumeForm) !== resumeBaselineRef.current
-    if (hasChanges && !window.confirm('Discard your unsaved About page changes?')) return
-    setResumeOpen(false)
-  }
-
-  const onUploadResumeFile = async (event) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file || isUploadingResumeFile) return
-
-    setIsUploadingResumeFile(true)
-    try {
-      await uploadResumeFile(file)
-    } finally {
-      setIsUploadingResumeFile(false)
-    }
-  }
 
   useEffect(() => {
     setProjectPage(1)
@@ -228,6 +183,7 @@ export default function AdminDashboard() {
   }
 
   const onOpenCreate = () => {
+    lastUploadedImageKeyRef.current = null
     setEditMode(false)
     setCurrent(null)
     setFormData(emptyProjectForm)
@@ -236,6 +192,7 @@ export default function AdminDashboard() {
   }
 
   const onOpenEdit = (project) => {
+    lastUploadedImageKeyRef.current = null
     setEditMode(true)
     setCurrent(project)
     setFormData(projectToFormData(project))
@@ -246,8 +203,24 @@ export default function AdminDashboard() {
   const requestCloseProjectEditor = () => {
     const initialForm = editMode ? projectToFormData(current) : emptyProjectForm
     const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialForm)
-    if (hasChanges && !window.confirm('Discard your unsaved project changes?')) return
+    if (hasChanges) {
+      setCreateOpen(false)
+      setProjectDiscardOpen(true)
+      return
+    }
     setCreateOpen(false)
+  }
+
+  const discardProjectChanges = () => {
+    lastUploadedImageKeyRef.current = null
+    setProjectDiscardOpen(false)
+    setCreateOpen(false)
+    setProjectErrors(emptyProjectErrors)
+  }
+
+  const keepEditingProject = () => {
+    setProjectDiscardOpen(false)
+    setCreateOpen(true)
   }
 
   const handleProjectFilter = (filter) => {
@@ -278,74 +251,6 @@ export default function AdminDashboard() {
       setProjectAnalyticsLoading(false)
     }
   }
-
-  const addMetric = () =>
-    setResumeForm((current) => ({
-      ...current,
-      metrics: [...current.metrics, { label: '', value: '', note: '' }],
-    }))
-  const updateMetric = (index, key, value) =>
-    setResumeForm((current) => {
-      const next = [...current.metrics]
-      next[index] = { ...next[index], [key]: value }
-      return { ...current, metrics: next }
-    })
-  const removeMetric = (index) =>
-    setResumeForm((current) => ({
-      ...current,
-      metrics: current.metrics.filter((_, itemIndex) => itemIndex !== index),
-    }))
-
-  const addExperience = () =>
-    setResumeForm((current) => ({
-      ...current,
-      experience: [...current.experience, { role: '', company: '', location: '', period: '', bulletsText: '' }],
-    }))
-  const updateExperience = (index, key, value) =>
-    setResumeForm((current) => {
-      const next = [...current.experience]
-      next[index] = { ...next[index], [key]: value }
-      return { ...current, experience: next }
-    })
-  const removeExperience = (index) =>
-    setResumeForm((current) => ({
-      ...current,
-      experience: current.experience.filter((_, itemIndex) => itemIndex !== index),
-    }))
-
-  const addEducation = () =>
-    setResumeForm((current) => ({
-      ...current,
-      education: [...current.education, { school: '', degree: '', period: '', bulletsText: '' }],
-    }))
-  const updateEducation = (index, key, value) =>
-    setResumeForm((current) => {
-      const next = [...current.education]
-      next[index] = { ...next[index], [key]: value }
-      return { ...current, education: next }
-    })
-  const removeEducation = (index) =>
-    setResumeForm((current) => ({
-      ...current,
-      education: current.education.filter((_, itemIndex) => itemIndex !== index),
-    }))
-
-  const addCertification = () =>
-    setResumeForm((current) => ({
-      ...current,
-      certifications: [...current.certifications, { name: '', issuer: '', year: '' }],
-    }))
-  const updateCertification = (index, key, value) =>
-    setResumeForm((current) => {
-      const next = [...current.certifications]
-      next[index] = { ...next[index], [key]: value }
-      return { ...current, certifications: next }
-    })
-  const removeCertification = (index) =>
-    setResumeForm((current) => ({
-      ...current,
-      certifications: current.certifications.filter((_, itemIndex) => itemIndex !== index),
-    }))
 
   const onSubmit = async () => {
     if (isSavingProject) return
@@ -420,7 +325,21 @@ export default function AdminDashboard() {
 
   const onUploadImage = async (event) => {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
+    const fileKey = `${file.name}:${file.size}:${file.lastModified}`
+    if (imageUploadInFlightRef.current || lastUploadedImageKeyRef.current === fileKey) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      toaster.create({
+        title: 'Choose a valid preview image',
+        description: 'Use a PNG, JPG, or WebP image no larger than 2 MB.',
+        type: 'error',
+        closable: true,
+      })
+      return
+    }
+    imageUploadInFlightRef.current = true
+    lastUploadedImageKeyRef.current = fileKey
     setIsUploading(true)
     try {
       const body = new FormData()
@@ -429,6 +348,7 @@ export default function AdminDashboard() {
       if (!data?.imageUrl) throw new Error('Missing imageUrl from upload')
       setFormData((current) => ({ ...current, imageUrl: data.imageUrl }))
     } catch (error) {
+      lastUploadedImageKeyRef.current = null
       reportAdminError(error)
       if (handleUnauthorized(error)) return
       toaster.create({
@@ -438,6 +358,7 @@ export default function AdminDashboard() {
         closable: true,
       })
     } finally {
+      imageUploadInFlightRef.current = false
       setIsUploading(false)
     }
   }
@@ -495,7 +416,7 @@ export default function AdminDashboard() {
           dialogBorder={dialogBorder}
           onOpenCreate={onOpenCreate}
           onOpenAnalytics={() => setAnalyticsOpen(true)}
-          onOpenAbout={openAboutEditor}
+          onOpenAbout={() => navigate('/admin/about')}
           onLogout={logout}
         />
 
@@ -561,38 +482,6 @@ export default function AdminDashboard() {
           dialogBorder={dialogBorder}
         />
 
-        <ResumeEditorDialog
-          open={isResumeOpen}
-          onOpenChange={(details) => {
-            if (details.open) setResumeOpen(true)
-            else requestCloseResume()
-          }}
-          resumeForm={resumeForm}
-          setResumeForm={setResumeForm}
-          resumeLoading={resumeLoading}
-          saveResume={saveResume}
-          isSavingResume={isSavingResume}
-          onUploadResumeFile={onUploadResumeFile}
-          isUploadingResumeFile={isUploadingResumeFile}
-          onCancel={requestCloseResume}
-          addMetric={addMetric}
-          updateMetric={updateMetric}
-          removeMetric={removeMetric}
-          addExperience={addExperience}
-          updateExperience={updateExperience}
-          removeExperience={removeExperience}
-          addEducation={addEducation}
-          updateEducation={updateEducation}
-          removeEducation={removeEducation}
-          addCertification={addCertification}
-          updateCertification={updateCertification}
-          removeCertification={removeCertification}
-          bg={bg}
-          dialogBg={dialogBg}
-          dialogBorder={dialogBorder}
-          closeHoverBg={closeHoverBg}
-        />
-
         <ActivityAnalyticsDialog
           open={isAnalyticsOpen}
           onOpenChange={(details) => setAnalyticsOpen(details.open)}
@@ -625,7 +514,7 @@ export default function AdminDashboard() {
           open={isCreateOpen}
           onOpenChange={(details) => {
             if (details.open) setCreateOpen(true)
-            else requestCloseProjectEditor()
+            else if (!isProjectDiscardOpen) requestCloseProjectEditor()
           }}
           editMode={editMode}
           formData={formData}
@@ -637,9 +526,19 @@ export default function AdminDashboard() {
           isSaving={isSavingProject}
           errors={projectErrors}
           setFormData={setFormData}
-          dialogBg={dialogBg}
-          dialogBorder={dialogBorder}
-          closeHoverBg={closeHoverBg}
+          onRemoveImage={() => {
+            lastUploadedImageKeyRef.current = null
+            setFormData((current) => ({ ...current, imageUrl: '' }))
+          }}
+        />
+
+        <DiscardChangesDialog
+          open={isProjectDiscardOpen}
+          onOpenChange={(details) => setProjectDiscardOpen(details.open)}
+          onKeepEditing={keepEditingProject}
+          title="Discard project changes?"
+          description="Your unsaved project fields and image selection will be lost."
+          onDiscard={discardProjectChanges}
         />
 
         <DeleteProjectDialog

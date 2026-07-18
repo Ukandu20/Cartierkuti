@@ -8,6 +8,7 @@ const Home = React.lazy(() => import('./pages/Home/Home'));
 const Portfolio = React.lazy(() => import('./pages/Portfolio/Portfolio'));
 const About = React.lazy(() => import('./pages/About/About'));
 const AdminDashboard = React.lazy(() => import('./pages/Admin/AdminDashboard'));
+const AboutEditor = React.lazy(() => import('./pages/Admin/AboutEditor'));
 const Contact = React.lazy(() => import('./pages/Contact/Contact'));
 
 const AppRoutes = () => {
@@ -18,6 +19,7 @@ const AppRoutes = () => {
         <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/about" element={<About />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/about" element={<AboutEditor />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Error404 />} />
       </Routes>
