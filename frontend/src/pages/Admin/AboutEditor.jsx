@@ -310,6 +310,7 @@ export default function AboutEditor() {
   }
 
   const errorCountFor = (section) => Object.keys(errors).filter((key) => sectionForError(key) === section).length
+  const summaryOverLimit = resumeForm.summary.length > 800
 
   const renderCollection = (section, titleFor, subtitleFor, fields) => (
     <Stack gap={4}>
@@ -391,13 +392,24 @@ export default function AboutEditor() {
           {!resumeLoading && activeSection === 'introduction' ? (
             <EditorSection eyebrow="01" title="Introduction" description="Set the first message visitors see and the analytical strengths you want to reinforce.">
               <Field.Root required invalid={Boolean(errors.headline)}>
-                <Flex justify="space-between"><Field.Label>Headline</Field.Label><Text fontSize="xs" color="fg.muted">{resumeForm.headline.length}/120</Text></Flex>
+                <Flex w="full" align="baseline" gap={4}>
+                  <Field.Label>Headline</Field.Label>
+                  <Text ml="auto" flexShrink={0} fontSize="xs" color="fg.muted">{resumeForm.headline.length}/120</Text>
+                </Flex>
                 <Input value={resumeForm.headline} maxLength={120} onChange={(event) => updateField('headline', event.target.value)} placeholder="Data science and analytics practitioner" />
                 <Field.ErrorText>{errors.headline}</Field.ErrorText>
               </Field.Root>
-              <Field.Root required invalid={Boolean(errors.summary)}>
-                <Flex justify="space-between"><Field.Label>Summary</Field.Label><Text fontSize="xs" color="fg.muted">{resumeForm.summary.length}/800</Text></Flex>
+              <Field.Root required invalid={Boolean(errors.summary) || summaryOverLimit}>
+                <Flex w="full" align="baseline" gap={4}>
+                  <Field.Label>Summary</Field.Label>
+                  <Text ml="auto" flexShrink={0} fontSize="xs" fontWeight={summaryOverLimit ? '700' : 'normal'} color={summaryOverLimit ? 'fg.error' : 'fg.muted'}>{resumeForm.summary.length}/800</Text>
+                </Flex>
                 <Textarea value={resumeForm.summary} maxLength={800} minH="180px" onChange={(event) => updateField('summary', event.target.value)} placeholder="Explain what you do, who it helps, and how you approach the work." />
+                <Field.HelperText color={summaryOverLimit ? 'fg.error' : undefined}>
+                  {summaryOverLimit
+                    ? `Shorten the summary by ${resumeForm.summary.length - 800} characters before saving.`
+                    : 'Use a blank line between paragraphs. Aim for 2–3 concise paragraphs covering your focus, approach, and impact.'}
+                </Field.HelperText>
                 <Field.ErrorText>{errors.summary}</Field.ErrorText>
               </Field.Root>
               <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={resumeForm.highlightsText} delimiter="\n" commitOnComma={false} onChange={(value) => updateField('highlightsText', value)} placeholder="Add a capability or outcome…" /><Field.HelperText>Press Enter to add each highlight.</Field.HelperText></Field.Root>

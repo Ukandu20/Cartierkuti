@@ -1,5 +1,6 @@
 import React from 'react'
 import { Badge, Box, Flex, Heading, HStack, SimpleGrid, Stack, Text } from '@chakra-ui/react'
+import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
 import { splitLines } from '../adminDashboardUtils'
 
 const previewData = (form) => ({
@@ -21,7 +22,15 @@ export default function AboutPreview({ form }) {
           I make analytical work useful, explainable, and ready for decisions.
         </Heading>
         <Text fontSize="xl" fontWeight="700" mt={6}>{form.headline || 'Your headline will appear here.'}</Text>
-        <Text color="fg.muted" fontSize="lg" lineHeight="1.75" mt={2}>{form.summary || 'Your About summary will appear here.'}</Text>
+        <FormattedParagraphs
+          value={form.summary}
+          fallback="Your About summary will appear here."
+          role="group"
+          aria-label="About summary preview"
+          gap={4}
+          mt={2}
+          textProps={{ color: 'fg.muted', fontSize: 'lg', lineHeight: '1.75' }}
+        />
       </Box>
 
       {form.metrics.length ? (

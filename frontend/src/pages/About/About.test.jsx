@@ -83,4 +83,18 @@ describe('About', () => {
     expect(screen.getByText('Python')).toBeInTheDocument()
     expect(screen.getByText('Power BI')).toBeInTheDocument()
   })
+
+  it('preserves paragraph breaks in the About summary', async () => {
+    getPublicResume.mockResolvedValueOnce({
+      ...resume,
+      summary: 'I frame complex analytical questions clearly.\n\nI turn the evidence into useful decisions.',
+    })
+
+    renderWithProviders(<About />)
+
+    const summary = await screen.findByRole('group', { name: 'About summary' })
+    expect(summary.querySelectorAll('p')).toHaveLength(2)
+    expect(summary).toHaveTextContent('I frame complex analytical questions clearly.')
+    expect(summary).toHaveTextContent('I turn the evidence into useful decisions.')
+  })
 })

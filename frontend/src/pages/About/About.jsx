@@ -21,6 +21,7 @@ import { FaArrowRight, FaCheck, FaDownload } from 'react-icons/fa'
 import { getPublicResume } from '@/services/resumeService'
 import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { PageCta } from '@/components/ui/DesignSystem'
+import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
 import { absoluteUrl } from '@/utils/siteConfig'
 
 const DEFAULT_RESUME = {
@@ -237,9 +238,13 @@ export default function About() {
               <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="600" color={'fg.default'}>
                 {resume.headline}
               </Text>
-              <Text fontSize={{ base: 'md', md: 'lg' }} color={'fg.muted'} lineHeight="1.8">
-                {resume.summary}
-              </Text>
+              <FormattedParagraphs
+                value={resume.summary}
+                role="group"
+                aria-label="About summary"
+                gap={4}
+                textProps={{ fontSize: { base: 'md', md: 'lg' }, color: 'fg.muted', lineHeight: '1.8' }}
+              />
             </Stack>
             <ButtonGroup gap={3} flexWrap="wrap">
               <Button asChild size="lg" colorPalette="brand" fontWeight="700">

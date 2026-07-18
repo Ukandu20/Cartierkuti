@@ -391,6 +391,7 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   await expect(page.getByRole('heading', { name: 'Edit About page' })).toBeVisible()
 
   await page.getByLabel('Headline').fill('Decision intelligence and sports analytics practitioner')
+  await page.getByLabel('Summary').fill('I frame complex analytical questions clearly.\n\nI turn the evidence into useful decisions.')
   await page.getByRole('button', { name: /Metrics.*Profile proof points/i }).click()
   await page.getByRole('button', { name: 'Add metric' }).click()
   await page.getByLabel('Metric label').fill('Focus')
@@ -409,12 +410,14 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   await page.getByRole('button', { name: 'Preview public page' }).click()
   const preview = page.getByRole('dialog', { name: 'About page preview' })
   await expect(preview.getByText('Decision intelligence and sports analytics practitioner')).toBeVisible()
+  await expect(preview.getByRole('group', { name: 'About summary preview' }).locator('p')).toHaveCount(2)
   await preview.getByRole('button', { name: 'Mobile' }).click()
   await preview.getByRole('button', { name: /close/i }).click()
 
   await page.getByRole('button', { name: 'Save About page' }).first().click()
   await expect(page.getByText(/saved at/i)).toBeVisible()
   expect(api.resumeWrites.at(-1).headline).toBe('Decision intelligence and sports analytics practitioner')
+  expect(api.resumeWrites.at(-1).summary).toBe('I frame complex analytical questions clearly.\n\nI turn the evidence into useful decisions.')
   expect(api.resumeFileUploads).toBe(1)
 })
 
@@ -427,6 +430,20 @@ test('About editor keeps the sticky section navigation beside the form while scr
   const content = page.locator('[data-about-editor-content]')
   await expect(navigation).toBeVisible()
   await expect(content).toBeVisible()
+
+  const summaryLabel = page.getByText('Summary', { exact: true })
+  const summaryCount = page.getByText(/^\d+\/800$/)
+  const summaryField = page.getByLabel('Summary')
+  const [labelBox, countBox, fieldBox] = await Promise.all([
+    summaryLabel.boundingBox(),
+    summaryCount.boundingBox(),
+    summaryField.boundingBox(),
+  ])
+  expect(labelBox).not.toBeNull()
+  expect(countBox).not.toBeNull()
+  expect(fieldBox).not.toBeNull()
+  expect(countBox.x).toBeGreaterThan(labelBox.x + labelBox.width)
+  expect(Math.abs((countBox.x + countBox.width) - (fieldBox.x + fieldBox.width))).toBeLessThanOrEqual(2)
 
   if ((page.viewportSize()?.width || 0) >= 992) {
     const expectSideBySide = async () => {
