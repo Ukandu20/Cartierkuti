@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, fireEvent, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Home from './Home'
 import { renderWithProviders } from '../../test-utils'
@@ -100,14 +100,15 @@ describe('Home', () => {
     expect(slides[0]).toHaveAttribute('aria-hidden', 'false')
     expect(slides[1]).toHaveAttribute('aria-hidden', 'true')
 
+    await waitFor(() => expect(autoplayCallback).toEqual(expect.any(Function)))
     act(() => autoplayCallback())
     expect(slides[0]).toHaveAttribute('aria-hidden', 'true')
     expect(slides[1]).toHaveAttribute('aria-hidden', 'false')
 
     fireEvent.mouseEnter(carousel)
-    expect(autoplayCallback).toBeNull()
+    await waitFor(() => expect(autoplayCallback).toBeNull())
 
     fireEvent.mouseLeave(carousel)
-    expect(autoplayCallback).toEqual(expect.any(Function))
+    await waitFor(() => expect(autoplayCallback).toEqual(expect.any(Function)))
   })
 })

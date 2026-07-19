@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import Navbar from './Navbar'
 import { renderWithProviders } from '../../test-utils'
+import { apiUrl } from '@/utils/apiConfig'
 
 vi.mock('@/utils/axiosConfig', () => ({
   default: {
@@ -33,7 +34,7 @@ describe('Navbar', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'Résumé', hidden: true })).toHaveAttribute(
         'href',
-        '/api/resume/file/download',
+        apiUrl('/api/resume/file/download'),
       )
       expect(screen.getByRole('link', { name: 'Résumé', hidden: true })).toHaveAttribute(
         'download',

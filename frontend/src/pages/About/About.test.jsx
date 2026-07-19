@@ -4,6 +4,7 @@ import { screen } from '@testing-library/react'
 import About from './About'
 import { renderWithProviders } from '../../test-utils'
 import { getPublicResume } from '@/services/resumeService'
+import { apiUrl } from '@/utils/apiConfig'
 
 vi.mock('@/services/resumeService', () => ({
   getPublicResume: vi.fn(),
@@ -68,7 +69,7 @@ describe('About', () => {
     expect(await screen.findByText('Performance')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Download résumé/i })).toHaveAttribute(
       'href',
-      '/api/resume/file/download'
+      apiUrl('/api/resume/file/download')
     )
   })
 
