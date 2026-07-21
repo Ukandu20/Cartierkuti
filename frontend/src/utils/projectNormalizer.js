@@ -5,6 +5,7 @@ export function normalizeProject(project = {}) {
   const createdDate = project.createdDate || project.createdAt || project.date || null
   const lastUpdatedDate = project.lastUpdatedDate || project.updatedAt || createdDate
   const categoryValue = normalizeCategoryValue(project.category)
+  const tools = project.tools?.length ? project.tools : project.languages || []
 
   return {
     ...project,
@@ -12,6 +13,9 @@ export function normalizeProject(project = {}) {
     id,
     category: getCategoryLabel(categoryValue),
     categoryValue,
+    methods: Array.isArray(project.methods) ? project.methods : [],
+    tools,
+    tags: Array.isArray(project.tags) ? project.tags : [],
     featured: Boolean(project.featured ?? project.isFeatured),
     createdDate,
     lastUpdatedDate,

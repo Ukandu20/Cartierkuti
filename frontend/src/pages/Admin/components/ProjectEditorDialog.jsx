@@ -22,6 +22,7 @@ import {
 } from '@chakra-ui/react'
 import { HiOutlinePhoto, HiOutlineTrash } from 'react-icons/hi2'
 import { categoryOptions } from '@/utils/projectCategories'
+import { PROJECT_METHOD_SUGGESTIONS, PROJECT_TAG_SUGGESTIONS, PROJECT_TOOL_SUGGESTIONS } from '@/utils/projectClassification'
 import { SurfaceCard } from '@/components/ui/DesignSystem'
 import TagInput from './TagInput'
 
@@ -43,7 +44,7 @@ function FormSection({ eyebrow, title, description, children }) {
 }
 
 function ProjectCardPreview({ formData }) {
-  const technologies = splitItems(formData.languages).slice(0, 4)
+  const topics = splitItems(formData.tags).slice(0, 4)
   return (
     <SurfaceCard overflow="hidden" boxShadow="none">
       <AspectRatio ratio={16 / 9} bg="bg.raised">
@@ -58,9 +59,9 @@ function ProjectCardPreview({ formData }) {
         </Flex>
         <Heading as="h4" fontSize="xl" lineHeight="1.25">{formData.title || 'Untitled project'}</Heading>
         <Text color="fg.muted" fontSize="sm" lineClamp={3}>{formData.description || 'Your project description will appear here.'}</Text>
-        {technologies.length ? (
+        {topics.length ? (
           <Flex gap={2} wrap="wrap">
-            {technologies.map((item) => <Badge key={item} variant="subtle" colorPalette="brand">{item}</Badge>)}
+            {topics.map((item) => <Badge key={item} variant="subtle" colorPalette="brand">{item}</Badge>)}
           </Flex>
         ) : null}
       </Stack>
@@ -87,6 +88,8 @@ export default function ProjectEditorDialog({
   const errorKeys = Object.keys(errors)
   const errorSignature = errorKeys.join('|')
   const tags = useMemo(() => splitItems(formData.tags), [formData.tags])
+  const methods = useMemo(() => splitItems(formData.methods), [formData.methods])
+  const tools = useMemo(() => splitItems(formData.tools), [formData.tools])
 
   useEffect(() => {
     if (!errorKeys.length) return
@@ -160,7 +163,7 @@ export default function ProjectEditorDialog({
                     </Field.Root>
                   </FormSection>
 
-                  <FormSection eyebrow="02" title="Classification" description="Help visitors understand the domain and tools at a glance.">
+                  <FormSection eyebrow="02" title="Classification" description="Separate the project's discipline, subject, approach, and implementation.">
                     <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
                       <Field.Root required invalid={Boolean(errors.category)}>
                         <Field.Label htmlFor="category-select">Category</Field.Label>
@@ -185,17 +188,23 @@ export default function ProjectEditorDialog({
                         <Field.ErrorText>{errors.status}</Field.ErrorText>
                       </Field.Root>
                     </SimpleGrid>
-                    <Field.Root required invalid={Boolean(errors.languages)}>
-                      <Field.Label>Languages and tools</Field.Label>
-                      <TagInput name="languages" value={formData.languages} onChange={(value) => setTextField('languages', value)} placeholder="Add Python, SQL, Power BI…" ariaLabel="Languages and tools" />
-                      <Field.HelperText>Press Enter or comma to add each technology.</Field.HelperText>
-                      <Field.ErrorText>{errors.languages}</Field.ErrorText>
-                    </Field.Root>
                     <Field.Root required invalid={Boolean(errors.tags)}>
-                      <Field.Label>Search tags</Field.Label>
-                      <TagInput name="tags" value={formData.tags} onChange={(value) => setTextField('tags', value)} placeholder="Add forecasting, dashboard, football…" ariaLabel="Search tags" />
-                      <Field.HelperText>{tags.length}/12 tags · use specific terms visitors might search for.</Field.HelperText>
+                      <Field.Label>Topics and domains</Field.Label>
+                      <TagInput name="tags" value={formData.tags} onChange={(value) => setTextField('tags', value)} placeholder="Add Football, Sales, Decision Support…" ariaLabel="Topics and domains" suggestions={PROJECT_TAG_SUGGESTIONS} maxItems={8} />
+                      <Field.HelperText>{tags.length}/8 tags · describe the subject or use case without repeating the category.</Field.HelperText>
                       <Field.ErrorText>{errors.tags}</Field.ErrorText>
+                    </Field.Root>
+                    <Field.Root required invalid={Boolean(errors.methods)}>
+                      <Field.Label>Methods</Field.Label>
+                      <TagInput name="methods" value={formData.methods} onChange={(value) => setTextField('methods', value)} placeholder="Add Feature Engineering, Forecasting, Model Evaluation…" ariaLabel="Project methods" suggestions={PROJECT_METHOD_SUGGESTIONS} maxItems={12} />
+                      <Field.HelperText>{methods.length}/12 methods · explain how the problem was solved.</Field.HelperText>
+                      <Field.ErrorText>{errors.methods}</Field.ErrorText>
+                    </Field.Root>
+                    <Field.Root required invalid={Boolean(errors.tools)}>
+                      <Field.Label>Tools and technologies</Field.Label>
+                      <TagInput name="tools" value={formData.tools} onChange={(value) => setTextField('tools', value)} placeholder="Add Python, SQL, Power BI…" ariaLabel="Tools and technologies" suggestions={PROJECT_TOOL_SUGGESTIONS} maxItems={20} />
+                      <Field.HelperText>{tools.length}/20 tools · use canonical product and library names.</Field.HelperText>
+                      <Field.ErrorText>{errors.tools}</Field.ErrorText>
                     </Field.Root>
                   </FormSection>
 

@@ -6,10 +6,11 @@ const baseProjects = () => [
     id: 'project-1',
     title: 'Alpha Analytics',
     description: 'Analytics dashboard for portfolio data.',
-    category: 'Machine Learning/AI',
-    languages: ['React', 'Python'],
+    category: 'Machine Learning & Forecasting',
+    methods: ['Predictive Modeling', 'Model Evaluation'],
+    tools: ['React', 'Python'],
     status: 'In Progress',
-    tags: ['AI', 'Dashboard'],
+    tags: ['Decision Support', 'Operations'],
     metadata: '',
     externalLink: 'https://example.com/alpha',
     githubLink: 'https://github.com/example/alpha',
@@ -26,8 +27,9 @@ const baseProjects = () => [
     id: 'project-2',
     title: 'Beta Portfolio',
     description: 'Public website project.',
-    category: 'Web Development',
-    languages: ['React'],
+    category: 'Web Applications',
+    methods: ['Responsive Design'],
+    tools: ['React'],
     status: 'Completed',
     tags: ['Frontend'],
     metadata: '',
@@ -254,9 +256,10 @@ const fillProjectForm = async (page, title) => {
   await page.getByLabel('Primary project URL').fill('https://example.com/project')
   await page.getByLabel('GitHub repository').fill('https://github.com/example/project')
   await page.getByLabel('Live demo URL').fill('https://demo.example.com/project')
-  await page.locator('select[name="category"]').selectOption('Web Development')
-  await page.getByLabel('Languages and tools').fill('React, Node.js')
-  await page.getByLabel('Search tags').fill('Frontend, Portfolio')
+  await page.locator('select[name="category"]').selectOption('Web Applications')
+  await page.getByLabel('Topics and domains').fill('Portfolio, Personal Branding')
+  await page.getByLabel('Project methods').fill('Responsive Design, REST API Design')
+  await page.getByLabel('Tools and technologies').fill('React, Node.js')
   await page.locator('select[name="status"]').selectOption('Completed')
 }
 
@@ -473,6 +476,9 @@ test('create project sends the backend write contract payload', async ({ page })
   const cardPreview = page.locator('details').filter({ hasText: 'Preview public card' })
   await cardPreview.locator('summary').click()
   await expect(cardPreview.getByRole('heading', { name: 'Gamma Launch' })).toBeVisible()
+  await expect(cardPreview.getByText('Portfolio', { exact: true })).toBeVisible()
+  await expect(cardPreview.getByText('Personal Branding', { exact: true })).toBeVisible()
+  await expect(cardPreview.getByText('React', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'Create project' }).click()
 
   const savedProjectTitles = page.locator('[aria-labelledby="admin-projects-heading"]').getByText('Gamma Launch', { exact: true })
@@ -483,10 +489,11 @@ test('create project sends the backend write contract payload', async ({ page })
   expect(api.projectWrites[0]).toEqual({
     title: 'Gamma Launch',
     description: 'Gamma Launch description',
-    category: 'Web Development',
-    languages: ['React', 'Node.js'],
+    category: 'Web Applications',
+    methods: ['Responsive Design', 'REST API Design'],
+    tools: ['React', 'Node.js'],
     status: 'Completed',
-    tags: ['Frontend', 'Portfolio'],
+    tags: ['Portfolio', 'Personal Branding'],
     metadata: '',
     externalLink: 'https://example.com/project',
     githubLink: 'https://github.com/example/project',
@@ -632,11 +639,13 @@ test('admin project search and status filters narrow the management view', async
   await expect(projectsSection.getByText('Beta Portfolio')).toHaveCount(0)
 })
 
-test('portfolio category filtering supports AI aliases', async ({ page }) => {
+test('portfolio shows only populated categories and filters canonical aliases', async ({ page }) => {
   await setupApi(page)
   await page.goto('/portfolio')
 
-  await page.getByRole('tab', { name: 'AI/ML' }).click({ force: true })
+  await expect(page.getByRole('tab', { name: 'Sports Analytics' })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Data Systems & Pipelines' })).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Machine Learning & Forecasting' }).click({ force: true })
   await expect(page.getByText('Alpha Analytics').first()).toBeVisible()
   await expect(page.getByText('Beta Portfolio')).toHaveCount(0)
 })

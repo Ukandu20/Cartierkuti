@@ -8,7 +8,8 @@ export const emptyProjectForm = {
   liveDemoLink: '',
   imageUrl: '',
   category: '',
-  languages: '',
+  methods: '',
+  tools: '',
   status: '',
   tags: '',
   date: '',
@@ -168,7 +169,8 @@ export const projectToFormData = (project = {}) => ({
   liveDemoLink: project.liveDemoLink || '',
   imageUrl: project.imageUrl || '',
   category: getCategoryLabel(project.category || project.categoryValue),
-  languages: (project.languages || []).join(', '),
+  methods: (project.methods || []).join(', '),
+  tools: (project.tools?.length ? project.tools : project.languages || []).join(', '),
   status: project.status || '',
   tags: (project.tags || []).join(', '),
   date: project.createdDate ? new Date(project.createdDate).toISOString().slice(0, 10) : '',
@@ -183,7 +185,8 @@ export const buildProjectPayload = (formData) => ({
   liveDemoLink: formData.liveDemoLink?.trim() || '',
   imageUrl: formData.imageUrl?.trim() || '',
   category: getCategoryLabel(formData.category),
-  languages: formData.languages.split(',').map((item) => item.trim()).filter(Boolean),
+  methods: splitCommaList(formData.methods),
+  tools: splitCommaList(formData.tools),
   status: formData.status?.trim() || '',
   tags: formData.tags.split(',').map((item) => item.trim()).filter(Boolean),
   metadata: formData.metadata?.trim() || '',
@@ -241,14 +244,22 @@ export const validateProjectForm = (formData) => {
     errors.imageUrl = 'Image URL must be a valid http or https URL.'
   }
 
-  if (!splitCommaList(formData.languages).length) {
-    errors.languages = 'Add at least one language.'
+  if (!splitCommaList(formData.methods).length) {
+    errors.methods = 'Add at least one method.'
+  } else if (splitCommaList(formData.methods).length > 12) {
+    errors.methods = 'Use no more than 12 methods.'
+  }
+
+  if (!splitCommaList(formData.tools).length) {
+    errors.tools = 'Add at least one tool or technology.'
+  } else if (splitCommaList(formData.tools).length > 20) {
+    errors.tools = 'Use no more than 20 tools.'
   }
 
   if (!splitCommaList(formData.tags).length) {
     errors.tags = 'Add at least one tag.'
-  } else if (splitCommaList(formData.tags).length > 12) {
-    errors.tags = 'Use no more than 12 tags.'
+  } else if (splitCommaList(formData.tags).length > 8) {
+    errors.tags = 'Use no more than 8 tags.'
   }
 
   return errors
@@ -261,12 +272,13 @@ export const projectWriteContractFields = Object.freeze([
   'featured',
   'githubLink',
   'imageUrl',
-  'languages',
   'liveDemoLink',
   'metadata',
+  'methods',
   'status',
   'tags',
   'title',
+  'tools',
 ])
 
 export const getAvgStars = (project) => {

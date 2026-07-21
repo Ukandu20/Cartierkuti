@@ -4,10 +4,12 @@ import app from './app.js'
 import logger from './logger.js'
 import { connectDB } from './config/db.js'
 import { ensureAdminAccount } from './services/admin-account.service.js'
+import { migrateProjectClassifications } from './services/project-classification.service.js'
 
 validateEnvironment()
 await connectDB()
 await ensureAdminAccount()
+await migrateProjectClassifications()
 
 const PORT = process.env.PORT || 5000
 const server = app.listen(PORT, () =>

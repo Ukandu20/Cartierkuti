@@ -163,7 +163,7 @@ export default function AdminDashboard() {
       .filter((project) => {
         const query = projectSearch.trim().toLowerCase()
         if (!query) return true
-        return [project.title, project.category, project.status, ...(project.tags || [])]
+        return [project.title, project.category, project.status, ...(project.tags || []), ...(project.methods || []), ...(project.tools || [])]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query))
       })
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
     return getFilteredProjects(projects, projectFilter)
       .filter((project) => projectStatusFilter === 'all' || project.status === projectStatusFilter)
       .filter((project) => projectCategoryFilter === 'all' || project.category === projectCategoryFilter)
-      .filter((project) => !query || [project.title, project.category, project.status, ...(project.tags || [])]
+      .filter((project) => !query || [project.title, project.category, project.status, ...(project.tags || []), ...(project.methods || []), ...(project.tools || [])]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)))
   }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter])

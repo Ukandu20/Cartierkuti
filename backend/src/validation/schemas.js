@@ -5,6 +5,14 @@ const text = (max) => z.string().trim().min(1).max(max)
 const optionalText = (max) => z.string().trim().max(max).optional()
 const url = z.string().trim().url().max(2048)
 const optionalUrl = z.union([z.literal(''), url]).optional()
+const uniqueTextArray = (min, max) => z
+  .array(text(60))
+  .min(min)
+  .max(max)
+  .refine(
+    (items) => new Set(items.map((item) => item.toLowerCase())).size === items.length,
+    { message: 'Items must be unique' },
+  )
 const objectId = z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
   message: 'Invalid Mongo ObjectId',
 })
@@ -107,12 +115,19 @@ export const mfaDisableSchema = z
 
 export const projectWriteSchema = z
   .object({
-    category: text(80),
+    category: z.enum([
+      'Sports Analytics',
+      'Machine Learning & Forecasting',
+      'Data Analytics & BI',
+      'Data Systems & Pipelines',
+      'Web Applications',
+    ]),
     title: text(160),
     description: text(4000),
-    languages: z.array(text(60)).min(1).max(30),
+    methods: uniqueTextArray(1, 12),
+    tools: uniqueTextArray(1, 20),
     status: text(80),
-    tags: z.array(text(60)).min(1).max(40),
+    tags: uniqueTextArray(1, 8),
     metadata: optionalText(4000),
     externalLink: url,
     githubLink: url,

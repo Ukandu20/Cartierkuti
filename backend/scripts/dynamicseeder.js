@@ -33,21 +33,25 @@ function generateFakeProjects(count = 50) {
 
     return {
       category: faker.helpers.arrayElement([
-        'Web Development',
-        'Data Analysis',
-        'Machine Learning/AI',
-        'Data Science',
-        'Other',
+        'Sports Analytics',
+        'Machine Learning & Forecasting',
+        'Data Analytics & BI',
+        'Data Systems & Pipelines',
+        'Web Applications',
       ]),
       title: faker.commerce.productName(),
       description: faker.lorem.paragraph(),
-      languages: faker.helpers.arrayElements(
+      tools: faker.helpers.arrayElements(
         ['React', 'Node.js', 'Express', 'MongoDB', 'Python', 'Java', 'Flutter', 'Next.js', 'TypeScript'],
         faker.number.int({ min: 2, max: 4 })
       ),
+      methods: faker.helpers.arrayElements(
+        ['Exploratory Data Analysis', 'Feature Engineering', 'Model Evaluation', 'Dashboard Design', 'REST API Design'],
+        faker.number.int({ min: 1, max: 3 })
+      ),
       status: faker.helpers.arrayElement(['In Progress', 'Completed']),
       tags: faker.helpers.arrayElements(
-        ['Frontend', 'Backend', 'Fullstack', 'Data Analysis', 'Design'],
+        ['Football', 'Sales', 'Decision Support', 'Operations', 'Portfolio'],
         faker.number.int({ min: 1, max: 3 })
       ),
       metadata: faker.internet.url(),

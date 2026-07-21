@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useId, useState } from 'react'
 import { Badge, Box, CloseButton, Flex, Input, Text } from '@chakra-ui/react'
 
 const parseItems = (value, commitOnComma) => String(value || '')
@@ -6,9 +6,10 @@ const parseItems = (value, commitOnComma) => String(value || '')
   .map((item) => item.trim())
   .filter(Boolean)
 
-export default function TagInput({ value, onChange, name, placeholder, ariaLabel, emptyText = 'No items added yet.', delimiter = ', ', commitOnComma = true }) {
+export default function TagInput({ value, onChange, name, placeholder, ariaLabel, emptyText = 'No items added yet.', delimiter = ', ', commitOnComma = true, suggestions = [], maxItems }) {
   const [draft, setDraft] = useState('')
   const items = parseItems(value, commitOnComma)
+  const suggestionsId = useId()
 
   useEffect(() => {
     if (!value) setDraft('')
@@ -17,7 +18,15 @@ export default function TagInput({ value, onChange, name, placeholder, ariaLabel
   const commit = (candidate = draft) => {
     const additions = parseItems(candidate, commitOnComma)
     if (!additions.length) return
-    const next = [...new Set([...items, ...additions])]
+    const canonicalAdditions = additions.map((addition) => (
+      suggestions.find((suggestion) => suggestion.toLowerCase() === addition.toLowerCase()) || addition
+    ))
+    const next = [...items]
+    canonicalAdditions.forEach((addition) => {
+      if (!next.some((item) => item.toLowerCase() === addition.toLowerCase()) && (!maxItems || next.length < maxItems)) {
+        next.push(addition)
+      }
+    })
     onChange(next.join(delimiter))
     setDraft('')
   }
@@ -61,6 +70,7 @@ export default function TagInput({ value, onChange, name, placeholder, ariaLabel
           onBlur={() => commit()}
           placeholder={items.length ? 'Add another…' : placeholder}
           aria-label={ariaLabel || placeholder}
+          list={suggestions.length ? suggestionsId : undefined}
           flex="1 1 150px"
           minW="120px"
           h="28px"
@@ -69,6 +79,11 @@ export default function TagInput({ value, onChange, name, placeholder, ariaLabel
           bg="transparent"
           _focusVisible={{ outline: 'none', boxShadow: 'none' }}
         />
+        {suggestions.length ? (
+          <datalist id={suggestionsId}>
+            {suggestions.map((suggestion) => <option key={suggestion} value={suggestion} />)}
+          </datalist>
+        ) : null}
       </Flex>
       {!items.length && !draft ? <Text mt={1.5} fontSize="xs" color="fg.muted">{emptyText}</Text> : null}
     </Box>

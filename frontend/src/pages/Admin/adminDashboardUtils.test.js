@@ -38,27 +38,30 @@ describe('adminDashboardUtils', () => {
 
   it('derives project forms, payloads, filters, counts, and analytics', () => {
     const projects = [
-      { id: '1', title: 'A', status: 'In Progress', featured: true, views: 10, languages: ['JS'], tags: ['web'], createdDate: '2025-01-01' },
-      { id: '2', title: 'B', status: 'Completed', featured: false, views: 4, languages: ['SQL'], tags: ['data'], createdDate: '2025-02-01' },
+      { id: '1', title: 'A', status: 'In Progress', featured: true, views: 10, methods: ['API Design'], tools: ['JavaScript'], tags: ['Portfolio'], createdDate: '2025-01-01' },
+      { id: '2', title: 'B', status: 'Completed', featured: false, views: 4, methods: ['Dashboard Design'], tools: ['SQL'], tags: ['Operations'], createdDate: '2025-02-01' },
     ]
 
     expect(projectToFormData(projects[0])).toMatchObject({
       title: 'A',
-      languages: 'JS',
-      tags: 'web',
+      methods: 'API Design',
+      tools: 'JavaScript',
+      tags: 'Portfolio',
       featured: true,
       date: '2025-01-01',
     })
     const payload = buildProjectPayload({
       ...projectToFormData(projects[0]),
-      languages: 'JS, Node',
-      tags: 'web, api',
+      methods: 'API Design, Automated Testing',
+      tools: 'JavaScript, Node.js',
+      tags: 'Portfolio, Content Management',
       date: '2025-01-01',
     })
     expect(payload).toMatchObject({
       title: 'A',
-      languages: ['JS', 'Node'],
-      tags: ['web', 'api'],
+      methods: ['API Design', 'Automated Testing'],
+      tools: ['JavaScript', 'Node.js'],
+      tags: ['Portfolio', 'Content Management'],
     })
     expect(payload).not.toHaveProperty('date')
     expect(Object.keys(payload).sort()).toEqual(projectWriteContractFields)
@@ -77,7 +80,8 @@ describe('adminDashboardUtils', () => {
       githubLink: '',
       liveDemoLink: 'ftp://example.com',
       imageUrl: 'bad-image',
-      languages: '',
+      methods: '',
+      tools: '',
       tags: '',
     })
 
@@ -90,21 +94,23 @@ describe('adminDashboardUtils', () => {
       githubLink: 'GitHub link is required.',
       liveDemoLink: 'Live link must be a valid http or https URL.',
       imageUrl: 'Image URL must be a valid http or https URL.',
-      languages: 'Add at least one language.',
+      methods: 'Add at least one method.',
+      tools: 'Add at least one tool or technology.',
       tags: 'Add at least one tag.',
     })
 
     expect(validateProjectForm({
       title: 'Portfolio API',
       description: 'A project API.',
-      category: 'Web Development',
+      category: 'Web Applications',
       status: 'Completed',
       externalLink: 'https://example.com',
       githubLink: 'https://github.com/example/project',
       liveDemoLink: '',
       imageUrl: '',
-      languages: 'JavaScript, Node.js',
-      tags: 'api, portfolio',
+      methods: 'REST API Design, Automated Testing',
+      tools: 'JavaScript, Node.js',
+      tags: 'Portfolio, Content Management',
     })).toEqual({})
   })
 

@@ -48,7 +48,7 @@ export default function ProjectCard({
   featured = false,
 }) {
   const isFavorite = favorites.includes(project.id)
-  const technologies = (project.languages?.length ? project.languages : project.tags || []).slice(0, 4)
+  const technologies = (project.tags?.length ? project.tags : project.languages || []).slice(0, 4)
   const liveUrl = project.liveDemoLink || project.externalLink
   const projectDate = formatProjectDate(project.lastUpdatedDate || project.createdDate)
   const hasReviews = (project.reviews?.length || 0) > 0

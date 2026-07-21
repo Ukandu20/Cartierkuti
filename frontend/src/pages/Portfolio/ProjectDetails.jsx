@@ -46,6 +46,21 @@ const DetailRow = ({ label, children }) => (
   </Box>
 )
 
+const ClassificationBadges = ({ label, items }) => (
+  <Box>
+    <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.12em" mb={3}>
+      {label}
+    </Text>
+    <Flex gap={2} wrap="wrap">
+      {items.map((item) => (
+        <Badge key={item} bg={'accent.subtle'} color={'fg.default'} borderRadius="full" px={3} py={1.5} fontWeight="600">
+          {item}
+        </Badge>
+      ))}
+    </Flex>
+  </Box>
+)
+
 export default function ProjectDetails({ project, openLink, handleFavorite, isFavorite }) {
   const [reviews, setReviews] = useState([])
   const [tempStars, setTempStars] = useState(0)
@@ -54,9 +69,11 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
   const [submittingReview, setSubmittingReview] = useState(false)
   const projectId = project?._id ?? project?.id
   const liveUrl = project.liveDemoLink || project.externalLink
-  const technologies = useMemo(
-    () => Array.from(new Set([...(project.languages || []), ...(project.tags || [])])),
-    [project.languages, project.tags]
+  const tags = useMemo(() => Array.from(new Set(project.tags || [])), [project.tags])
+  const methods = useMemo(() => Array.from(new Set(project.methods || [])), [project.methods])
+  const tools = useMemo(
+    () => Array.from(new Set(project.tools?.length ? project.tools : project.languages || [])),
+    [project.tools, project.languages]
   )
 
   useEffect(() => {
@@ -154,27 +171,16 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
                 </Heading>
                 <Text color={'fg.muted'} lineHeight="1.8">
                   {project.metadata || (
-                    technologies.length
-                      ? `The project was delivered with ${technologies.join(', ')}, connecting the technical implementation to the project objective.`
+                    tools.length
+                      ? `The project was delivered with ${tools.join(', ')}, connecting the technical implementation to the project objective.`
                       : 'The implementation was shaped around the project objective and the clearest practical route to delivery.'
                   )}
                 </Text>
               </Box>
 
-              {technologies.length ? (
-                <Box>
-                  <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.12em" mb={3}>
-                    Methods and tools
-                  </Text>
-                  <Flex gap={2} wrap="wrap">
-                    {technologies.map((technology) => (
-                      <Badge key={technology} bg={'accent.subtle'} color={'fg.default'} borderRadius="full" px={3} py={1.5} fontWeight="600">
-                        {technology}
-                      </Badge>
-                    ))}
-                  </Flex>
-                </Box>
-              ) : null}
+              {tags.length ? <ClassificationBadges label="Topics and domains" items={tags} /> : null}
+              {methods.length ? <ClassificationBadges label="Methods" items={methods} /> : null}
+              {tools.length ? <ClassificationBadges label="Tools and technologies" items={tools} /> : null}
             </Stack>
 
             <Box gridColumn={{ lg: 'span 4' }} borderTop="2px solid" borderColor={'accent.default'}>

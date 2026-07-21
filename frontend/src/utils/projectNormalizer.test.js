@@ -18,19 +18,19 @@ describe('project normalization', () => {
   })
 
   it('normalizes arrays and supports legacy isFeatured data', () => {
-    expect(normalizeProjects([{ _id: '1', isFeatured: true }])).toEqual([
-      expect.objectContaining({ id: '1', featured: true }),
+    expect(normalizeProjects([{ _id: '1', isFeatured: true, languages: ['Python'] }])).toEqual([
+      expect.objectContaining({ id: '1', featured: true, methods: [], tools: ['Python'], tags: [] }),
     ])
   })
 
   it('normalizes category labels and aliases', () => {
     expect(normalizeProject({ _id: '1', category: 'Machine Learning/AI' })).toMatchObject({
-      category: 'AI/ML',
-      categoryValue: 'ai-ml',
+      category: 'Machine Learning & Forecasting',
+      categoryValue: 'machine-learning-forecasting',
     })
     expect(normalizeProject({ _id: '2', category: 'Other' })).toMatchObject({
-      category: 'Others',
-      categoryValue: 'others',
+      category: 'Uncategorized',
+      categoryValue: 'other',
     })
   })
 })

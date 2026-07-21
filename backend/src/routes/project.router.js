@@ -27,6 +27,19 @@ const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 })
 const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 })
 const projectRouter = Router()
 
+const serializeProject = (project) => {
+  const value = typeof project?.toObject === 'function' ? project.toObject() : project
+  const tools = value?.tools?.length ? value.tools : value?.languages || []
+  return {
+    ...value,
+    methods: value?.methods || [],
+    tools,
+    // Keep the legacy response field until every deployed client has moved to `tools`.
+    languages: tools,
+    tags: value?.tags || [],
+  }
+}
+
 const hasImageSignature = (buffer) => {
   if (!buffer?.length) return false
   const hex = buffer.subarray(0, 12).toString('hex')
@@ -90,8 +103,10 @@ projectRouter.post(
 projectRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const projects = await Project.find().select('category title description languages status tags metadata externalLink githubLink liveDemoLink imageUrl featured views reviews.stars createdDate lastUpdatedDate')
-    res.json(projects)
+    const projects = await Project.find()
+      .select('category title description methods tools languages status tags metadata externalLink githubLink liveDemoLink imageUrl featured views reviews.stars createdDate lastUpdatedDate')
+      .lean()
+    res.json(projects.map(serializeProject))
   }),
 )
 
@@ -122,7 +137,7 @@ projectRouter.get(
   asyncHandler(async (req, res) => {
     const project = await Project.findById(req.params.id)
     if (!project) return res.status(404).json({ message: 'Not found' })
-    res.json(project)
+    res.json(serializeProject(project))
   }),
 )
 
@@ -147,7 +162,7 @@ projectRouter.post(
   validate({ body: projectWriteSchema }),
   asyncHandler(async (req, res) => {
     const project = await createProject(req.body, req.user?.username)
-    res.status(201).json(project)
+    res.status(201).json(serializeProject(project))
   }),
 )
 
@@ -157,7 +172,7 @@ projectRouter.put(
   validate({ params: objectIdSchema, body: projectUpdateSchema }),
   asyncHandler(async (req, res) => {
     const project = await updateProject(req.params.id, req.body, req.user?.username)
-    res.json(project)
+    res.json(serializeProject(project))
   }),
 )
 

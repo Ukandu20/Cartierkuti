@@ -1,14 +1,39 @@
 export const PROJECT_CATEGORIES = [
   { label: 'All', value: 'all', aliases: ['all'] },
-  { label: 'Data Science', value: 'data-science', aliases: ['data science'] },
-  { label: 'Data Analysis', value: 'data-analysis', aliases: ['data analysis'] },
-  { label: 'Web Development', value: 'web-development', aliases: ['web development'] },
   {
-    label: 'AI/ML',
-    value: 'ai-ml',
-    aliases: ['ai/ml', 'machine learning/ai', 'machine learning', 'ai', 'ml'],
+    label: 'Sports Analytics',
+    value: 'sports-analytics',
+    aliases: ['sports analytics', 'sport analytics'],
   },
-  { label: 'Others', value: 'others', aliases: ['others', 'other'] },
+  {
+    label: 'Machine Learning & Forecasting',
+    value: 'machine-learning-forecasting',
+    aliases: [
+      'machine learning & forecasting',
+      'machine learning and forecasting',
+      'machine learning/ai',
+      'machine learning',
+      'data science',
+      'ai/ml',
+      'ai',
+      'ml',
+    ],
+  },
+  {
+    label: 'Data Analytics & BI',
+    value: 'data-analytics-bi',
+    aliases: ['data analytics & bi', 'data analytics and bi', 'data analytics', 'data analysis', 'business intelligence'],
+  },
+  {
+    label: 'Data Systems & Pipelines',
+    value: 'data-systems-pipelines',
+    aliases: ['data systems & pipelines', 'data systems and pipelines', 'data engineering', 'data pipelines'],
+  },
+  {
+    label: 'Web Applications',
+    value: 'web-applications',
+    aliases: ['web applications', 'web application', 'web development', 'software development'],
+  },
 ]
 
 export const categoryOptions = PROJECT_CATEGORIES.filter((category) => category.value !== 'all')
@@ -24,15 +49,20 @@ const categoryByAlias = PROJECT_CATEGORIES.reduce((acc, category) => {
 
 export function normalizeCategoryValue(value) {
   const normalized = (value || '').toString().trim().toLowerCase()
-  return categoryByAlias[normalized]?.value || normalized || 'others'
+  return categoryByAlias[normalized]?.value || normalized || 'uncategorized'
 }
 
 export function getCategoryLabel(value) {
-  return PROJECT_CATEGORIES.find((category) => category.value === normalizeCategoryValue(value))?.label || 'Others'
+  return PROJECT_CATEGORIES.find((category) => category.value === normalizeCategoryValue(value))?.label || 'Uncategorized'
 }
 
 export function isProjectInCategory(project, categoryValue) {
   const normalizedFilter = normalizeCategoryValue(categoryValue)
   if (normalizedFilter === 'all') return true
-  return normalizeCategoryValue(project?.category) === normalizedFilter
+  return normalizeCategoryValue(project?.categoryValue || project?.category) === normalizedFilter
+}
+
+export function getPopulatedProjectCategories(projects = []) {
+  const populated = new Set(projects.map((project) => normalizeCategoryValue(project?.categoryValue || project?.category)))
+  return PROJECT_CATEGORIES.filter((category) => category.value === 'all' || populated.has(category.value))
 }

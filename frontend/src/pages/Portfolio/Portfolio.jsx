@@ -27,7 +27,7 @@ import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState } from '@/components/ui/StateFeedback'
 import { PageCta, SectionLabel } from '@/components/ui/DesignSystem'
-import { PROJECT_CATEGORIES, isProjectInCategory } from '@/utils/projectCategories'
+import { getPopulatedProjectCategories, isProjectInCategory } from '@/utils/projectCategories'
 import { sortProjects } from '@/utils/projectSorting'
 import { absoluteUrl } from '@/utils/siteConfig'
 
@@ -43,6 +43,8 @@ const searchProject = (project, query) => {
     project.category,
     project.status,
     ...(project.tags || []),
+    ...(project.methods || []),
+    ...(project.tools || []),
     ...(project.languages || []),
   ]
     .filter(Boolean)
@@ -69,7 +71,7 @@ export default function Portfolio() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [favorites, setFavorites] = useState([])
-  const [tabIndex, setTabIndex] = useState(0)
+  const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('date')
   const [page, setPage] = useState(1)
@@ -91,7 +93,7 @@ export default function Portfolio() {
     fetchProjects()
   }, [])
 
-  useEffect(() => setPage(1), [search, sort, tabIndex])
+  useEffect(() => setPage(1), [search, sort, activeCategory])
 
   const toggleFavorite = (id) => {
     setFavorites((current) =>
@@ -107,7 +109,8 @@ export default function Portfolio() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  const currentCategory = PROJECT_CATEGORIES[tabIndex]
+  const visibleCategories = useMemo(() => getPopulatedProjectCategories(projects), [projects])
+  const currentCategory = visibleCategories.find((category) => category.value === activeCategory) || visibleCategories[0]
   const filtered = useMemo(
     () =>
       projects.filter(
@@ -211,8 +214,8 @@ export default function Portfolio() {
           </Flex>
 
           <Tabs.Root
-            value={String(tabIndex)}
-            onValueChange={(details) => setTabIndex(Number(details.value))}
+            value={currentCategory.value}
+            onValueChange={(details) => setActiveCategory(details.value)}
             variant="unstyled"
           >
             <Tabs.List
@@ -224,18 +227,18 @@ export default function Portfolio() {
               mb={6}
               css={{ scrollbarWidth: 'thin' }}
             >
-              {PROJECT_CATEGORIES.map((category, index) => (
+              {visibleCategories.map((category) => (
                 <Tabs.Trigger
                   key={category.value}
-                  value={String(index)}
+                  value={category.value}
                   flexShrink="0"
                   px={4}
                   py={2}
                   border="1px solid"
-                  borderColor={tabIndex === index ? 'accent.default' : 'border.subtle'}
+                  borderColor={currentCategory.value === category.value ? 'accent.default' : 'border.subtle'}
                   borderRadius="full"
-                  color={tabIndex === index ? 'fg.default' : 'fg.muted'}
-                  bg={tabIndex === index ? 'accent.subtle' : 'transparent'}
+                  color={currentCategory.value === category.value ? 'fg.default' : 'fg.muted'}
+                  bg={currentCategory.value === category.value ? 'accent.subtle' : 'transparent'}
                   fontFamily={'body'}
                   fontWeight="600"
                   _hover={{ borderColor: 'accent.default', color: 'fg.default' }}
@@ -301,7 +304,7 @@ export default function Portfolio() {
               </Select.Root>
             </Flex>
 
-            <Tabs.Content value={String(tabIndex)}>
+            <Tabs.Content value={currentCategory.value}>
               {loading ? (
                 <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={{ base: 6, md: 8 }} role="status" aria-label="Loading projects">
                   {Array.from({ length: 6 }).map((_, index) => (

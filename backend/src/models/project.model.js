@@ -9,9 +9,13 @@ const reviewSchema = new mongoose.Schema({
 const projectSchema = new mongoose.Schema(
   {
     category: { type: String, required: true },
+    classificationVersion: { type: Number, default: 1, select: false },
     title: { type: String, required: true },
     description: { type: String, required: true },
-    languages: { type: [String], required: true },
+    methods: { type: [String], default: [] },
+    tools: { type: [String], default: [] },
+    // Retained while older production records are migrated through the editor.
+    languages: { type: [String], default: [] },
     status: { type: String, required: true },
     tags: { type: [String], required: true },
     metadata: { type: String, default: '' },

@@ -4,8 +4,11 @@ const archivedSchema = new mongoose.Schema(
   {
     originalId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     category:      String,
+    classificationVersion: Number,
     title:         String,
     description:   String,
+    methods:       [String],
+    tools:         [String],
     languages:     [String],
     status:        String,
     tags:          [String],

@@ -10,6 +10,7 @@ import ArchivedProject from '../src/models/archive.model.js'
 import AdminUser from '../src/models/admin-user.model.js'
 import CredentialResetToken from '../src/models/credential-reset-token.model.js'
 import { generateTotpCode } from '../src/services/totp.service.js'
+import { migrateProjectClassifications } from '../src/services/project-classification.service.js'
 
 let mongo
 let token
@@ -30,12 +31,13 @@ vi.mock('../src/services/security-email.service.js', () => ({
 }))
 
 const validProject = {
-  category: 'Web Development',
+  category: 'Web Applications',
   title: 'Portfolio API',
   description: 'A hardened portfolio project API.',
-  languages: ['JavaScript', 'Node.js'],
+  methods: ['REST API Design', 'Automated Testing'],
+  tools: ['JavaScript', 'Node.js'],
   status: 'Completed',
-  tags: ['api', 'portfolio'],
+  tags: ['Portfolio', 'Content Management'],
   metadata: 'Production hardening sample',
   externalLink: 'https://example.com/project',
   githubLink: 'https://github.com/example/project',
@@ -310,6 +312,33 @@ describe('admin auth', () => {
 })
 
 describe('project API', () => {
+  it('migrates legacy categories and language lists into the new classification model', async () => {
+    const legacy = await Project.create({
+      ...validProject,
+      title: 'FIFA World Cup Forecaster',
+      category: 'Data Science',
+      methods: [],
+      tools: [],
+      languages: ['Python', 'pandas', 'scikit-learn'],
+      tags: ['Machine Learning', 'Data Analysis'],
+    })
+    await Project.collection.updateOne(
+      { _id: legacy._id },
+      { $unset: { classificationVersion: '' } },
+    )
+
+    expect(await migrateProjectClassifications()).toBe(1)
+    const migrated = await Project.findById(legacy._id).select('+classificationVersion').lean()
+    expect(migrated).toMatchObject({
+      category: 'Sports Analytics',
+      classificationVersion: 1,
+      methods: ['Predictive Modeling', 'Tournament Forecasting', 'Model Evaluation'],
+      tools: ['Python', 'pandas', 'scikit-learn'],
+      tags: ['Football', 'FIFA World Cup', 'Tournament Prediction'],
+    })
+    expect(await migrateProjectClassifications()).toBe(0)
+  })
+
   it('creates, updates, and deletes a project with admin auth', async () => {
     const created = await request(app)
       .post('/api/projects')
@@ -319,6 +348,7 @@ describe('project API', () => {
 
     expect(created.body.title).toBe(validProject.title)
     expect(created.body.featured).toBe(true)
+    expect(created.body).toMatchObject({ methods: validProject.methods, tools: validProject.tools, tags: validProject.tags })
 
     const updated = await request(app)
       .put(`/api/projects/${created.body._id}`)

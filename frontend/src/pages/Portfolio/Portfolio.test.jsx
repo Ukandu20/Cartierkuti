@@ -26,13 +26,14 @@ describe('Portfolio', () => {
           description: 'Evaluates useful machine-learning signals.',
           category: 'Machine Learning/AI',
           status: 'Completed',
-          languages: ['Python', 'scikit-learn'],
+          tools: ['Python', 'scikit-learn'],
+          methods: ['Model Evaluation'],
           createdDate: '2026-01-01',
           imageUrl: '/one.png',
           externalLink: 'https://example.com/alias',
           githubLink: 'https://github.com/example/alias',
           featured: true,
-          tags: ['Model evaluation'],
+          tags: ['Forecasting'],
           reviews: [],
         },
         {
@@ -41,7 +42,8 @@ describe('Portfolio', () => {
           description: 'Turns warehouse data into operational reporting.',
           category: 'Data Analysis',
           status: 'Completed',
-          languages: ['SQL', 'Power BI'],
+          tools: ['SQL', 'Power BI'],
+          methods: ['Dashboard Design'],
           createdDate: '2026-02-01',
           imageUrl: '/two.png',
           tags: [],
@@ -57,7 +59,9 @@ describe('Portfolio', () => {
     expect((await screen.findAllByText('Alias ML Project')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('Warehouse Dashboard').length).toBeGreaterThan(0)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'AI/ML' }))
+    expect(screen.queryByRole('tab', { name: 'Sports Analytics' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Data Systems & Pipelines' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Machine Learning & Forecasting' }))
 
     await waitFor(() => {
       expect(screen.getAllByText('Alias ML Project').length).toBeGreaterThan(0)
@@ -89,6 +93,7 @@ describe('Portfolio', () => {
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByRole('heading', { name: 'Alias ML Project' })).toBeInTheDocument()
     expect(within(dialog).getByRole('heading', { name: /the question, method, and delivery/i })).toBeInTheDocument()
-    expect(within(dialog).getByText('Model evaluation')).toBeInTheDocument()
+    expect(within(dialog).getByText('Model Evaluation')).toBeInTheDocument()
+    expect(within(dialog).getByText('Forecasting')).toBeInTheDocument()
   }, 15000)
 })
