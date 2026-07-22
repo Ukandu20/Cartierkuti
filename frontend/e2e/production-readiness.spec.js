@@ -7,6 +7,7 @@ const baseProjects = () => [
     title: 'Alpha Analytics',
     description: 'Analytics dashboard for portfolio data.',
     category: 'Machine Learning & Forecasting',
+    categorySlug: 'machine-learning-forecasting',
     methods: ['Predictive Modeling', 'Model Evaluation'],
     tools: ['React', 'Python'],
     status: 'In Progress',
@@ -16,6 +17,7 @@ const baseProjects = () => [
     githubLink: 'https://github.com/example/alpha',
     liveDemoLink: 'https://demo.example.com/alpha',
     imageUrl: 'https://picsum.photos/seed/alpha/640/420',
+    imageAssetId: '',
     featured: true,
     views: 42,
     reviews: [{ stars: 5, comment: 'Strong work' }],
@@ -28,6 +30,7 @@ const baseProjects = () => [
     title: 'Beta Portfolio',
     description: 'Public website project.',
     category: 'Web Applications',
+    categorySlug: 'web-applications',
     methods: ['Responsive Design'],
     tools: ['React'],
     status: 'Completed',
@@ -37,6 +40,7 @@ const baseProjects = () => [
     githubLink: 'https://github.com/example/beta',
     liveDemoLink: '',
     imageUrl: 'https://picsum.photos/seed/beta/640/420',
+    imageAssetId: '',
     featured: false,
     views: 12,
     reviews: [{ stars: 4, comment: 'Useful' }],
@@ -81,6 +85,10 @@ const setupApi = async (page) => {
     resumeWrites: [],
     resumeFileUploads: 0,
     imageUploads: 0,
+    categories: [
+      { _id: 'category-1', name: 'Machine Learning & Forecasting', slug: 'machine-learning-forecasting', aliases: [], order: 10 },
+      { _id: 'category-2', name: 'Web Applications', slug: 'web-applications', aliases: [], order: 20 },
+    ],
   }
 
   await page.route('**/api/**', async (route) => {
@@ -107,6 +115,10 @@ const setupApi = async (page) => {
 
     if (path === '/api/projects' && method === 'GET') {
       return route.fulfill({ status: 200, json: state.projects })
+    }
+
+    if (path === '/api/categories' && method === 'GET') {
+      return route.fulfill({ status: 200, json: state.categories })
     }
 
     if (path === '/api/admin/login/mfa' && method === 'POST') {
@@ -160,7 +172,7 @@ const setupApi = async (page) => {
 
     if (path === '/api/projects/upload' && method === 'POST') {
       state.imageUploads += 1
-      return route.fulfill({ status: 200, json: { imageUrl: 'https://example.com/uploads/project-preview.png' } })
+      return route.fulfill({ status: 200, json: { imageUrl: 'https://example.com/uploads/project-preview.png', imageAssetId: 'cartierkuti/project-preview' } })
     }
 
     if (path === '/api/projects' && method === 'POST') {
@@ -256,7 +268,7 @@ const fillProjectForm = async (page, title) => {
   await page.getByLabel('Primary project URL').fill('https://example.com/project')
   await page.getByLabel('GitHub repository').fill('https://github.com/example/project')
   await page.getByLabel('Live demo URL').fill('https://demo.example.com/project')
-  await page.locator('select[name="category"]').selectOption('Web Applications')
+  await page.locator('select[name="categorySlug"]').selectOption('web-applications')
   await page.getByLabel('Topics and domains').fill('Portfolio, Personal Branding')
   await page.getByLabel('Project methods').fill('Responsive Design, REST API Design')
   await page.getByLabel('Tools and technologies').fill('React, Node.js')
@@ -490,6 +502,7 @@ test('create project sends the backend write contract payload', async ({ page })
     title: 'Gamma Launch',
     description: 'Gamma Launch description',
     category: 'Web Applications',
+    categorySlug: 'web-applications',
     methods: ['Responsive Design', 'REST API Design'],
     tools: ['React', 'Node.js'],
     status: 'Completed',
@@ -499,6 +512,7 @@ test('create project sends the backend write contract payload', async ({ page })
     githubLink: 'https://github.com/example/project',
     liveDemoLink: 'https://demo.example.com/project',
     imageUrl: 'https://example.com/uploads/project-preview.png',
+    imageAssetId: 'cartierkuti/project-preview',
     featured: false,
   })
   expect(api.projectWrites[0]).not.toHaveProperty('date')

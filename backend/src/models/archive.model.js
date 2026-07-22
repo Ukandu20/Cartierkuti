@@ -4,6 +4,7 @@ const archivedSchema = new mongoose.Schema(
   {
     originalId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     category:      String,
+    categorySlug:  String,
     classificationVersion: Number,
     title:         String,
     description:   String,
@@ -17,6 +18,7 @@ const archivedSchema = new mongoose.Schema(
     githubLink:    String,
     liveDemoLink:  String,
     imageUrl:      String,
+    imageAssetId:  String,
     featured:      Boolean,
     views:         Number,
     reviews:       Array,         // or [reviewSchema] if you want to reuse it

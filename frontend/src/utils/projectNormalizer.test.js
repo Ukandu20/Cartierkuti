@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { normalizeProject, normalizeProjects } from './projectNormalizer'
 
 describe('project normalization', () => {
+  it('preserves API-backed category names and stable slugs', () => {
+    expect(normalizeProject({ category: 'Decision Intelligence', categorySlug: 'decision-science' })).toMatchObject({
+      category: 'Decision Intelligence',
+      categorySlug: 'decision-science',
+      categoryValue: 'decision-science',
+    })
+  })
+
   it('maps backend _id, featured, and timestamp fields to frontend-safe fields', () => {
     const normalized = normalizeProject({
       _id: 'abc123',

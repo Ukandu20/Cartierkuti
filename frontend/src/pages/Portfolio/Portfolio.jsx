@@ -68,6 +68,7 @@ export default function Portfolio() {
   )
 
   const [projects, setProjects] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [favorites, setFavorites] = useState([])
@@ -79,8 +80,12 @@ export default function Portfolio() {
   const fetchProjects = async () => {
     setLoading(true)
     try {
-      const { data } = await apiClient.get('/api/projects')
-      setProjects(normalizeProjects(data))
+      const [{ data: projectData }, { data: categoryData }] = await Promise.all([
+        apiClient.get('/api/projects'),
+        apiClient.get('/api/categories').catch(() => ({ data: [] })),
+      ])
+      setProjects(normalizeProjects(projectData))
+      setCategories(Array.isArray(categoryData) ? categoryData.filter((item) => item?.slug && item?.name) : [])
       setError('')
     } catch {
       setError('Projects could not be loaded.')
@@ -109,7 +114,10 @@ export default function Portfolio() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  const visibleCategories = useMemo(() => getPopulatedProjectCategories(projects), [projects])
+  const visibleCategories = useMemo(
+    () => getPopulatedProjectCategories(projects, categories.length ? categories : undefined),
+    [projects, categories],
+  )
   const currentCategory = visibleCategories.find((category) => category.value === activeCategory) || visibleCategories[0]
   const filtered = useMemo(
     () =>

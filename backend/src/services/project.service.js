@@ -2,11 +2,18 @@ import Project from '../models/project.model.js'
 import ArchivedProject from '../models/archive.model.js'
 import Activity from '../models/activity.model.js'
 import logger from '../logger.js'
+import { resolveCategory } from './category.service.js'
+import { destroyProjectImage } from './project-image.service.js'
 
 const notFound = () => Object.assign(new Error('Project not found'), { status: 404 })
 
 export async function createProject(payload, actor = 'system') {
-  const project = await Project.create(payload)
+  const category = await resolveCategory(payload)
+  const project = await Project.create({
+    ...payload,
+    category: category.name,
+    categorySlug: category.slug,
+  })
 
   try {
     await Activity.create({
@@ -20,6 +27,7 @@ export async function createProject(payload, actor = 'system') {
     await Project.deleteOne({ _id: project._id }).catch((rollbackError) => {
       logger.error({ rollbackError, projectId: project._id }, 'Could not roll back project creation')
     })
+    await destroyProjectImage(project.imageAssetId)
     throw error
   }
 
@@ -30,7 +38,13 @@ export async function updateProject(projectId, payload, actor = 'system') {
   const previous = await Project.findById(projectId).lean()
   if (!previous) throw notFound()
 
-  const project = await Project.findByIdAndUpdate(projectId, payload, {
+  let resolvedPayload = payload
+  if (payload.category !== undefined || payload.categorySlug !== undefined) {
+    const category = await resolveCategory(payload)
+    resolvedPayload = { ...payload, category: category.name, categorySlug: category.slug }
+  }
+
+  const project = await Project.findByIdAndUpdate(projectId, resolvedPayload, {
     new: true,
     runValidators: true,
   })
@@ -40,7 +54,7 @@ export async function updateProject(projectId, payload, actor = 'system') {
       projectId: project._id,
       type: 'Updated',
       title: project.title,
-      detail: `Changed: ${Object.keys(payload).join(', ')}`,
+      detail: `Changed: ${Object.keys(resolvedPayload).join(', ')}`,
       actor,
     })
   } catch (error) {
@@ -48,6 +62,10 @@ export async function updateProject(projectId, payload, actor = 'system') {
       logger.error({ rollbackError, projectId }, 'Could not roll back project update')
     })
     throw error
+  }
+
+  if (previous.imageAssetId && previous.imageAssetId !== project.imageAssetId) {
+    await destroyProjectImage(previous.imageAssetId)
   }
 
   return project
@@ -78,6 +96,7 @@ export async function archiveAndDeleteProject(projectId, actor = 'system') {
       detail: `Project "${project.title}" was archived and deleted.`,
       actor,
     })
+    await destroyProjectImage(project.imageAssetId)
   } catch (error) {
     if (deleted) {
       await Project.replaceOne({ _id: originalId }, project, { upsert: true }).catch((rollbackError) => {

@@ -38,6 +38,13 @@ export const PROJECT_CATEGORIES = [
 
 export const categoryOptions = PROJECT_CATEGORIES.filter((category) => category.value !== 'all')
 
+export const toCategoryOption = (category) => ({
+  id: category.id || category._id,
+  label: category.name || category.label,
+  value: category.slug || category.value,
+  aliases: category.aliases || [],
+})
+
 const categoryByAlias = PROJECT_CATEGORIES.reduce((acc, category) => {
   category.aliases.forEach((alias) => {
     acc[alias] = category
@@ -59,10 +66,15 @@ export function getCategoryLabel(value) {
 export function isProjectInCategory(project, categoryValue) {
   const normalizedFilter = normalizeCategoryValue(categoryValue)
   if (normalizedFilter === 'all') return true
+  if (project?.categorySlug) return project.categorySlug === categoryValue || project.categorySlug === normalizedFilter
   return normalizeCategoryValue(project?.categoryValue || project?.category) === normalizedFilter
 }
 
-export function getPopulatedProjectCategories(projects = []) {
-  const populated = new Set(projects.map((project) => normalizeCategoryValue(project?.categoryValue || project?.category)))
-  return PROJECT_CATEGORIES.filter((category) => category.value === 'all' || populated.has(category.value))
+export function getPopulatedProjectCategories(projects = [], categories = PROJECT_CATEGORIES) {
+  const populated = new Set(projects.map((project) => project?.categorySlug || normalizeCategoryValue(project?.categoryValue || project?.category)))
+  const options = categories.map(toCategoryOption)
+  return [
+    { label: 'All', value: 'all', aliases: ['all'] },
+    ...options.filter((category) => category.value !== 'all' && populated.has(category.value)),
+  ]
 }

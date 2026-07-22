@@ -9,6 +9,7 @@ const reviewSchema = new mongoose.Schema({
 const projectSchema = new mongoose.Schema(
   {
     category: { type: String, required: true },
+    categorySlug: { type: String, default: '', index: true },
     classificationVersion: { type: Number, default: 1, select: false },
     title: { type: String, required: true },
     description: { type: String, required: true },
@@ -23,6 +24,7 @@ const projectSchema = new mongoose.Schema(
     githubLink: { type: String, required: true },
     liveDemoLink: { type: String },
     imageUrl: { type: String },
+    imageAssetId: { type: String, default: '' },
     featured: { type: Boolean, default: false },
     views: { type: Number, default: 0 },
     reviews: {

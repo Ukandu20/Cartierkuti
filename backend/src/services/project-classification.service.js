@@ -1,5 +1,6 @@
 import Project from '../models/project.model.js'
 import logger from '../logger.js'
+import { resolveCategory } from './category.service.js'
 
 const CATEGORY_MIGRATIONS = new Map([
   ['web development', 'Web Applications'],
@@ -17,13 +18,22 @@ const CATEGORY_MIGRATIONS = new Map([
 const unique = (items = []) => Array.from(new Set(items.filter(Boolean)))
 
 export async function migrateProjectClassifications() {
-  const projects = await Project.find({ classificationVersion: { $ne: 1 } })
+  const projects = await Project.find({
+    $or: [
+      { classificationVersion: { $ne: 1 } },
+      { categorySlug: { $exists: false } },
+      { categorySlug: '' },
+    ],
+  })
     .select('+classificationVersion')
 
   let migrated = 0
   for (const project of projects) {
     const normalizedCategory = String(project.category || '').trim().toLowerCase()
     project.category = CATEGORY_MIGRATIONS.get(normalizedCategory) || project.category
+    const category = await resolveCategory({ category: project.category })
+    project.category = category.name
+    project.categorySlug = category.slug
     project.tools = unique(project.tools?.length ? project.tools : project.languages)
     project.methods = unique(project.methods)
     project.tags = unique(project.tags)

@@ -21,7 +21,6 @@ import {
   Textarea,
 } from '@chakra-ui/react'
 import { HiOutlinePhoto, HiOutlineTrash } from 'react-icons/hi2'
-import { categoryOptions } from '@/utils/projectCategories'
 import { PROJECT_METHOD_SUGGESTIONS, PROJECT_TAG_SUGGESTIONS, PROJECT_TOOL_SUGGESTIONS } from '@/utils/projectClassification'
 import { SurfaceCard } from '@/components/ui/DesignSystem'
 import TagInput from './TagInput'
@@ -47,8 +46,8 @@ function ProjectCardPreview({ formData }) {
   const topics = splitItems(formData.tags).slice(0, 4)
   return (
     <SurfaceCard overflow="hidden" boxShadow="none">
-      <AspectRatio ratio={16 / 9} bg="bg.raised">
-        <Image src={formData.imageUrl || '/placeholder.svg'} alt="Project card preview" objectFit="cover" />
+      <AspectRatio ratio={16 / 10} bg="bg.raised">
+        <Image src={formData.imageUrl || '/placeholder.svg'} alt="Project card preview" objectFit="contain" />
       </AspectRatio>
       <Stack p={5} gap={3}>
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
@@ -83,6 +82,8 @@ export default function ProjectEditorDialog({
   errors = {},
   setFormData,
   onRemoveImage,
+  categories = [],
+  onCategoryChange,
 }) {
   const bodyRef = useRef(null)
   const errorKeys = Object.keys(errors)
@@ -168,9 +169,9 @@ export default function ProjectEditorDialog({
                       <Field.Root required invalid={Boolean(errors.category)}>
                         <Field.Label htmlFor="category-select">Category</Field.Label>
                         <NativeSelect.Root>
-                          <NativeSelect.Field id="category-select" name="category" value={formData.category} onChange={onChange}>
+                          <NativeSelect.Field id="category-select" name="categorySlug" value={formData.categorySlug} onChange={onCategoryChange}>
                             <option value="" disabled>Select a category…</option>
-                            {categoryOptions.map((item) => <option key={item.value} value={item.label}>{item.label}</option>)}
+                            {categories.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
                           </NativeSelect.Field>
                           <NativeSelect.Indicator />
                         </NativeSelect.Root>
@@ -236,7 +237,7 @@ export default function ProjectEditorDialog({
                     <Field.Root invalid={Boolean(errors.imageUrl)}>
                       <Field.Label>Preview image</Field.Label>
                       <AspectRatio ratio={16 / 10} bg="bg.raised" borderRadius="md" overflow="hidden" border="1px solid" borderColor="border.subtle">
-                        <Image src={formData.imageUrl || '/placeholder.svg'} alt={formData.imageUrl ? 'Current project preview' : 'Placeholder project preview'} objectFit="cover" />
+                        <Image src={formData.imageUrl || '/placeholder.svg'} alt={formData.imageUrl ? 'Current project preview' : 'Placeholder project preview'} objectFit="contain" />
                       </AspectRatio>
                       <Flex gap={2} wrap="wrap">
                         <FileUpload.Root accept="image/png,image/jpeg,image/webp">

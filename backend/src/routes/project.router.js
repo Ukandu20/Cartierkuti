@@ -15,6 +15,7 @@ import {
   projectWriteSchema,
   reviewQuerySchema,
   reviewWriteSchema,
+  imageAssetDeleteSchema,
 } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
 import {
@@ -22,6 +23,7 @@ import {
   createProject,
   updateProject,
 } from '../services/project.service.js'
+import { destroyProjectImage } from '../services/project-image.service.js'
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 })
 const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 })
@@ -95,7 +97,17 @@ projectRouter.post(
       stream.end(req.file.buffer)
     })
 
-    res.json({ imageUrl: result.secure_url })
+    res.json({ imageUrl: result.secure_url, imageAssetId: result.public_id || '' })
+  }),
+)
+
+projectRouter.delete(
+  '/upload',
+  requireAdmin,
+  validate({ body: imageAssetDeleteSchema }),
+  asyncHandler(async (req, res) => {
+    await destroyProjectImage(req.body.imageAssetId)
+    res.status(204).send()
   }),
 )
 
@@ -104,7 +116,7 @@ projectRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
     const projects = await Project.find()
-      .select('category title description methods tools languages status tags metadata externalLink githubLink liveDemoLink imageUrl featured views reviews.stars createdDate lastUpdatedDate')
+      .select('category categorySlug title description methods tools languages status tags metadata externalLink githubLink liveDemoLink imageUrl imageAssetId featured views reviews.stars createdDate lastUpdatedDate')
       .lean()
     res.json(projects.map(serializeProject))
   }),

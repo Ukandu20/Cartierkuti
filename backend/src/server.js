@@ -5,10 +5,12 @@ import logger from './logger.js'
 import { connectDB } from './config/db.js'
 import { ensureAdminAccount } from './services/admin-account.service.js'
 import { migrateProjectClassifications } from './services/project-classification.service.js'
+import { ensureDefaultCategories } from './services/category.service.js'
 
 validateEnvironment()
 await connectDB()
 await ensureAdminAccount()
+await ensureDefaultCategories()
 await migrateProjectClassifications()
 
 const PORT = process.env.PORT || 5000

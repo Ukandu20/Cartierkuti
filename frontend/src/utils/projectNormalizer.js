@@ -4,14 +4,15 @@ export function normalizeProject(project = {}) {
   const id = project.id || project._id || ''
   const createdDate = project.createdDate || project.createdAt || project.date || null
   const lastUpdatedDate = project.lastUpdatedDate || project.updatedAt || createdDate
-  const categoryValue = normalizeCategoryValue(project.category)
+  const categoryValue = project.categorySlug || normalizeCategoryValue(project.category)
   const tools = project.tools?.length ? project.tools : project.languages || []
 
   return {
     ...project,
     _id: project._id || id,
     id,
-    category: getCategoryLabel(categoryValue),
+    category: project.categorySlug ? project.category : getCategoryLabel(categoryValue),
+    categorySlug: project.categorySlug || categoryValue,
     categoryValue,
     methods: Array.isArray(project.methods) ? project.methods : [],
     tools,

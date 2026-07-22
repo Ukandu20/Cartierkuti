@@ -27,4 +27,18 @@ describe('project category helpers', () => {
       'Web Applications',
     ])
   })
+
+  it('supports categories supplied by the admin API', () => {
+    expect(getPopulatedProjectCategories(
+      [{ category: 'Decision Intelligence', categorySlug: 'decision-science' }],
+      [{ name: 'Decision Intelligence', slug: 'decision-science' }],
+    )).toEqual([
+      expect.objectContaining({ label: 'All', value: 'all' }),
+      expect.objectContaining({ label: 'Decision Intelligence', value: 'decision-science' }),
+    ])
+    expect(isProjectInCategory(
+      { category: 'Decision Intelligence', categorySlug: 'decision-science' },
+      'decision-science',
+    )).toBe(true)
+  })
 })

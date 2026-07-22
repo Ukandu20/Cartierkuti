@@ -35,9 +35,12 @@ import ProjectAnalyticsDialog from './components/ProjectAnalyticsDialog'
 import ProjectEditorDialog from './components/ProjectEditorDialog'
 import ProjectTableSection from './components/ProjectTableSection'
 import DiscardChangesDialog from './components/DiscardChangesDialog'
+import CategoryManagerDialog from './components/CategoryManagerDialog'
 import { useAdminActivities } from './hooks/useAdminActivities'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminProjects } from './hooks/useAdminProjects'
+import { useAdminCategories } from './hooks/useAdminCategories'
+import { categoryOptions } from '@/utils/projectCategories'
 
 const ACTIVITY_PAGE_SIZE = 5
 const PROJECT_PAGE_SIZE = 8
@@ -109,6 +112,16 @@ export default function AdminDashboard() {
   } = useAdminAuth({ onAuthenticated: handleAuthenticated })
 
   const {
+    categories,
+    categoriesLoading,
+    categoriesLoaded,
+    fetchCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useAdminCategories({ handleUnauthorized })
+
+  const {
     activities,
     totalActivities,
     filterType,
@@ -136,6 +149,7 @@ export default function AdminDashboard() {
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [isDeleteOpen, setDeleteOpen] = useState(false)
   const [isAnalyticsOpen, setAnalyticsOpen] = useState(false)
+  const [isCategoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [isProjectAnalyticsOpen, setProjectAnalyticsOpen] = useState(false)
   const [isProjectDiscardOpen, setProjectDiscardOpen] = useState(false)
   const [toDelete, setToDelete] = useState(null)
@@ -151,6 +165,13 @@ export default function AdminDashboard() {
   const lastUploadedImageKeyRef = useRef(null)
 
   const pageCount = Math.ceil(totalActivities / ACTIVITY_PAGE_SIZE)
+  const availableCategories = categoriesLoaded
+    ? categories
+    : categoryOptions.map((item) => ({ name: item.label, slug: item.value }))
+
+  useEffect(() => {
+    if (isAuth) fetchCategories()
+  }, [isAuth, fetchCategories])
 
   useEffect(() => {
     setProjectPage(1)
@@ -205,6 +226,30 @@ export default function AdminDashboard() {
     setCreateOpen(true)
   }
 
+  const onCategoryChange = (event) => {
+    const category = availableCategories.find((item) => item.slug === event.target.value)
+    setFormData((current) => ({
+      ...current,
+      categorySlug: category?.slug || '',
+      category: category?.name || '',
+    }))
+    setProjectErrors((current) => {
+      const next = { ...current }
+      delete next.category
+      delete next.categorySlug
+      return next
+    })
+  }
+
+  const cleanupStagedImage = useCallback(async (imageAssetId) => {
+    if (!imageAssetId) return
+    try {
+      await apiClient.delete('/api/projects/upload', { data: { imageAssetId } })
+    } catch (error) {
+      reportAdminError(error)
+    }
+  }, [])
+
   const requestCloseProjectEditor = () => {
     const initialForm = editMode ? projectToFormData(current) : emptyProjectForm
     const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialForm)
@@ -217,6 +262,9 @@ export default function AdminDashboard() {
   }
 
   const discardProjectChanges = () => {
+    if (formData.imageAssetId && formData.imageAssetId !== current?.imageAssetId) {
+      cleanupStagedImage(formData.imageAssetId)
+    }
     lastUploadedImageKeyRef.current = null
     setProjectDiscardOpen(false)
     setCreateOpen(false)
@@ -347,11 +395,15 @@ export default function AdminDashboard() {
     lastUploadedImageKeyRef.current = fileKey
     setIsUploading(true)
     try {
+      const previousStagedAssetId = formData.imageAssetId
       const body = new FormData()
       body.append('image', file)
       const { data } = await apiClient.post('/api/projects/upload', body)
       if (!data?.imageUrl) throw new Error('Missing imageUrl from upload')
-      setFormData((current) => ({ ...current, imageUrl: data.imageUrl }))
+      if (previousStagedAssetId && previousStagedAssetId !== current?.imageAssetId && previousStagedAssetId !== data.imageAssetId) {
+        cleanupStagedImage(previousStagedAssetId)
+      }
+      setFormData((currentForm) => ({ ...currentForm, imageUrl: data.imageUrl, imageAssetId: data.imageAssetId || '' }))
     } catch (error) {
       lastUploadedImageKeyRef.current = null
       reportAdminError(error)
@@ -426,6 +478,7 @@ export default function AdminDashboard() {
           dialogBorder={dialogBorder}
           onOpenCreate={onOpenCreate}
           onOpenAnalytics={() => setAnalyticsOpen(true)}
+          onOpenCategories={() => setCategoryManagerOpen(true)}
           onOpenAbout={() => navigate('/admin/about')}
           onOpenSecurity={() => navigate('/admin/security')}
           onLogout={logout}
@@ -539,8 +592,25 @@ export default function AdminDashboard() {
           setFormData={setFormData}
           onRemoveImage={() => {
             lastUploadedImageKeyRef.current = null
-            setFormData((current) => ({ ...current, imageUrl: '' }))
+            if (formData.imageAssetId && formData.imageAssetId !== current?.imageAssetId) cleanupStagedImage(formData.imageAssetId)
+            setFormData((currentForm) => ({ ...currentForm, imageUrl: '', imageAssetId: '' }))
           }}
+          categories={availableCategories}
+          onCategoryChange={onCategoryChange}
+        />
+
+        <CategoryManagerDialog
+          open={isCategoryManagerOpen}
+          onOpenChange={(details) => setCategoryManagerOpen(details.open)}
+          categories={categories}
+          loading={categoriesLoading}
+          onCreate={createCategory}
+          onUpdate={async (...args) => {
+            const saved = await updateCategory(...args)
+            if (saved) await fetchProjects()
+            return saved
+          }}
+          onDelete={deleteCategory}
         />
 
         <DiscardChangesDialog

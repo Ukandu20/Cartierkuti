@@ -115,11 +115,11 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
 
   return (
     <Stack gap={0}>
-      <AspectRatio ratio={16 / 8} bg={'bg.raised'}>
+      <AspectRatio ratio={16 / 10} bg={'bg.raised'}>
         <Image
           src={project.imageUrl || '/placeholder.svg'}
           alt={`${project.title} project overview`}
-          objectFit="cover"
+          objectFit="contain"
           loading="lazy"
         />
       </AspectRatio>

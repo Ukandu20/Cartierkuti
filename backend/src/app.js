@@ -12,6 +12,7 @@ import projectRouter from './routes/project.router.js'
 import activitiesRouter from './routes/activities.router.js'
 import resumeRouter from './routes/resume.router.js'
 import adminRouter from './routes/admin.router.js'
+import categoryRouter from './routes/category.router.js'
 import { errorHandler, notFoundHandler } from './middleware/errorhandler.js'
 
 const app = express()
@@ -39,6 +40,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 
 app.use('/api/admin', adminRouter)
 app.use('/api/projects', projectRouter)
+app.use('/api/categories', categoryRouter)
 app.use('/api/activities', activitiesRouter)
 app.use('/api/resume', resumeRouter)
 

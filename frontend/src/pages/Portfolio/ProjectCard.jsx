@@ -48,7 +48,7 @@ export default function ProjectCard({
   featured = false,
 }) {
   const isFavorite = favorites.includes(project.id)
-  const technologies = (project.tags?.length ? project.tags : project.languages || []).slice(0, 4)
+  const technologies = (project.tools?.length ? project.tools : project.languages || []).slice(0, 4)
   const liveUrl = project.liveDemoLink || project.externalLink
   const projectDate = formatProjectDate(project.lastUpdatedDate || project.createdDate)
   const hasReviews = (project.reviews?.length || 0) > 0
@@ -64,11 +64,11 @@ export default function ProjectCard({
       >
         <SimpleGrid columns={{ base: 1, lg: featured ? 2 : 1 }} h="full">
           <Box position="relative" bg={'bg.raised'}>
-            <AspectRatio ratio={featured ? 4 / 3 : 16 / 10} h="full" minH={featured ? { lg: '430px' } : undefined}>
+            <AspectRatio ratio={16 / 10} h="full">
               <Image
                 src={project.imageUrl || '/placeholder.svg'}
                 alt={`${project.title} project preview`}
-                objectFit="cover"
+                objectFit="contain"
                 loading="lazy"
               />
             </AspectRatio>

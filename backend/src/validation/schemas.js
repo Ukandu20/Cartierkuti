@@ -115,13 +115,8 @@ export const mfaDisableSchema = z
 
 export const projectWriteSchema = z
   .object({
-    category: z.enum([
-      'Sports Analytics',
-      'Machine Learning & Forecasting',
-      'Data Analytics & BI',
-      'Data Systems & Pipelines',
-      'Web Applications',
-    ]),
+    category: text(80),
+    categorySlug: optionalText(90),
     title: text(160),
     description: text(4000),
     methods: uniqueTextArray(1, 12),
@@ -133,9 +128,28 @@ export const projectWriteSchema = z
     githubLink: url,
     liveDemoLink: optionalUrl,
     imageUrl: optionalUrl,
+    imageAssetId: optionalText(180),
     featured: z.boolean().optional(),
   })
   .strict()
+
+export const categoryCreateSchema = z.object({
+  name: text(80),
+  aliases: z.array(text(80)).max(20).default([]),
+  order: z.coerce.number().int().min(0).max(10_000).default(0),
+}).strict()
+
+export const categoryUpdateSchema = z.object({
+  name: text(80).optional(),
+  aliases: z.array(text(80)).max(20).optional(),
+  order: z.coerce.number().int().min(0).max(10_000).optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, {
+  message: 'At least one category field is required',
+})
+
+export const imageAssetDeleteSchema = z.object({
+  imageAssetId: text(180),
+}).strict()
 
 export const projectUpdateSchema = projectWriteSchema.partial().refine(
   (value) => Object.keys(value).length > 0,

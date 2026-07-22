@@ -7,6 +7,7 @@ import app from '../src/app.js'
 import Project from '../src/models/project.model.js'
 import Activity from '../src/models/activity.model.js'
 import ArchivedProject from '../src/models/archive.model.js'
+import Category from '../src/models/category.model.js'
 import AdminUser from '../src/models/admin-user.model.js'
 import CredentialResetToken from '../src/models/credential-reset-token.model.js'
 import { generateTotpCode } from '../src/services/totp.service.js'
@@ -16,12 +17,14 @@ let mongo
 let token
 
 const uploadStreamMock = vi.hoisted(() => vi.fn())
+const destroyImageMock = vi.hoisted(() => vi.fn())
 const securityEmailMock = vi.hoisted(() => vi.fn().mockResolvedValue(true))
 
 vi.mock('../src/config/cloudinary.js', () => ({
   default: {
     uploader: {
       upload_stream: uploadStreamMock,
+      destroy: destroyImageMock,
     },
   },
 }))
@@ -65,6 +68,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   securityEmailMock.mockClear()
   uploadStreamMock.mockReset()
+  destroyImageMock.mockReset()
+  destroyImageMock.mockResolvedValue({ result: 'ok' })
   uploadStreamMock.mockImplementation((_options, callback) => ({
     end: () => callback(null, {
       secure_url: 'https://res.cloudinary.com/test/raw/upload/cartierkuti/resume/resume.pdf',
@@ -312,6 +317,51 @@ describe('admin auth', () => {
 })
 
 describe('project API', () => {
+  it('lets admins manage categories while protecting categories used by projects', async () => {
+    const publicCategories = await request(app).get('/api/categories').expect(200)
+    expect(publicCategories.body).toHaveLength(5)
+
+    await request(app).post('/api/categories').send({ name: 'Decision Science' }).expect(401)
+    const createdCategory = await request(app)
+      .post('/api/categories')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Decision Science', aliases: ['Decision Analytics'], order: 25 })
+      .expect(201)
+    expect(createdCategory.body).toMatchObject({ name: 'Decision Science', slug: 'decision-science' })
+
+    const project = await request(app)
+      .post('/api/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...validProject, category: 'Decision Science', categorySlug: 'decision-science' })
+      .expect(201)
+    expect(project.body).toMatchObject({ category: 'Decision Science', categorySlug: 'decision-science' })
+
+    await request(app)
+      .put(`/api/categories/${createdCategory.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Decision Intelligence' })
+      .expect(200)
+    expect(await Project.findById(project.body._id).lean()).toMatchObject({
+      category: 'Decision Intelligence',
+      categorySlug: 'decision-science',
+    })
+
+    await request(app)
+      .delete(`/api/categories/${createdCategory.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(409)
+    await request(app)
+      .put(`/api/projects/${project.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ category: 'Web Applications', categorySlug: 'web-applications' })
+      .expect(200)
+    await request(app)
+      .delete(`/api/categories/${createdCategory.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204)
+    expect(await Category.findById(createdCategory.body._id).lean()).toMatchObject({ active: false })
+  })
+
   it('migrates legacy categories and language lists into the new classification model', async () => {
     const legacy = await Project.create({
       ...validProject,
@@ -442,6 +492,46 @@ describe('project API', () => {
         contentType: 'image/png',
       })
       .expect(200)
+  })
+
+  it('returns asset IDs and removes abandoned, replaced, and deleted project images', async () => {
+    uploadStreamMock.mockImplementationOnce((_options, callback) => ({
+      end: () => callback(null, {
+        secure_url: 'https://res.cloudinary.com/test/image/upload/cartierkuti/preview.png',
+        public_id: 'cartierkuti/preview',
+      }),
+    }))
+    const uploaded = await request(app)
+      .post('/api/projects/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('image', Buffer.from('89504e470d0a1a0a00000000', 'hex'), { filename: 'preview.png', contentType: 'image/png' })
+      .expect(200)
+    expect(uploaded.body).toMatchObject({ imageAssetId: 'cartierkuti/preview' })
+
+    await request(app)
+      .delete('/api/projects/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ imageAssetId: 'cartierkuti/preview' })
+      .expect(204)
+    expect(destroyImageMock).toHaveBeenCalledWith('cartierkuti/preview', expect.objectContaining({ invalidate: true }))
+
+    const created = await request(app)
+      .post('/api/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...validProject, imageAssetId: 'cartierkuti/old' })
+      .expect(201)
+    await request(app)
+      .put(`/api/projects/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ imageUrl: 'https://example.com/new.png', imageAssetId: 'cartierkuti/new' })
+      .expect(200)
+    expect(destroyImageMock).toHaveBeenCalledWith('cartierkuti/old', expect.any(Object))
+
+    await request(app)
+      .delete(`/api/projects/${created.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204)
+    expect(destroyImageMock).toHaveBeenCalledWith('cartierkuti/new', expect.any(Object))
   })
 })
 
