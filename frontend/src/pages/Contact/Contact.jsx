@@ -25,8 +25,7 @@ import { absoluteUrl, siteName } from '@/utils/siteConfig'
 
 const contactMethods = [
   { icon: FaMapMarkerAlt, label: 'Location', value: 'Windsor, ON' },
-  { icon: FaPhoneAlt, label: 'Phone', value: '+1 226 123 4567', href: 'tel:+12261234567' },
-  { icon: FaEnvelope, label: 'Email', value: 'okechiukandu@gmail.com', href: 'mailto:okechiukandu@gmail.com' },
+  { icon: FaEnvelope, label: 'Email', value: 'okechiprest@gmail.com', href: 'mailto:okechiprest@gmail.com' },
 ]
 
 export default function ContactPage() {
@@ -72,7 +71,7 @@ export default function ContactPage() {
               Let&apos;s make the next decision clearer.
             </Heading>
             <Text color="fg.muted" fontSize={{ base: 'lg', md: 'xl' }} lineHeight="1.7">
-              Have a project, collaboration, or analytical question in mind? Share the context and the outcome you are working toward.
+              Have a project, collaboration, or question in mind? Share the context and the outcome you are working toward.
             </Text>
           </Stack>
 

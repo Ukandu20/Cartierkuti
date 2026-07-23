@@ -8,6 +8,7 @@ import {
   normalizeResumeForm,
   projectWriteContractFields,
   projectToFormData,
+  splitSkillItems,
   validateProjectForm,
   validateResumeForm,
 } from './adminDashboardUtils'
@@ -20,6 +21,14 @@ describe('adminDashboardUtils', () => {
       highlights: ['One', 'Two'],
       metrics: [{ label: ' Projects ', value: ' 12 ', note: ' shipped ' }],
       experience: [{ role: 'Dev', company: 'Acme', bullets: ['Built dashboards'] }],
+      certifications: [{
+        name: 'Applied Analytics',
+        issuer: 'Example Institute',
+        year: '2025',
+        credentialId: ' AA-101 ',
+        credentialUrl: ' https://credentials.example.com/AA-101 ',
+        showCredentialLink: true,
+      }],
       skills: { primary: ['SQL'], secondary: ['React'], tools: ['Git'] },
       resumeFileUrl: 'https://example.com/resume.pdf',
       resumeFileName: 'Preston-Resume.pdf',
@@ -28,10 +37,23 @@ describe('adminDashboardUtils', () => {
 
     expect(form.highlightsText).toBe('One\nTwo')
     expect(form.resumeFileName).toBe('Preston-Resume.pdf')
+    expect(form.certifications[0]).toMatchObject({
+      credentialId: ' AA-101 ',
+      credentialUrl: ' https://credentials.example.com/AA-101 ',
+      showCredentialLink: true,
+    })
     expect(buildResumePayload(form)).toMatchObject({
       headline: 'Analyst',
       highlights: ['One', 'Two'],
       metrics: [{ label: 'Projects', value: '12', note: 'shipped' }],
+      certifications: [{
+        name: 'Applied Analytics',
+        issuer: 'Example Institute',
+        year: '2025',
+        credentialId: 'AA-101',
+        credentialUrl: 'https://credentials.example.com/AA-101',
+        showCredentialLink: true,
+      }],
       skills: { primary: ['SQL'], secondary: ['React'], tools: ['Git'] },
     })
   })
@@ -114,6 +136,31 @@ describe('adminDashboardUtils', () => {
     })).toEqual({})
   })
 
+  it('normalizes pasted and legacy multiline skills into separate items', () => {
+    expect(splitSkillItems(['Python\nSQL', 'Pandas, NumPy', 'python', 'Git\\nDocker'])).toEqual([
+      'Python',
+      'SQL',
+      'Pandas',
+      'NumPy',
+      'Git',
+      'Docker',
+    ])
+
+    const form = normalizeResumeForm({
+      skills: {
+        primary: ['Python\nSQL\nPandas'],
+        secondary: [],
+        tools: ['Git\\nDocker'],
+      },
+    })
+
+    expect(form.skillsPrimaryText).toBe('Python\nSQL\nPandas')
+    expect(buildResumePayload({
+      ...form,
+      skillsPrimaryText: `${form.skillsPrimaryText}, NumPy`,
+    }).skills.primary).toEqual(['Python', 'SQL', 'Pandas', 'NumPy'])
+  })
+
   it('validates required About content and incomplete repeatable entries', () => {
     expect(validateResumeForm({
       headline: '',
@@ -129,6 +176,40 @@ describe('adminDashboardUtils', () => {
       'experience.0.company': 'Experience 1 needs a company.',
       'education.0.degree': 'Education 1 needs a degree.',
       'certifications.0.issuer': 'Certification 1 needs an issuer.',
+    })
+  })
+
+  it('requires a valid credential URL only when a public credential link is configured', () => {
+    const base = {
+      headline: 'Analyst',
+      summary: 'Summary',
+      metrics: [],
+      experience: [],
+      education: [],
+    }
+
+    expect(validateResumeForm({
+      ...base,
+      certifications: [{
+        name: 'Applied Analytics',
+        issuer: 'Example Institute',
+        credentialUrl: '',
+        showCredentialLink: true,
+      }],
+    })).toMatchObject({
+      'certifications.0.credentialUrl': 'Add a verification URL or disable the public credential link.',
+    })
+
+    expect(validateResumeForm({
+      ...base,
+      certifications: [{
+        name: 'Applied Analytics',
+        issuer: 'Example Institute',
+        credentialUrl: 'javascript:alert(1)',
+        showCredentialLink: false,
+      }],
+    })).toMatchObject({
+      'certifications.0.credentialUrl': 'Credential URL must be a valid http or https URL.',
     })
   })
 })

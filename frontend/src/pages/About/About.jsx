@@ -17,7 +17,7 @@ import {
 } from '@chakra-ui/react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { FaArrowRight, FaCheck, FaDownload } from 'react-icons/fa'
+import { FaArrowRight, FaCheck, FaDownload, FaExternalLinkAlt } from 'react-icons/fa'
 import { getPublicResume } from '@/services/resumeService'
 import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { PageCta } from '@/components/ui/DesignSystem'
@@ -111,8 +111,27 @@ const skillGroups = [
   { key: 'tools', label: 'Engineering and tools' },
 ]
 
+const normalizeSkillItems = (value) => {
+  const entries = Array.isArray(value) ? value : []
+  const seen = new Set()
+
+  return entries
+    .flatMap((entry) => String(entry || '').split(/(?:\r?\n|\\n|,)/))
+    .map((item) => item.trim())
+    .filter((item) => {
+      if (!item) return false
+      const normalized = item.toLowerCase()
+      if (seen.has(normalized)) return false
+      seen.add(normalized)
+      return true
+    })
+}
+
 const normalizeResume = (data) => {
   const safeArray = (value) => (Array.isArray(value) ? value : [])
+  const primarySkills = normalizeSkillItems(data?.skills?.primary)
+  const secondarySkills = normalizeSkillItems(data?.skills?.secondary)
+  const tools = normalizeSkillItems(data?.skills?.tools)
 
   return {
     headline: data?.headline || DEFAULT_RESUME.headline,
@@ -132,14 +151,14 @@ const normalizeResume = (data) => {
     resumeFileName: data?.resumeFileName || DEFAULT_RESUME.resumeFileName,
     resumeFileUpdatedAt: data?.resumeFileUpdatedAt || DEFAULT_RESUME.resumeFileUpdatedAt,
     skills: {
-      primary: safeArray(data?.skills?.primary).length
-        ? safeArray(data?.skills?.primary)
+      primary: primarySkills.length
+        ? primarySkills
         : DEFAULT_RESUME.skills.primary,
-      secondary: safeArray(data?.skills?.secondary).length
-        ? safeArray(data?.skills?.secondary)
+      secondary: secondarySkills.length
+        ? secondarySkills
         : DEFAULT_RESUME.skills.secondary,
-      tools: safeArray(data?.skills?.tools).length
-        ? safeArray(data?.skills?.tools)
+      tools: tools.length
+        ? tools
         : DEFAULT_RESUME.skills.tools,
     },
   }
@@ -455,9 +474,21 @@ export default function About() {
                       {resume.certifications.map((item, index) => (
                         <HStack key={`${item.name}-${index}`} justify="space-between" align="start" gap={5} py={5} borderBottom="1px solid" borderColor={'border.subtle'}>
                           <Box>
-                            <Text fontWeight="700">{item.name}</Text>
-                            <Text color={'fg.muted'}>{item.issuer}</Text>
-                          </Box>
+                             <Text fontWeight="700">{item.name}</Text>
+                             <Text color={'fg.muted'}>{item.issuer}</Text>
+                             {item.credentialId ? (
+                               <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} mt={2}>
+                                 Credential ID: {item.credentialId}
+                               </Text>
+                             ) : null}
+                             {item.showCredentialLink && item.credentialUrl ? (
+                               <Button asChild size="sm" variant="outline" colorPalette="brand" mt={3}>
+                                 <a href={item.credentialUrl} target="_blank" rel="noopener noreferrer">
+                                   View credential <Icon as={FaExternalLinkAlt} aria-hidden="true" />
+                                 </a>
+                               </Button>
+                             ) : null}
+                           </Box>
                           <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'}>{item.year}</Text>
                         </HStack>
                       ))}

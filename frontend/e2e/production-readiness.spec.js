@@ -548,6 +548,19 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   await page.getByLabel('Displayed value').fill('Sports analytics')
   await page.getByLabel('Supporting note').fill('Evidence for performance decisions')
 
+  await page.getByRole('button', { name: /Certifications.*Professional credentials/i }).click()
+  await page.getByRole('button', { name: 'Add certification' }).click()
+  await page.getByLabel('Certification name').fill('Applied Analytics')
+  await page.getByLabel('Issuer').fill('Example Institute')
+  await page.getByLabel('Year').fill('2025')
+  await page.getByLabel('Credential ID').fill('AA-2025-101')
+  await page.getByLabel('Verification URL').fill('https://credentials.example.com/AA-2025-101')
+  const credentialToggle = page.getByLabel('Show public link for Applied Analytics')
+  await expect(credentialToggle).toBeChecked()
+  await credentialToggle.uncheck({ force: true })
+  await expect(credentialToggle).not.toBeChecked()
+  await credentialToggle.check({ force: true })
+
   await page.getByRole('button', { name: /Résumé PDF.*Downloadable document/i }).click()
   await page.getByLabel('Choose résumé PDF').setInputFiles({
     name: 'Preston-Resume.pdf',
@@ -561,6 +574,8 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   const preview = page.getByRole('dialog', { name: 'About page preview' })
   await expect(preview.getByText('Decision intelligence and sports analytics practitioner')).toBeVisible()
   await expect(preview.getByRole('group', { name: 'About summary preview' }).locator('p')).toHaveCount(2)
+  await expect(preview.getByText('Credential ID: AA-2025-101')).toBeVisible()
+  await expect(preview.getByRole('link', { name: 'View credential' })).toHaveAttribute('href', 'https://credentials.example.com/AA-2025-101')
   await preview.getByRole('button', { name: 'Mobile' }).click()
   await preview.getByRole('button', { name: /close/i }).click()
 
@@ -568,6 +583,14 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   await expect(page.getByText(/saved at/i)).toBeVisible()
   expect(api.resumeWrites.at(-1).headline).toBe('Decision intelligence and sports analytics practitioner')
   expect(api.resumeWrites.at(-1).summary).toBe('I frame complex analytical questions clearly.\n\nI turn the evidence into useful decisions.')
+  expect(api.resumeWrites.at(-1).certifications).toEqual([{
+    name: 'Applied Analytics',
+    issuer: 'Example Institute',
+    year: '2025',
+    credentialId: 'AA-2025-101',
+    credentialUrl: 'https://credentials.example.com/AA-2025-101',
+    showCredentialLink: true,
+  }])
   expect(api.resumeFileUploads).toBe(1)
 })
 

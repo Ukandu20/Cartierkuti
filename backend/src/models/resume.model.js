@@ -35,6 +35,9 @@ const certificationSchema = new mongoose.Schema(
     name: { type: String, default: '' },
     issuer: { type: String, default: '' },
     year: { type: String, default: '' },
+    credentialId: { type: String, default: '' },
+    credentialUrl: { type: String, default: '' },
+    showCredentialLink: { type: Boolean, default: false },
   },
   { _id: true }
 )

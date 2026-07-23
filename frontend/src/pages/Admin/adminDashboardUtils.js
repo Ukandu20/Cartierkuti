@@ -42,6 +42,22 @@ export const splitLines = (value) =>
     .map((line) => line.trim())
     .filter(Boolean)
 
+export const splitSkillItems = (value) => {
+  const entries = Array.isArray(value) ? value : [value]
+  const seen = new Set()
+
+  return entries
+    .flatMap((entry) => String(entry || '').split(/(?:\r?\n|\\n|,)/))
+    .map((item) => item.trim())
+    .filter((item) => {
+      if (!item) return false
+      const normalized = item.toLowerCase()
+      if (seen.has(normalized)) return false
+      seen.add(normalized)
+      return true
+    })
+}
+
 export const normalizeStatus = (value) => (value || '').toString().trim().toLowerCase()
 
 export const isInProgress = (value) => {
@@ -83,13 +99,16 @@ export const normalizeResumeForm = (data = {}) => {
       name: item?.name || '',
       issuer: item?.issuer || '',
       year: item?.year || '',
+      credentialId: item?.credentialId || '',
+      credentialUrl: item?.credentialUrl || '',
+      showCredentialLink: Boolean(item?.showCredentialLink),
     })),
     resumeFileUrl: data.resumeFileUrl || '',
     resumeFileName: data.resumeFileName || '',
     resumeFileUpdatedAt: data.resumeFileUpdatedAt || '',
-    skillsPrimaryText: safeArray(data?.skills?.primary).join('\n'),
-    skillsSecondaryText: safeArray(data?.skills?.secondary).join('\n'),
-    skillsToolsText: safeArray(data?.skills?.tools).join('\n'),
+    skillsPrimaryText: splitSkillItems(data?.skills?.primary).join('\n'),
+    skillsSecondaryText: splitSkillItems(data?.skills?.secondary).join('\n'),
+    skillsToolsText: splitSkillItems(data?.skills?.tools).join('\n'),
   }
 }
 
@@ -122,16 +141,19 @@ export const buildResumePayload = (form) => ({
       bullets: splitLines(item.bulletsText),
     })),
   certifications: (form.certifications || [])
-    .filter((item) => item.name || item.issuer || item.year)
+    .filter((item) => item.name || item.issuer || item.year || item.credentialId || item.credentialUrl)
     .map((item) => ({
       name: item.name?.trim() || '',
       issuer: item.issuer?.trim() || '',
       year: item.year?.trim() || '',
+      credentialId: item.credentialId?.trim() || '',
+      credentialUrl: item.credentialUrl?.trim() || '',
+      showCredentialLink: Boolean(item.showCredentialLink),
     })),
   skills: {
-    primary: splitLines(form.skillsPrimaryText),
-    secondary: splitLines(form.skillsSecondaryText),
-    tools: splitLines(form.skillsToolsText),
+    primary: splitSkillItems(form.skillsPrimaryText),
+    secondary: splitSkillItems(form.skillsSecondaryText),
+    tools: splitSkillItems(form.skillsToolsText),
   },
 })
 
@@ -155,8 +177,14 @@ export const validateResumeForm = (form) => {
     if ((item.school || item.degree || item.period || item.bulletsText) && !item.degree?.trim()) errors[`education.${index}.degree`] = `Education ${index + 1} needs a degree.`
   })
   ;(form.certifications || []).forEach((item, index) => {
-    if ((item.name || item.issuer || item.year) && !item.name?.trim()) errors[`certifications.${index}.name`] = `Certification ${index + 1} needs a name.`
-    if ((item.name || item.issuer || item.year) && !item.issuer?.trim()) errors[`certifications.${index}.issuer`] = `Certification ${index + 1} needs an issuer.`
+    const hasContent = item.name || item.issuer || item.year || item.credentialId || item.credentialUrl
+    if (hasContent && !item.name?.trim()) errors[`certifications.${index}.name`] = `Certification ${index + 1} needs a name.`
+    if (hasContent && !item.issuer?.trim()) errors[`certifications.${index}.issuer`] = `Certification ${index + 1} needs an issuer.`
+    if (item.showCredentialLink && !item.credentialUrl?.trim()) {
+      errors[`certifications.${index}.credentialUrl`] = 'Add a verification URL or disable the public credential link.'
+    } else if (item.credentialUrl?.trim() && !isValidUrl(item.credentialUrl.trim())) {
+      errors[`certifications.${index}.credentialUrl`] = 'Credential URL must be a valid http or https URL.'
+    }
   })
 
   return errors

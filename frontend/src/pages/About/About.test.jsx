@@ -37,10 +37,17 @@ const resume = {
     },
   ],
   certifications: [
-    { name: 'Applied Analytics', issuer: 'Example Institute', year: '2025' },
+    {
+      name: 'Applied Analytics',
+      issuer: 'Example Institute',
+      year: '2025',
+      credentialId: 'AA-2025-101',
+      credentialUrl: 'https://credentials.example.com/AA-2025-101',
+      showCredentialLink: true,
+    },
   ],
   skills: {
-    primary: ['Python', 'SQL'],
+    primary: ['Python\nSQL\nPandas'],
     secondary: ['Power BI'],
     tools: ['Git'],
   },
@@ -81,8 +88,28 @@ describe('About', () => {
     expect(screen.getByText('Built a match outcome evaluation pipeline.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'B.Sc. Computer Science' })).toBeInTheDocument()
     expect(screen.getByText('Applied Analytics')).toBeInTheDocument()
+    expect(screen.getByText('Credential ID: AA-2025-101')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /View credential/i })).toHaveAttribute(
+      'href',
+      'https://credentials.example.com/AA-2025-101',
+    )
+    expect(screen.getByRole('link', { name: /View credential/i })).toHaveAttribute('target', '_blank')
     expect(screen.getByText('Python')).toBeInTheDocument()
+    expect(screen.getByText('SQL')).toBeInTheDocument()
+    expect(screen.getByText('Pandas')).toBeInTheDocument()
     expect(screen.getByText('Power BI')).toBeInTheDocument()
+  })
+
+  it('hides the credential action when the admin toggle is disabled', async () => {
+    getPublicResume.mockResolvedValueOnce({
+      ...resume,
+      certifications: [{ ...resume.certifications[0], showCredentialLink: false }],
+    })
+
+    renderWithProviders(<About />)
+
+    expect(await screen.findByText('Credential ID: AA-2025-101')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /View credential/i })).not.toBeInTheDocument()
   })
 
   it('preserves paragraph breaks in the About summary', async () => {

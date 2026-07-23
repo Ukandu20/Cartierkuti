@@ -15,6 +15,7 @@ import {
   Portal,
   SimpleGrid,
   Stack,
+  Switch,
   Text,
   Textarea,
 } from '@chakra-ui/react'
@@ -55,7 +56,7 @@ const collectionDefaults = {
   metrics: { label: '', value: '', note: '' },
   experience: { role: '', company: '', location: '', period: '', bulletsText: '' },
   education: { school: '', degree: '', period: '', bulletsText: '' },
-  certifications: { name: '', issuer: '', year: '' },
+  certifications: { name: '', issuer: '', year: '', credentialId: '', credentialUrl: '', showCredentialLink: true },
 }
 
 const sectionForError = (key) => {
@@ -467,20 +468,40 @@ export default function AboutEditor() {
           {!resumeLoading && activeSection === 'certifications' ? (
             <EditorSection eyebrow="05" title="Certifications" description="Add credentials that provide useful evidence of current expertise.">
               {renderCollection('certifications', (item, index) => item.name || `Certification ${index + 1}`, (item) => item.issuer || 'Add an issuer', (item, index) => (
-                <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-                  <Field.Root invalid={Boolean(errors[`certifications.${index}.name`])}><Field.Label>Certification name</Field.Label><Input value={item.name} onChange={(event) => updateCollection('certifications', index, 'name', event.target.value)} /><Field.ErrorText>{errors[`certifications.${index}.name`]}</Field.ErrorText></Field.Root>
-                  <Field.Root invalid={Boolean(errors[`certifications.${index}.issuer`])}><Field.Label>Issuer</Field.Label><Input value={item.issuer} onChange={(event) => updateCollection('certifications', index, 'issuer', event.target.value)} /><Field.ErrorText>{errors[`certifications.${index}.issuer`]}</Field.ErrorText></Field.Root>
-                  <Field.Root><Field.Label>Year</Field.Label><Input value={item.year} inputMode="numeric" onChange={(event) => updateCollection('certifications', index, 'year', event.target.value)} /></Field.Root>
-                </SimpleGrid>
+                <Stack gap={4}>
+                  <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+                    <Field.Root invalid={Boolean(errors[`certifications.${index}.name`])}><Field.Label>Certification name</Field.Label><Input value={item.name} onChange={(event) => updateCollection('certifications', index, 'name', event.target.value)} /><Field.ErrorText>{errors[`certifications.${index}.name`]}</Field.ErrorText></Field.Root>
+                    <Field.Root invalid={Boolean(errors[`certifications.${index}.issuer`])}><Field.Label>Issuer</Field.Label><Input value={item.issuer} onChange={(event) => updateCollection('certifications', index, 'issuer', event.target.value)} /><Field.ErrorText>{errors[`certifications.${index}.issuer`]}</Field.ErrorText></Field.Root>
+                    <Field.Root><Field.Label>Year</Field.Label><Input value={item.year} inputMode="numeric" onChange={(event) => updateCollection('certifications', index, 'year', event.target.value)} /></Field.Root>
+                  </SimpleGrid>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                    <Field.Root><Field.Label>Credential ID</Field.Label><Input value={item.credentialId || ''} onChange={(event) => updateCollection('certifications', index, 'credentialId', event.target.value)} placeholder="ABC-123-XYZ" /></Field.Root>
+                    <Field.Root invalid={Boolean(errors[`certifications.${index}.credentialUrl`])}>
+                      <Field.Label>Verification URL</Field.Label>
+                      <Input type="url" value={item.credentialUrl || ''} onChange={(event) => updateCollection('certifications', index, 'credentialUrl', event.target.value)} placeholder="https://issuer.example/verify/…" />
+                      <Field.ErrorText>{errors[`certifications.${index}.credentialUrl`]}</Field.ErrorText>
+                    </Field.Root>
+                  </SimpleGrid>
+                  <Flex justify="space-between" align="center" gap={4} p={4} bg="bg.subtle" borderRadius="md">
+                    <Box>
+                      <Text fontWeight="700">Show public credential link</Text>
+                      <Text color="fg.muted" fontSize="sm">Display “View credential” on the public About page.</Text>
+                    </Box>
+                    <Switch.Root checked={Boolean(item.showCredentialLink)} onCheckedChange={(details) => updateCollection('certifications', index, 'showCredentialLink', Boolean(details.checked))}>
+                      <Switch.HiddenInput aria-label={`Show public link for ${item.name || `certification ${index + 1}`}`} />
+                      <Switch.Control><Switch.Thumb /></Switch.Control>
+                    </Switch.Root>
+                  </Flex>
+                </Stack>
               ))}
             </EditorSection>
           ) : null}
 
           {!resumeLoading && activeSection === 'skills' ? (
             <EditorSection eyebrow="06" title="Skills and tools" description="Group capabilities in the same categories visitors see on the public About page.">
-              <Field.Root><Field.Label>Analysis and modelling</Field.Label><TagInput value={resumeForm.skillsPrimaryText} delimiter="\n" commitOnComma={false} onChange={(value) => updateField('skillsPrimaryText', value)} placeholder="Add Python, SQL, Pandas…" /></Field.Root>
-              <Field.Root><Field.Label>Visualisation and delivery</Field.Label><TagInput value={resumeForm.skillsSecondaryText} delimiter="\n" commitOnComma={false} onChange={(value) => updateField('skillsSecondaryText', value)} placeholder="Add Power BI, Tableau, React…" /></Field.Root>
-              <Field.Root><Field.Label>Engineering and tools</Field.Label><TagInput value={resumeForm.skillsToolsText} delimiter="\n" commitOnComma={false} onChange={(value) => updateField('skillsToolsText', value)} placeholder="Add Git, Docker, Linux…" /></Field.Root>
+              <Field.Root><Field.Label>Analysis and modelling</Field.Label><TagInput value={resumeForm.skillsPrimaryText} delimiter={'\n'} onChange={(value) => updateField('skillsPrimaryText', value)} placeholder="Add Python, SQL, Pandas…" /></Field.Root>
+              <Field.Root><Field.Label>Visualisation and delivery</Field.Label><TagInput value={resumeForm.skillsSecondaryText} delimiter={'\n'} onChange={(value) => updateField('skillsSecondaryText', value)} placeholder="Add Power BI, Tableau, React…" /></Field.Root>
+              <Field.Root><Field.Label>Engineering and tools</Field.Label><TagInput value={resumeForm.skillsToolsText} delimiter={'\n'} onChange={(value) => updateField('skillsToolsText', value)} placeholder="Add Git, Docker, Linux…" /></Field.Root>
             </EditorSection>
           ) : null}
 

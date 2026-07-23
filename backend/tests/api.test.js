@@ -592,10 +592,46 @@ describe('reviews and resume', () => {
         metrics: [{ label: 'Projects', value: '20+', note: 'Delivered' }],
         experience: [],
         education: [],
-        certifications: [],
+        certifications: [{
+          name: 'Applied Analytics',
+          issuer: 'Example Institute',
+          year: '2025',
+          credentialId: 'AA-2025-101',
+          credentialUrl: 'https://credentials.example.com/AA-2025-101',
+          showCredentialLink: true,
+        }],
         skills: { primary: ['Python'], secondary: ['React'], tools: ['Git'] },
       })
       .expect(200)
+
+    const resume = await request(app).get('/api/resume').expect(200)
+    expect(resume.body.certifications[0]).toMatchObject({
+      credentialId: 'AA-2025-101',
+      credentialUrl: 'https://credentials.example.com/AA-2025-101',
+      showCredentialLink: true,
+    })
+
+    await request(app)
+      .put('/api/resume')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        headline: 'Data analyst',
+        summary: 'Invalid credential URL.',
+        highlights: [],
+        metrics: [],
+        experience: [],
+        education: [],
+        certifications: [{
+          name: 'Applied Analytics',
+          issuer: 'Example Institute',
+          year: '2025',
+          credentialId: 'AA-2025-101',
+          credentialUrl: 'javascript:alert(1)',
+          showCredentialLink: true,
+        }],
+        skills: { primary: [], secondary: [], tools: [] },
+      })
+      .expect(400)
 
     await request(app)
       .put('/api/resume')

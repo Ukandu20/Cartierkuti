@@ -3,7 +3,17 @@ import { z } from 'zod'
 
 const text = (max) => z.string().trim().min(1).max(max)
 const optionalText = (max) => z.string().trim().max(max).optional()
-const url = z.string().trim().url().max(2048)
+const isHttpUrl = (value) => {
+  try {
+    return ['http:', 'https:'].includes(new URL(value).protocol)
+  } catch {
+    return false
+  }
+}
+const url = z.string().trim().url().max(2048).refine(
+  isHttpUrl,
+  { message: 'URL must use http or https' },
+)
 const optionalUrl = z.union([z.literal(''), url]).optional()
 const uniqueTextArray = (min, max) => z
   .array(text(60))
@@ -223,8 +233,15 @@ export const resumeWriteSchema = z
             name: optionalText(160),
             issuer: optionalText(160),
             year: optionalText(40),
+            credentialId: optionalText(160),
+            credentialUrl: optionalUrl,
+            showCredentialLink: z.boolean().default(false),
           })
           .strict()
+          .refine(
+            ({ credentialUrl, showCredentialLink }) => !showCredentialLink || Boolean(credentialUrl),
+            { path: ['credentialUrl'], message: 'Add a credential URL or disable the public link' },
+          )
       )
       .max(30)
       .default([]),

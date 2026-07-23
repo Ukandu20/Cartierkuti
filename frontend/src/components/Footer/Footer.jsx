@@ -14,7 +14,7 @@ import {
   Text,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
-import { FaDownload, FaGithub, FaLinkedinIn } from 'react-icons/fa'
+import { FaDownload, FaGithub, FaLinkedinIn, FaXTwitter } from 'react-icons/fa6'
 import { useResumeDownload } from '@/hooks/useResumeDownload'
 
 const footerLinks = [
@@ -77,14 +77,16 @@ export default function Footer() {
             <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.14em">
               Connect
             </Text>
-            <FooterLink href="mailto:okechiukandu@gmail.com">okechiukandu@gmail.com</FooterLink>
+            <FooterLink href="mailto:okechiprest@gmail.com">okechiprest@gmail.com</FooterLink>
             <Text color={'fg.muted'} maxW="320px">
               Open to thoughtful data science, dashboarding, and sports analytics collaborations.
             </Text>
             <HStack gap={3} pt={1}>
               {[
                 { label: 'LinkedIn', href: 'https://linkedin.com/in/okechiukandu', icon: FaLinkedinIn },
-                { label: 'GitHub', href: 'https://github.com/okechiukandu', icon: FaGithub },
+                { label: 'X', href: 'https://x.com/cartierkut1', icon: FaXTwitter },
+                { label: 'GitHub', href: 'https://github.com/ukandu20', icon: FaGithub },
+                
               ].map(({ label, href, icon }) => (
                 <ChakraLink
                   key={label}

@@ -60,7 +60,14 @@ const DEFAULT_RESUME = {
     },
   ],
   certifications: [
-    { name: 'Data Science Specialisation', issuer: 'Coursera / edX', year: '2023' },
+    {
+      name: 'Data Science Specialisation',
+      issuer: 'Coursera / edX',
+      year: '2023',
+      credentialId: '',
+      credentialUrl: '',
+      showCredentialLink: false,
+    },
   ],
   skills: {
     primary: ['Python', 'SQL', 'Pandas', 'React'],

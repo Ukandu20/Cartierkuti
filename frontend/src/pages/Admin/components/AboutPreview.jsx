@@ -1,14 +1,14 @@
 import React from 'react'
-import { Badge, Box, Flex, Heading, HStack, SimpleGrid, Stack, Text } from '@chakra-ui/react'
+import { Badge, Box, Button, Flex, Heading, HStack, SimpleGrid, Stack, Text } from '@chakra-ui/react'
 import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
-import { splitLines } from '../adminDashboardUtils'
+import { splitLines, splitSkillItems } from '../adminDashboardUtils'
 
 const previewData = (form) => ({
   highlights: splitLines(form.highlightsText),
   skills: {
-    primary: splitLines(form.skillsPrimaryText),
-    secondary: splitLines(form.skillsSecondaryText),
-    tools: splitLines(form.skillsToolsText),
+    primary: splitSkillItems(form.skillsPrimaryText),
+    secondary: splitSkillItems(form.skillsSecondaryText),
+    tools: splitSkillItems(form.skillsToolsText),
   },
 })
 
@@ -82,7 +82,19 @@ export default function AboutPreview({ form }) {
           {form.certifications.length ? (
             <Box>
               <Text fontFamily="mono" fontSize="xs" color="accent.default" textTransform="uppercase">Credentials</Text>
-              <Stack mt={3}>{form.certifications.map((item, index) => <Text key={`${item.name}-${index}`}><strong>{item.name || 'Certification'}</strong> · {item.issuer} {item.year}</Text>)}</Stack>
+              <Stack mt={3} gap={4}>
+                {form.certifications.map((item, index) => (
+                  <Box key={`${item.name}-${index}`}>
+                    <Text><strong>{item.name || 'Certification'}</strong> · {item.issuer} {item.year}</Text>
+                    {item.credentialId ? <Text fontFamily="mono" fontSize="xs" color="fg.muted" mt={1}>Credential ID: {item.credentialId}</Text> : null}
+                    {item.showCredentialLink && item.credentialUrl ? (
+                      <Button asChild size="xs" variant="outline" colorPalette="brand" mt={2}>
+                        <a href={item.credentialUrl} target="_blank" rel="noopener noreferrer">View credential</a>
+                      </Button>
+                    ) : null}
+                  </Box>
+                ))}
+              </Stack>
             </Box>
           ) : null}
           <Box>

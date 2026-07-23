@@ -106,7 +106,7 @@ const Hero = () => {
             maxW="760px"
           >
             Turning complex data into{' '}
-            <Box as="span" color={'accent.default'}>clear decisions.</Box>
+            <Box as="span" color={'accent.default'}>clear decisions and observations.</Box>
           </Heading>
           <Text fontFamily={'body'} fontSize={{ base: 'lg', md: 'xl' }} lineHeight="1.7" color={'fg.muted'} maxW="680px">
             I build decision-ready dashboards, analytical models, and reproducible data products—bringing rigorous data science to business questions and sports performance.
@@ -333,10 +333,10 @@ const FeaturedWork = () => {
           <Stack gap={3} maxW="700px">
             <SectionLabel number="01" color={'accent.default'}>Selected work</SectionLabel>
             <Heading id="featured-heading" fontFamily={'heading'} fontSize={{ base: '3xl', md: '5xl' }} color={'fg.default'}>
-              Evidence before adjectives.
+              Proof of concepts.
             </Heading>
             <Text fontFamily={'body'} fontSize="lg" color={'fg.muted'}>
-              A selection of analytical work across modeling, visualization, automation, and decision support.
+              A selection of my best work across modeling, visualization, automation, and decision support.
             </Text>
           </Stack>
           <Button asChild variant="outline" colorPalette="brand">
