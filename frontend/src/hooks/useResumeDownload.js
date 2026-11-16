@@ -6,8 +6,11 @@ export const FALLBACK_RESUME_URL = '/resume.pdf'
 export const FALLBACK_RESUME_FILENAME = 'Preston-Ukandu-Resume.pdf'
 
 export function getResumeDownloadUrl(resume) {
+  const version = resume?.resumeFileUpdatedAt
+    ? `?v=${encodeURIComponent(resume.resumeFileUpdatedAt)}`
+    : ''
   return resume?.resumeFileUrl
-    ? apiUrl('/api/resume/file/download')
+    ? apiUrl(`/api/resume/file/download${version}`)
     : FALLBACK_RESUME_URL
 }
 
@@ -57,7 +60,7 @@ export function useResumeDownload(initialResume) {
     return () => {
       active = false
     }
-  }, [initialResume?.resumeFileName, initialResume?.resumeFileUrl])
+  }, [initialResume?.resumeFileName, initialResume?.resumeFileUrl, initialResume?.resumeFileUpdatedAt])
 
   return resumeDownload
 }

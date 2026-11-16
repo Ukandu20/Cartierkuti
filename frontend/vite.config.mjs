@@ -12,7 +12,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
 
-          if (id.includes("@chakra-ui") || id.includes("@emotion")) return "chakra-vendor";
           if (id.includes("@fortawesome") || id.includes("react-icons")) return "icons-vendor";
           if (id.includes("framer-motion")) return "motion-vendor";
           if (id.includes("swiper")) return "swiper-vendor";

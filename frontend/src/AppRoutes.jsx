@@ -3,6 +3,7 @@ import React, { Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Error404 from './components/Error/Error404';
 import { LoadingState } from './components/ui/StateFeedback';
+import { Box } from '@chakra-ui/react';
 
 const Home = React.lazy(() => import('./pages/Home/Home'));
 const Portfolio = React.lazy(() => import('./pages/Portfolio/Portfolio'));
@@ -16,7 +17,7 @@ const Contact = React.lazy(() => import('./pages/Contact/Contact'));
 
 const AppRoutes = () => {
   return (
-    <Suspense fallback={<LoadingState label="Loading page..." />}>
+    <Suspense fallback={<Box minH="100svh"><LoadingState label="Loading page..." /></Box>}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/portfolio" element={<Portfolio />} />

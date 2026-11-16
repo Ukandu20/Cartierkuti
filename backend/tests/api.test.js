@@ -14,6 +14,7 @@ import Resume from '../src/models/resume.model.js'
 import { archiveAndDeleteProject, updateProject } from '../src/services/project.service.js'
 import { generateTotpCode } from '../src/services/totp.service.js'
 import { migrateProjectClassifications } from '../src/services/project-classification.service.js'
+import { ensureDefaultCategories } from '../src/services/category.service.js'
 
 let mongo
 let token
@@ -63,7 +64,7 @@ beforeAll(async () => {
   process.env.CLOUDINARY_API_KEY = 'test-key'
   process.env.CLOUDINARY_API_SECRET = 'test-secret'
 
-  mongo = await MongoMemoryServer.create()
+  mongo = await MongoMemoryServer.create({ instance: { launchTimeout: 30_000 } })
   await mongoose.connect(mongo.getUri())
 }, 60_000)
 
@@ -79,6 +80,7 @@ beforeEach(async () => {
   }))
 
   await mongoose.connection.db.dropDatabase()
+  await ensureDefaultCategories()
   const login = await request(app)
     .post('/api/admin/login')
     .send({ username: 'admin', password: 'correct-password' })
@@ -319,6 +321,17 @@ describe('admin auth', () => {
 })
 
 describe('project API', () => {
+  it('lists categories without writing to the database', async () => {
+    const upsert = vi.spyOn(Category, 'updateOne')
+    try {
+      const categories = await request(app).get('/api/categories').expect(200)
+      expect(categories.body).toHaveLength(5)
+      expect(upsert).not.toHaveBeenCalled()
+    } finally {
+      upsert.mockRestore()
+    }
+  })
+
   it('lets admins manage categories while protecting categories used by projects', async () => {
     const publicCategories = await request(app).get('/api/categories').expect(200)
     expect(publicCategories.body).toHaveLength(5)
@@ -822,15 +835,14 @@ describe('reviews and resume', () => {
     expect(resume.body.resumeFileName).toBe('Preston-Resume.pdf')
     expect(resume.body.resumeFileUpdatedAt).toBeTruthy()
 
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(Buffer.from('%PDF-1.4 test')),
-    })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('%PDF-1.4 test'))
 
     const downloaded = await request(app).get('/api/resume/file/download').expect(200)
     expect(downloaded.headers['content-type']).toMatch(/application\/pdf/)
     expect(downloaded.headers['content-disposition']).toBe('attachment; filename="Preston-Resume.pdf"')
-    expect(fetchMock).toHaveBeenCalledWith(uploaded.body.resumeFileUrl)
+    expect(downloaded.body.toString()).toBe('%PDF-1.4 test')
+    expect(downloaded.headers['cache-control']).toBe('public, max-age=300')
+    expect(fetchMock).toHaveBeenCalledWith(uploaded.body.resumeFileUrl, { signal: expect.any(AbortSignal) })
     fetchMock.mockRestore()
   })
 
@@ -874,5 +886,15 @@ describe('reviews and resume', () => {
         contentType: 'application/pdf',
       })
       .expect(400)
+  })
+
+  it('returns an upstream failure without buffering or publishing a PDF response', async () => {
+    await Resume.create({ key: 'primary', resumeFileUrl: 'https://example.com/unavailable.pdf' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('unavailable', { status: 503 }))
+    try {
+      await request(app).get('/api/resume/file/download').expect(502)
+    } finally {
+      fetchMock.mockRestore()
+    }
   })
 })

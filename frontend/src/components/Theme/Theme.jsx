@@ -5,10 +5,10 @@
 
 import {
   createSystem,
-  defaultConfig,
   defineConfig,
   defineRecipe,
 } from '@chakra-ui/react'
+import { defaultBaseConfig, themePreset } from './themePreset'
 
 /* ------------------------------------------------------------------
  * 1 ·  Static design-tokens  (never swap automatically)
@@ -272,7 +272,7 @@ const globalCss = {
 /* ------------------------------------------------------------------
  * 5 ·  Assemble & export System object
  * ----------------------------------------------------------------- */
-const baseTokens = defaultConfig.theme?.tokens ?? {}
+const baseTokens = themePreset.theme.tokens
 const mergedTokens = {
   ...baseTokens,
   colors: { ...baseTokens.colors, ...tokens.colors },
@@ -301,4 +301,4 @@ const config = defineConfig({
   globalCss,
 })
 
-export const system = createSystem(defaultConfig, config)
+export const system = createSystem(defaultBaseConfig, themePreset, config)

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { requireApiBaseUrl } from './apiConfig';
+import { invalidatePublicData } from '@/services/publicDataCache';
 
 const API_URL = requireApiBaseUrl();
 
@@ -48,6 +49,15 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   response => {
+    if (['post', 'put', 'patch', 'delete'].includes(response.config.method?.toLowerCase())) {
+      const path = response.config.url || '';
+      if (/\/api\/projects(?:\/|$)/.test(path)) invalidatePublicData('/api/projects');
+      if (/\/api\/categories(?:\/|$)/.test(path)) {
+        invalidatePublicData('/api/categories');
+        invalidatePublicData('/api/projects');
+      }
+      if (/\/api\/resume(?:\/|$)/.test(path)) invalidatePublicData('/api/resume');
+    }
     if (import.meta.env.DEV) {
       console.debug('[API Response]', response.status, response.config.url);
     }

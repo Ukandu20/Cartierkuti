@@ -28,6 +28,7 @@ import {
 } from 'react-icons/fa'
 import { toaster } from '../../components/ui/toaster'
 import apiClient from '@/utils/axiosConfig'
+import { projectImageProps } from '@/utils/projectImages'
 
 const formatDate = (value) => {
   if (!value) return 'Not specified'
@@ -117,7 +118,7 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
     <Stack gap={0}>
       <AspectRatio ratio={16 / 10} bg={'bg.raised'}>
         <Image
-          src={project.imageUrl || '/placeholder.svg'}
+          {...projectImageProps(project.imageUrl, { detail: true })}
           alt={`${project.title} project overview`}
           objectFit="contain"
           loading="lazy"

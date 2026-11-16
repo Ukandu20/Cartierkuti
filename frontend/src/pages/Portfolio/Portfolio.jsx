@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import apiClient from '@/utils/axiosConfig'
-import { normalizeProjects } from '@/utils/projectNormalizer'
+import { getPublicProjects, getPublicCategories } from '@/services/projectService'
 import {
   Box,
   Button,
@@ -77,15 +77,15 @@ export default function Portfolio() {
   const [sort, setSort] = useState('date')
   const [page, setPage] = useState(1)
 
-  const fetchProjects = async () => {
+  const fetchProjects = async ({ fresh = false } = {}) => {
     setLoading(true)
     try {
-      const [{ data: projectData }, { data: categoryData }] = await Promise.all([
-        apiClient.get('/api/projects'),
-        apiClient.get('/api/categories').catch(() => ({ data: [] })),
+      const [projectData, categoryData] = await Promise.all([
+        getPublicProjects({ fresh }),
+        getPublicCategories({ fresh }).catch(() => []),
       ])
-      setProjects(normalizeProjects(projectData))
-      setCategories(Array.isArray(categoryData) ? categoryData.filter((item) => item?.slug && item?.name) : [])
+      setProjects(projectData)
+      setCategories(categoryData)
       setError('')
     } catch {
       setError('Projects could not be loaded.')
@@ -185,7 +185,7 @@ export default function Portfolio() {
         </SimpleGrid>
       </Box>
 
-      {!loading && featuredProject ? (
+      {loading || featuredProject ? (
         <Box as="section" aria-labelledby="featured-project-heading" bg={'bg.raised'} borderY="1px solid" borderColor={'border.subtle'} px={{ base: 6, md: 10 }} py={{ base: 14, md: 20 }}>
           <Box maxW="7xl" mx="auto">
             <Stack gap={3} mb={8} maxW="760px">
@@ -194,13 +194,13 @@ export default function Portfolio() {
                 A closer look at the work.
               </Heading>
             </Stack>
-            <ProjectCard
+            {loading ? <Skeleton minH={{ base: '760px', lg: '480px' }} borderRadius="lg" aria-label="Loading featured project" /> : <ProjectCard
               project={featuredProject}
               favorites={favorites}
               handleFavorite={toggleFavorite}
               hitAndOpen={hitAndOpen}
               featured
-            />
+            />}
           </Box>
         </Box>
       ) : null}
@@ -323,7 +323,7 @@ export default function Portfolio() {
                   ))}
                 </SimpleGrid>
               ) : error ? (
-                <ErrorState title={error} description="Check the API connection and try again." onRetry={fetchProjects} />
+                <ErrorState title={error} description="Check the API connection and try again." onRetry={() => fetchProjects({ fresh: true })} />
               ) : paginated.length === 0 ? (
                 <Box borderY="1px solid" borderColor={'border.subtle'} py={8}>
                   <EmptyState title="No projects match those filters." description="Try another category or clear the search term." />

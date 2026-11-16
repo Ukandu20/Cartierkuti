@@ -75,6 +75,12 @@ npm test
 npm run build
 ```
 
+`npm run audit:performance` in `frontend/` builds the production app and measures cold desktop/mobile loads locally with Playwright. It writes `frontend/performance-results/audit.json`. The audit uses fixture APIs, tiny images, and blocked external fonts to isolate JavaScript and layout costs; it is not live-site or Lighthouse data.
+
+Public project, category, and résumé requests share a 60-second in-memory cache and deduplicate in-flight requests. Successful admin writes invalidate the affected cached data. Category defaults are initialized at backend startup, so category-list reads perform no upserts. Project images served by Cloudinary use responsive widths and automatic format/quality; signed and other-provider URLs are preserved. Résumé downloads stream through the API, with versioned download links and a five-minute public cache lifetime.
+
+The Chakra theme includes only the recipes used by this app. When adding a new Chakra widget, add its recipe to `frontend/src/components/Theme/themePreset.js` if required. Hashed `/assets/*` files use an immutable one-year cache on Netlify.
+
 ## Admin Usage
 
 `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, and `ADMIN_RECOVERY_EMAIL` are one-time bootstrap values. On first authenticated use, the backend creates the singleton admin identity in MongoDB; the database is the source of truth after that point. Changing environment bootstrap values does not overwrite an existing account.

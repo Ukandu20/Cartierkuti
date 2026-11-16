@@ -31,7 +31,7 @@ import { Link } from 'react-router-dom'
 import { useResumeDownload } from '@/hooks/useResumeDownload'
 import { PageCta, SectionLabel, SurfaceCard } from '@/components/ui/DesignSystem'
 import apiClient from '@/utils/axiosConfig'
-import { normalizeProjects } from '@/utils/projectNormalizer'
+import { getPublicProjects } from '@/services/projectService'
 import { absoluteUrl, siteTitle } from '@/utils/siteConfig'
 import PortfolioProjectCard from '@/pages/Portfolio/ProjectCard'
 
@@ -306,9 +306,9 @@ const FeaturedWork = () => {
 
   useEffect(() => {
     let active = true
-    apiClient.get('/api/projects')
-      .then(({ data }) => {
-        if (active) setProjects(normalizeProjects(data))
+    getPublicProjects()
+      .then((data) => {
+        if (active) setProjects(data)
       })
       .catch(() => {
         if (active) setProjects([])

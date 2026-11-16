@@ -13,7 +13,7 @@ export default function App() {
       <ScrollToTop />
       <Navbar />
 
-      <Flex as="main" id="main-content" tabIndex="-1" direction="column" flex="1">
+      <Flex as="main" id="main-content" tabIndex="-1" direction="column" flex="1" minH="100svh">
         <AppRoutes flex="1" />
       </Flex>
 

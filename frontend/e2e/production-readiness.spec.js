@@ -86,6 +86,7 @@ const setupApi = async (page) => {
     resumeFileUploads: 0,
     failResumeUpload: false,
     imageUploads: 0,
+    projectReads: 0,
     categories: [
       { _id: 'category-1', name: 'Machine Learning & Forecasting', slug: 'machine-learning-forecasting', aliases: [], order: 10 },
       { _id: 'category-2', name: 'Web Applications', slug: 'web-applications', aliases: [], order: 20 },
@@ -115,6 +116,7 @@ const setupApi = async (page) => {
     }
 
     if (path === '/api/projects' && method === 'GET') {
+      state.projectReads += 1
       return route.fulfill({ status: 200, json: state.projects })
     }
 
@@ -326,6 +328,35 @@ test('home page leads with data science and sports analytics work', async ({ pag
   await expect(page.getByRole('link', { name: /view selected work/i })).toHaveAttribute('href', '/portfolio')
   await expect(page.getByRole('link', { name: /start a conversation/i })).toHaveAttribute('href', '/contact')
   await expect(page.locator('main')).toHaveCount(1)
+})
+
+test('public navigation reuses projects already loaded on the home page', async ({ page }) => {
+  const api = await setupApi(page)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
+  expect(api.projectReads).toBe(1)
+  await page.getByRole('link', { name: /view selected work/i }).click()
+  await expect(page.getByRole('heading', { name: /work built to move/i })).toBeVisible()
+  await expect(page.getByText('Beta Portfolio').first()).toBeVisible()
+  expect(api.projectReads).toBe(1)
+})
+
+test('portfolio reserves its featured section while project data loads', async ({ page }) => {
+  await setupApi(page)
+  let releaseProjects
+  const pendingProjects = new Promise(resolve => { releaseProjects = resolve })
+  await page.route('**/api/projects', async route => { await pendingProjects; await route.fallback() })
+  try {
+    await page.goto('/portfolio', { waitUntil: 'domcontentloaded' })
+    await expect(page.getByLabel('Loading featured project')).toBeVisible()
+    const footer = await page.locator('footer').boundingBox()
+    expect(footer.y).toBeGreaterThanOrEqual(page.viewportSize().height)
+    releaseProjects()
+    await expect(page.getByRole('heading', { name: 'Alpha Analytics' }).first()).toBeVisible()
+    await expect(page.getByLabel('Loading featured project')).toHaveCount(0)
+  } finally {
+    releaseProjects()
+  }
 })
 
 test('shared navigation and footer adapt to the active viewport', async ({ page }) => {
@@ -575,10 +606,12 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   await page.getByLabel('Credential ID').fill('AA-2025-101')
   await page.getByLabel('Verification URL').fill('https://credentials.example.com/AA-2025-101')
   const credentialToggle = page.getByLabel('Show public link for Applied Analytics')
+  const credentialControl = credentialToggle.locator('..').locator('[data-part="control"]')
   await expect(credentialToggle).toBeChecked()
-  await credentialToggle.uncheck({ force: true })
+  await credentialControl.click()
   await expect(credentialToggle).not.toBeChecked()
-  await credentialToggle.check({ force: true })
+  await credentialControl.click()
+  await expect(credentialToggle).toBeChecked()
 
   await page.getByRole('button', { name: /Résumé PDF.*Downloadable document/i }).click()
   await page.getByLabel('Choose résumé PDF').setInputFiles({

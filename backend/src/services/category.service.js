@@ -37,7 +37,6 @@ export async function ensureDefaultCategories() {
 }
 
 export async function listCategories({ includeArchived = false } = {}) {
-  await ensureDefaultCategories()
   return Category.find(includeArchived ? {} : { active: true }).sort({ order: 1, name: 1 }).lean()
 }
 

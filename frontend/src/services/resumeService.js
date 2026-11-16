@@ -1,26 +1,10 @@
 import apiClient from '@/utils/axiosConfig'
+import { getCachedPublicData, invalidatePublicData } from './publicDataCache'
 
-let cachedResume
-let pendingResume
-
-export async function getPublicResume({ fresh = false } = {}) {
-  if (!fresh && cachedResume) return cachedResume
-  if (!fresh && pendingResume) return pendingResume
-
-  pendingResume = apiClient
-    .get('/api/resume')
-    .then(({ data }) => {
-      cachedResume = data
-      return data
-    })
-    .finally(() => {
-      pendingResume = undefined
-    })
-
-  return pendingResume
-}
+export const getPublicResume = (options) => getCachedPublicData(
+  '/api/resume', async () => (await apiClient.get('/api/resume')).data, options,
+)
 
 export function invalidateResumeCache() {
-  cachedResume = undefined
-  pendingResume = undefined
+  invalidatePublicData('/api/resume')
 }

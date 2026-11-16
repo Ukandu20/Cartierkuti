@@ -1,4 +1,6 @@
 import crypto from 'crypto'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { Router } from 'express'
 import multer from 'multer'
 import asyncHandler from 'express-async-handler'
@@ -193,21 +195,30 @@ resumeRouter.get(
       return res.status(404).json({ message: 'No resume PDF has been uploaded' })
     }
 
-    const response = await fetch(resume.resumeFileUrl)
-    if (!response.ok) {
-      return res.status(502).json({ message: 'Could not fetch resume PDF' })
+    const controller = new AbortController()
+    const abortDownload = () => controller.abort()
+    res.once('close', abortDownload)
+    try {
+      const response = await fetch(resume.resumeFileUrl, {
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
+      })
+      if (!response.ok || !response.body) {
+        await response.body?.cancel()
+        return res.status(502).json({ message: 'Could not fetch resume PDF' })
+      }
+      const filename = getSafePdfFilename(resume.resumeFileName)
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'public, max-age=300',
+      })
+      await pipeline(Readable.fromWeb(response.body), res)
+    } catch (error) {
+      if (res.headersSent) res.destroy(error)
+      else throw error
+    } finally {
+      res.off('close', abortDownload)
     }
-
-    const buffer = Buffer.from(await response.arrayBuffer())
-    const filename = getSafePdfFilename(resume.resumeFileName)
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': buffer.length,
-      'Cache-Control': 'private, max-age=300',
-    })
-    res.send(buffer)
   })
 )
 

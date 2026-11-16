@@ -11,6 +11,7 @@ vi.mock('@/utils/axiosConfig', () => ({
       data: {
         resumeFileUrl: 'https://example.com/current-resume.pdf',
         resumeFileName: 'Preston-Resume.pdf',
+        resumeFileUpdatedAt: '2026-01-20T12:00:00.000Z',
       },
     })),
   },
@@ -34,7 +35,7 @@ describe('Navbar', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'Résumé', hidden: true })).toHaveAttribute(
         'href',
-        apiUrl('/api/resume/file/download'),
+        apiUrl('/api/resume/file/download?v=2026-01-20T12%3A00%3A00.000Z'),
       )
       expect(screen.getByRole('link', { name: 'Résumé', hidden: true })).toHaveAttribute(
         'download',

@@ -31,6 +31,7 @@ import {
 } from 'react-icons/fa'
 import { interactiveSurfaceStyles } from '@/components/ui/DesignSystem'
 import ProjectDetails from './ProjectDetails'
+import { projectImageProps } from '@/utils/projectImages'
 
 const formatProjectDate = (value) => {
   if (!value) return ''
@@ -66,7 +67,7 @@ export default function ProjectCard({
           <Box position="relative" bg={'bg.raised'}>
             <AspectRatio ratio={16 / 10} h="full">
               <Image
-                src={project.imageUrl || '/placeholder.svg'}
+                {...projectImageProps(project.imageUrl, { featured })}
                 alt={`${project.title} project preview`}
                 objectFit="contain"
                 loading="lazy"
