@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import Project from '../models/project.model.js'
 import ArchivedProject from '../models/archive.model.js'
 import Activity from '../models/activity.model.js'
@@ -6,6 +7,10 @@ import { resolveCategory } from './category.service.js'
 import { destroyProjectImage } from './project-image.service.js'
 
 const notFound = () => Object.assign(new Error('Project not found'), { status: 404 })
+const conflict = () => Object.assign(new Error('Project changed during this operation. Reload and try again.'), { status: 409 })
+const revisionFilter = (project) => project.mutationId
+  ? { mutationId: project.mutationId }
+  : { mutationId: { $in: ['', null] } }
 
 export async function createProject(payload, actor = 'system') {
   const category = await resolveCategory(payload)
@@ -24,10 +29,16 @@ export async function createProject(payload, actor = 'system') {
       actor,
     })
   } catch (error) {
-    await Project.deleteOne({ _id: project._id }).catch((rollbackError) => {
+    const rollback = await Project.deleteOne({
+      _id: project._id,
+      ...revisionFilter(project),
+      lastUpdatedDate: project.lastUpdatedDate,
+      __v: project.__v,
+      views: project.views,
+    }).catch((rollbackError) => {
       logger.error({ rollbackError, projectId: project._id }, 'Could not roll back project creation')
     })
-    await destroyProjectImage(project.imageAssetId)
+    if (rollback?.deletedCount === 1) await destroyProjectImage(project.imageAssetId)
     throw error
   }
 
@@ -35,7 +46,7 @@ export async function createProject(payload, actor = 'system') {
 }
 
 export async function updateProject(projectId, payload, actor = 'system') {
-  const previous = await Project.findById(projectId).lean()
+  const previous = await Project.findById(projectId).select('+mutationId').lean()
   if (!previous) throw notFound()
 
   let resolvedPayload = payload
@@ -44,10 +55,14 @@ export async function updateProject(projectId, payload, actor = 'system') {
     resolvedPayload = { ...payload, category: category.name, categorySlug: category.slug }
   }
 
-  const project = await Project.findByIdAndUpdate(projectId, resolvedPayload, {
+  const mutationId = crypto.randomUUID()
+  const project = await Project.findOneAndUpdate({ _id: projectId, ...revisionFilter(previous) }, {
+    $set: { ...resolvedPayload, mutationId },
+  }, {
     new: true,
     runValidators: true,
   })
+  if (!project) throw conflict()
 
   try {
     await Activity.create({
@@ -58,9 +73,23 @@ export async function updateProject(projectId, payload, actor = 'system') {
       actor,
     })
   } catch (error) {
-    await Project.replaceOne({ _id: projectId }, previous).catch((rollbackError) => {
+    // Restore only our fields, and only while this is still the latest admin edit.
+    // Public counters/reviews can change independently while the audit write runs.
+    const restore = { mutationId: crypto.randomUUID() }
+    const unset = {}
+    for (const field of Object.keys(resolvedPayload)) {
+      if (previous[field] === undefined) unset[field] = ''
+      else restore[field] = previous[field]
+    }
+    const rollback = await Project.updateOne(
+      { _id: projectId, mutationId },
+      { $set: restore, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
+    ).catch((rollbackError) => {
       logger.error({ rollbackError, projectId }, 'Could not roll back project update')
     })
+    if (rollback?.matchedCount === 0) {
+      logger.warn({ projectId }, 'Skipped project rollback because a newer edit or deletion exists')
+    }
     throw error
   }
 
@@ -72,7 +101,7 @@ export async function updateProject(projectId, payload, actor = 'system') {
 }
 
 export async function archiveAndDeleteProject(projectId, actor = 'system') {
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).select('+mutationId').lean()
   if (!project) throw notFound()
 
   const { _id: originalId, ...snapshot } = project
@@ -86,8 +115,14 @@ export async function archiveAndDeleteProject(projectId, actor = 'system') {
       deletedAt: new Date(),
       deletedBy: actor,
     })
-    const result = await Project.deleteOne({ _id: originalId })
-    if (result.deletedCount !== 1) throw notFound()
+    const result = await Project.deleteOne({
+      _id: originalId,
+      ...revisionFilter(project),
+      lastUpdatedDate: project.lastUpdatedDate,
+      __v: project.__v,
+      views: project.views,
+    })
+    if (result.deletedCount !== 1) throw conflict()
     deleted = true
     await Activity.create({
       projectId: originalId,
@@ -99,7 +134,8 @@ export async function archiveAndDeleteProject(projectId, actor = 'system') {
     await destroyProjectImage(project.imageAssetId)
   } catch (error) {
     if (deleted) {
-      await Project.replaceOne({ _id: originalId }, project, { upsert: true }).catch((rollbackError) => {
+      // Insert rather than replace: never overwrite a document restored concurrently.
+      await Project.create(project).catch((rollbackError) => {
         logger.error({ rollbackError, projectId }, 'Could not restore project after delete failure')
       })
     }

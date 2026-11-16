@@ -138,7 +138,6 @@ export default function AboutEditor() {
     resumeLoading,
     fetchResume,
     saveResume,
-    uploadResumeFile,
   } = useAdminProjects()
 
   const loadAbout = useCallback(async () => {
@@ -271,22 +270,13 @@ export default function AboutEditor() {
     }
 
     setSaveState('saving')
-    const contentSaved = await saveResume()
-    if (!contentSaved) {
+    const savedForm = await saveResume(pendingFile)
+    if (!savedForm) {
       setSaveState('error')
       return
     }
 
-    let savedForm = resumeForm
-    if (pendingFile) {
-      const uploaded = await uploadResumeFile(pendingFile)
-      if (!uploaded) {
-        setSaveState('error')
-        return
-      }
-      savedForm = { ...resumeForm, ...uploaded }
-      setPendingFile(null)
-    }
+    setPendingFile(null)
 
     setBaseline(JSON.stringify(savedForm))
     sessionStorage.removeItem(DRAFT_KEY)
@@ -522,8 +512,8 @@ export default function AboutEditor() {
                         const file = event.target.files?.[0]
                         event.target.value = ''
                         if (!file) return
-                        if (file.type !== 'application/pdf' || file.size > 10 * 1024 * 1024) {
-                          setPdfError('Choose a PDF no larger than 10 MB.')
+                        if (file.type !== 'application/pdf' || file.size > 5 * 1024 * 1024) {
+                          setPdfError('Choose a PDF no larger than 5 MB.')
                           return
                         }
                         setPdfError('')
@@ -533,7 +523,7 @@ export default function AboutEditor() {
                     <FileUpload.Trigger asChild><Button variant="outline" colorPalette="brand"><HiOutlineDocumentArrowUp /> {resumeForm.resumeFileName ? 'Replace PDF' : 'Choose PDF'}</Button></FileUpload.Trigger>
                   </FileUpload.Root>
                 </Flex>
-                <Text color={pdfError ? 'fg.error' : 'fg.muted'} fontSize="sm" mt={3}>{pdfError || 'PDF only · maximum file size 10 MB.'}</Text>
+                <Text color={pdfError ? 'fg.error' : 'fg.muted'} fontSize="sm" mt={3}>{pdfError || 'PDF only · maximum file size 5 MB.'}</Text>
                 {pendingFile ? <Button mt={4} size="sm" variant="ghost" colorPalette="red" onClick={() => setPendingFile(null)}>Remove staged file</Button> : null}
               </SurfaceCard>
             </EditorSection>

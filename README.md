@@ -91,6 +91,8 @@ The previous `x-admin-secret` flow has been removed.
 
 ## Deployment Notes
 
+- About-page saves use `PUT /api/resume`: JSON for text-only updates, or multipart with a JSON `content` field and optional `resume` PDF (maximum 5 MB). The PDF uploads to a unique asset before content and file metadata publish together in one database update. Failed uploads preserve the published page; failed saves retain the editor draft and staged file for retry. Deploy the backend supporting this contract before deploying the frontend.
+- Project edits use a mutation identifier to detect overlapping admin writes. Audit failures restore only the edited fields when that mutation is still current, preserving concurrent views and reviews. Conflicting edits or deletions return HTTP 409 and require reloading.
 - Netlify builds the frontend from `frontend/`.
 - Backend Docker builds from `backend/Dockerfile`; MongoDB is not published to the host by default.
 - Production startup never runs a destructive seed automatically. `npm run seed:prod` performs idempotent upserts and must be invoked explicitly when bundled starter data changes.

@@ -26,6 +26,7 @@ const projectSchema = new mongoose.Schema(
     imageUrl: { type: String },
     imageAssetId: { type: String, default: '' },
     featured: { type: Boolean, default: false },
+    mutationId: { type: String, default: '', select: false },
     views: { type: Number, default: 0 },
     reviews: {
       type: [reviewSchema],

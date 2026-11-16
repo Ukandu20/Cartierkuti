@@ -84,6 +84,7 @@ const setupApi = async (page) => {
     },
     resumeWrites: [],
     resumeFileUploads: 0,
+    failResumeUpload: false,
     imageUploads: 0,
     categories: [
       { _id: 'category-1', name: 'Machine Learning & Forecasting', slug: 'machine-learning-forecasting', aliases: [], order: 10 },
@@ -231,8 +232,26 @@ const setupApi = async (page) => {
     }
 
     if (path === '/api/resume' && method === 'PUT') {
-      const payload = request.postDataJSON()
-      state.resume = { ...state.resume, ...payload }
+      let payload
+      let uploaded = {}
+      if (request.headers()['content-type']?.includes('multipart/form-data')) {
+        const form = await new Request(request.url(), {
+          method: 'PUT', headers: request.headers(), body: request.postDataBuffer(),
+        }).formData()
+        payload = JSON.parse(form.get('content'))
+        state.resumeFileUploads += 1
+        if (state.failResumeUpload) {
+          return route.fulfill({ status: 502, json: { message: 'PDF upload unavailable' } })
+        }
+        uploaded = {
+          resumeFileUrl: '/uploads/resume.pdf',
+          resumeFileName: form.get('resume').name,
+          resumeFileUpdatedAt: '2026-07-17T12:00:00.000Z',
+        }
+      } else {
+        payload = request.postDataJSON()
+      }
+      state.resume = { ...state.resume, ...payload, ...uploaded }
       state.resumeWrites.push(payload)
       return route.fulfill({ status: 200, json: state.resume })
     }
@@ -592,6 +611,46 @@ test('About editor structures content, stages the PDF, previews, and saves as on
     showCredentialLink: true,
   }])
   expect(api.resumeFileUploads).toBe(1)
+})
+
+test('About editor retains text and staged PDF after a failed save and can retry', async ({ page }) => {
+  const api = await setupApi(page)
+  const originalHeadline = api.resume.headline
+  api.failResumeUpload = true
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await page.getByLabel('Headline').fill('Publish text and PDF together')
+  await page.getByRole('button', { name: /Résumé PDF.*Downloadable document/i }).click()
+  await page.getByLabel('Choose résumé PDF').setInputFiles({
+    name: 'Retry-Resume.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test'),
+  })
+  await page.getByRole('button', { name: 'Save About page' }).first().click()
+  await expect(page.getByText('About page could not be saved')).toBeVisible()
+  expect(api.resume.headline).toBe(originalHeadline)
+  expect(api.resumeWrites).toHaveLength(0)
+  await expect(page.getByText(/staged locally/i)).toBeVisible()
+  await expect(page.getByText('Retry-Resume.pdf', { exact: true })).toBeVisible()
+
+  api.failResumeUpload = false
+  await page.getByRole('button', { name: 'Save About page' }).first().click()
+  await expect(page.getByText(/saved at/i)).toBeVisible()
+  expect(api.resume.headline).toBe('Publish text and PDF together')
+  expect(api.resume.resumeFileName).toBe('Retry-Resume.pdf')
+  expect(api.resumeWrites).toHaveLength(1)
+  await expect(page.getByText(/staged locally/i)).toHaveCount(0)
+})
+
+test('About editor rejects PDFs above the API size limit before staging', async ({ page }) => {
+  const api = await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await page.getByRole('button', { name: /Résumé PDF.*Downloadable document/i }).click()
+  await page.getByLabel('Choose résumé PDF').setInputFiles({
+    name: 'Too-Large.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  })
+  await expect(page.getByText('Choose a PDF no larger than 5 MB.')).toBeVisible()
+  await expect(page.getByText(/staged locally/i)).toHaveCount(0)
+  expect(api.resumeFileUploads).toBe(0)
 })
 
 test('About editor keeps the sticky section navigation beside the form while scrolling', async ({ page }) => {

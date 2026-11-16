@@ -17,6 +17,7 @@ import {
 import { HiDotsVertical, HiEye, HiPencil, HiTrash } from 'react-icons/hi'
 import PaginationControls from '@/components/pagination/pagination'
 import { fieldStyles, interactiveSurfaceStyles, SurfaceCard } from '@/components/ui/DesignSystem'
+import { calendarDate } from '@/utils/formatDate'
 
 const statusPalette = (status = '') => {
   const normalized = status.toLowerCase()
@@ -28,9 +29,7 @@ const statusPalette = (status = '') => {
 const projectDate = (project) => {
   const value = project.lastUpdatedDate || project.updatedAt || project.createdDate || project.createdAt
   if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return calendarDate(value)
 }
 
 const ProjectIdentity = ({ project, compact = false }) => (

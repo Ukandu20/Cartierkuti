@@ -10,6 +10,8 @@ import ArchivedProject from '../src/models/archive.model.js'
 import Category from '../src/models/category.model.js'
 import AdminUser from '../src/models/admin-user.model.js'
 import CredentialResetToken from '../src/models/credential-reset-token.model.js'
+import Resume from '../src/models/resume.model.js'
+import { archiveAndDeleteProject, updateProject } from '../src/services/project.service.js'
 import { generateTotpCode } from '../src/services/totp.service.js'
 import { migrateProjectClassifications } from '../src/services/project-classification.service.js'
 
@@ -474,6 +476,87 @@ describe('project API', () => {
     expect(await Activity.countDocuments({ projectId: created.body._id })).toBe(1)
   })
 
+  it('rolls back edited fields without losing concurrent views and reviews', async () => {
+    const project = await Project.create(validProject)
+    const audit = vi.spyOn(Activity, 'create').mockImplementationOnce(async () => {
+      await Project.updateOne({ _id: project._id }, {
+        $inc: { views: 1 },
+        $push: { reviews: { stars: 5, comment: 'Arrived during edit' } },
+      })
+      throw new Error('audit unavailable')
+    })
+    try {
+      await expect(updateProject(project.id, { title: 'Failed edit' })).rejects.toThrow('audit unavailable')
+      const saved = await Project.findById(project.id)
+      expect(saved.title).toBe(validProject.title)
+      expect(saved.views).toBe(1)
+      expect(saved.reviews[0].comment).toBe('Arrived during edit')
+    } finally {
+      audit.mockRestore()
+    }
+  })
+
+  it('does not roll back a newer admin edit when an older audit write fails', async () => {
+    const project = await Project.create(validProject)
+    const audit = vi.spyOn(Activity, 'create').mockImplementationOnce(async () => {
+      await updateProject(project.id, { title: 'Newer edit' })
+      throw new Error('older audit unavailable')
+    })
+    try {
+      await expect(updateProject(project.id, { title: 'Older edit' })).rejects.toThrow('older audit unavailable')
+      expect((await Project.findById(project.id)).title).toBe('Newer edit')
+    } finally {
+      audit.mockRestore()
+    }
+  })
+
+  it('does not recreate a project deleted while an update audit write fails', async () => {
+    const project = await Project.create(validProject)
+    const audit = vi.spyOn(Activity, 'create').mockImplementationOnce(async () => {
+      await Project.deleteOne({ _id: project._id })
+      throw new Error('audit unavailable')
+    })
+    try {
+      await expect(updateProject(project.id, { title: 'Failed edit' })).rejects.toThrow('audit unavailable')
+      expect(await Project.findById(project.id)).toBeNull()
+    } finally {
+      audit.mockRestore()
+    }
+  })
+
+  it('rejects a stale deletion rather than losing a concurrent view', async () => {
+    const project = await Project.create(validProject)
+    const originalCreate = ArchivedProject.create.bind(ArchivedProject)
+    const archive = vi.spyOn(ArchivedProject, 'create').mockImplementationOnce(async (...args) => {
+      const snapshot = await originalCreate(...args)
+      await Project.updateOne({ _id: project._id }, { $inc: { views: 1 } })
+      return snapshot
+    })
+    try {
+      await expect(archiveAndDeleteProject(project.id)).rejects.toMatchObject({ status: 409 })
+      expect((await Project.findById(project.id)).views).toBe(1)
+      expect(await ArchivedProject.countDocuments()).toBe(0)
+    } finally {
+      archive.mockRestore()
+    }
+  })
+
+  it('does not overwrite a concurrent restoration when deletion audit fails', async () => {
+    const project = await Project.create(validProject)
+    const audit = vi.spyOn(Activity, 'create').mockImplementationOnce(async () => {
+      await Project.create({ ...validProject, _id: project._id, title: 'Restored independently', views: 9 })
+      throw new Error('audit unavailable')
+    })
+    try {
+      await expect(archiveAndDeleteProject(project.id)).rejects.toThrow('audit unavailable')
+      const restored = await Project.findById(project.id)
+      expect(restored.title).toBe('Restored independently')
+      expect(restored.views).toBe(9)
+    } finally {
+      audit.mockRestore()
+    }
+  })
+
   it('rejects image content that does not match its declared MIME type', async () => {
     await request(app)
       .post('/api/projects/upload')
@@ -640,6 +723,77 @@ describe('reviews and resume', () => {
       .expect(400)
   })
 
+  it('publishes About content and its PDF together', async () => {
+    await Resume.create({ key: 'primary', headline: 'Original', resumeFileUrl: 'https://example.com/old.pdf' })
+    const saved = await request(app)
+      .put('/api/resume')
+      .set('Authorization', `Bearer ${token}`)
+      .field('content', JSON.stringify({ headline: 'Updated', summary: 'New summary' }))
+      .attach('resume', Buffer.from('%PDF-1.4 new'), { filename: 'new.pdf', contentType: 'application/pdf' })
+      .expect(200)
+    expect(saved.body).toMatchObject({ headline: 'Updated', summary: 'New summary', resumeFileName: 'new.pdf' })
+    const published = await Resume.findOne({ key: 'primary' })
+    expect(published.headline).toBe('Updated')
+    expect(published.resumeFileUrl).toBe(saved.body.resumeFileUrl)
+  })
+
+  it('keeps published content and PDF unchanged when the combined upload fails', async () => {
+    await Resume.create({ key: 'primary', headline: 'Original', resumeFileUrl: 'https://example.com/old.pdf' })
+    uploadStreamMock.mockImplementationOnce((_options, callback) => ({
+      end: () => callback(new Error('Cloudinary unavailable')),
+    }))
+    await request(app)
+      .put('/api/resume')
+      .set('Authorization', `Bearer ${token}`)
+      .field('content', JSON.stringify({ headline: 'Must not publish' }))
+      .attach('resume', Buffer.from('%PDF-1.4 new'), { filename: 'new.pdf', contentType: 'application/pdf' })
+      .expect(500)
+    const published = await Resume.findOne({ key: 'primary' })
+    expect(published.headline).toBe('Original')
+    expect(published.resumeFileUrl).toBe('https://example.com/old.pdf')
+  })
+
+  it('removes the unpublished PDF when the combined database write fails', async () => {
+    await Resume.create({ key: 'primary', headline: 'Original', resumeFileUrl: 'https://example.com/old.pdf' })
+    const write = vi.spyOn(Resume, 'findOneAndUpdate').mockRejectedValueOnce(new Error('Database unavailable'))
+    try {
+      await request(app)
+        .put('/api/resume')
+        .set('Authorization', `Bearer ${token}`)
+        .field('content', JSON.stringify({ headline: 'Must not publish' }))
+        .attach('resume', Buffer.from('%PDF-1.4 new'), { filename: 'new.pdf', contentType: 'application/pdf' })
+        .expect(500)
+      expect(destroyImageMock).toHaveBeenCalledWith(
+        expect.stringMatching(/^cartierkuti\/resume\/[\w-]+\.pdf$/), { resource_type: 'raw' },
+      )
+      const published = await Resume.findOne({ key: 'primary' })
+      expect(published.headline).toBe('Original')
+      expect(published.resumeFileUrl).toBe('https://example.com/old.pdf')
+    } finally {
+      write.mockRestore()
+    }
+  })
+
+  it('validates combined content and PDF before publishing or uploading', async () => {
+    await Resume.create({ key: 'primary', headline: 'Original' })
+    for (const content of ['not JSON', JSON.stringify({ headline: 42 })]) {
+      await request(app)
+        .put('/api/resume')
+        .set('Authorization', `Bearer ${token}`)
+        .field('content', content)
+        .attach('resume', Buffer.from('%PDF-1.4 new'), { filename: 'new.pdf', contentType: 'application/pdf' })
+        .expect(400)
+    }
+    await request(app)
+      .put('/api/resume')
+      .set('Authorization', `Bearer ${token}`)
+      .field('content', JSON.stringify({ headline: 'Must not publish' }))
+      .attach('resume', Buffer.from('forged PDF'), { filename: 'new.pdf', contentType: 'application/pdf' })
+      .expect(400)
+    expect(uploadStreamMock).not.toHaveBeenCalled()
+    expect((await Resume.findOne({ key: 'primary' })).headline).toBe('Original')
+  })
+
   it('uploads the downloadable resume PDF with admin auth', async () => {
     const uploaded = await request(app)
       .post('/api/resume/file')
@@ -656,7 +810,8 @@ describe('reviews and resume', () => {
     })
     expect(uploadStreamMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        public_id: 'resume.pdf',
+        public_id: expect.stringMatching(/^cartierkuti\/resume\/[\w-]+\.pdf$/),
+        overwrite: false,
         resource_type: 'raw',
       }),
       expect.any(Function),

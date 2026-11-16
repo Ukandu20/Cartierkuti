@@ -52,47 +52,27 @@ export function useAdminProjects() {
     }
   }, [])
 
-  const saveResume = useCallback(async () => {
+  const saveResume = useCallback(async (file) => {
     try {
-      await apiClient.put('/api/resume', buildResumePayload(resumeForm))
+      let body = buildResumePayload(resumeForm)
+      if (file) {
+        const formData = new FormData()
+        formData.append('content', JSON.stringify(body))
+        formData.append('resume', file)
+        body = formData
+      }
+      const { data } = await apiClient.put('/api/resume', body)
+      const savedForm = normalizeResumeForm(data)
+      setResumeForm(savedForm)
       invalidateResumeCache()
       toaster.create({ title: 'About page updated', type: 'success', closable: true })
-      return true
+      return savedForm
     } catch (error) {
       reportAdminError(error)
-      toaster.create({ title: 'Error saving resume', type: 'error', closable: true })
+      toaster.create({ title: 'About page could not be saved', description: error?.response?.data?.message || 'Your changes are still available. Please try again.', type: 'error', closable: true })
       return false
     }
   }, [resumeForm])
-
-  const uploadResumeFile = useCallback(async (file) => {
-    try {
-      const body = new FormData()
-      body.append('resume', file)
-      const { data } = await apiClient.post('/api/resume/file', body)
-      invalidateResumeCache()
-      const uploadedFile = {
-        resumeFileUrl: data.resumeFileUrl || '',
-        resumeFileName: data.resumeFileName || '',
-        resumeFileUpdatedAt: data.resumeFileUpdatedAt || '',
-      }
-      setResumeForm((current) => ({
-        ...current,
-        ...uploadedFile,
-      }))
-      toaster.create({ title: 'Resume PDF uploaded', type: 'success', closable: true })
-      return uploadedFile
-    } catch (error) {
-      reportAdminError(error)
-      toaster.create({
-        title: 'Resume PDF upload failed',
-        description: error?.response?.data?.message || 'Please choose a PDF and try again.',
-        type: 'error',
-        closable: true,
-      })
-      return false
-    }
-  }, [])
 
   return {
     projects,
@@ -104,6 +84,5 @@ export function useAdminProjects() {
     resumeLoading,
     fetchResume,
     saveResume,
-    uploadResumeFile,
   }
 }

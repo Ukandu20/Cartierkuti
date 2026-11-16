@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { Router } from 'express'
 import multer from 'multer'
 import asyncHandler from 'express-async-handler'
@@ -6,6 +7,7 @@ import { validate } from '../middleware/validate.js'
 import Resume from '../models/resume.model.js'
 import { resumeWriteSchema } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
+import logger from '../logger.js'
 
 const resumeRouter = Router()
 const RESUME_KEY = 'primary'
@@ -24,6 +26,63 @@ const resumeUpload = multer({
     return cb(null, true)
   },
 })
+
+// Upload to a new asset so a failed database write cannot replace the live PDF.
+const uploadPdf = async (file) => {
+  if (file.buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw Object.assign(new Error('Uploaded file is not a valid PDF'), { status: 400 })
+  }
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    throw new Error('Cloudinary is not configured')
+  }
+  const assetId = `cartierkuti/resume/${crypto.randomUUID()}.pdf`
+  const result = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: 'raw', public_id: assetId, overwrite: false, use_filename: false },
+      (error, uploaded) => error ? reject(error) : resolve(uploaded),
+    )
+    stream.end(file.buffer)
+  })
+  return {
+    assetId: result.public_id || assetId,
+    fields: {
+      resumeFileUrl: result.secure_url,
+      resumeFileName: file.originalname,
+      resumeFileUpdatedAt: new Date(),
+    },
+  }
+}
+
+const publishResume = async (content, file) => {
+  const uploaded = file ? await uploadPdf(file) : null
+  try {
+    const existing = await findResume()
+    return await Resume.findOneAndUpdate(
+      existing ? { _id: existing._id } : { key: RESUME_KEY },
+      { $set: { ...content, ...uploaded?.fields, key: RESUME_KEY } },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true },
+    )
+  } catch (error) {
+    if (uploaded) {
+      await cloudinary.uploader.destroy(uploaded.assetId, { resource_type: 'raw' }).catch((cleanupError) => {
+        logger.error({ err: cleanupError, assetId: uploaded.assetId }, 'Could not remove unpublished resume PDF')
+      })
+    }
+    throw error
+  }
+}
+
+const parseResumeContent = (req, _res, next) => {
+  if (!req.is('multipart/form-data')) return next()
+  try {
+    const content = JSON.parse(req.body.content)
+    if (Object.keys(req.body).some((key) => key !== 'content')) throw new Error('Unexpected field')
+    req.body = content
+    next()
+  } catch {
+    next(Object.assign(new Error('Invalid About page content'), { status: 400 }))
+  }
+}
 
 const DEFAULT_RESUME = {
   headline: 'Data science and analytics practitioner',
@@ -99,17 +158,11 @@ resumeRouter.get(
 resumeRouter.put(
   '/',
   requireAdmin,
+  resumeUpload.single('resume'),
+  parseResumeContent,
   validate({ body: resumeWriteSchema }),
   asyncHandler(async (req, res) => {
-    const existing = await findResume()
-    const updated = await Resume.findOneAndUpdate(existing ? { _id: existing._id } : { key: RESUME_KEY }, {
-      ...req.body,
-      key: RESUME_KEY,
-    }, {
-      new: true,
-      upsert: true,
-      setDefaultsOnInsert: true,
-    })
+    const updated = await publishResume(req.body, req.file)
     res.json(updated)
   })
 )
@@ -122,49 +175,7 @@ resumeRouter.post(
     if (!req.file) {
       return res.status(400).json({ message: 'No resume file received' })
     }
-    if (req.file.buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
-      return res.status(400).json({ message: 'Uploaded file is not a valid PDF' })
-    }
-    if (
-      !process.env.CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET
-    ) {
-      return res.status(500).json({ message: 'Cloudinary is not configured' })
-    }
-
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'cartierkuti/resume',
-          resource_type: 'raw',
-          public_id: 'resume.pdf',
-          overwrite: true,
-          use_filename: false,
-        },
-        (error, uploadResult) => {
-          if (error) return reject(error)
-          return resolve(uploadResult)
-        },
-      )
-      stream.end(req.file.buffer)
-    })
-
-    const existing = await findResume()
-    const updated = await Resume.findOneAndUpdate(
-      existing ? { _id: existing._id } : { key: RESUME_KEY },
-      {
-        key: RESUME_KEY,
-        resumeFileUrl: result.secure_url,
-        resumeFileName: req.file.originalname,
-        resumeFileUpdatedAt: new Date(),
-      },
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true,
-      },
-    )
+    const updated = await publishResume({}, req.file)
 
     res.json({
       resumeFileUrl: updated.resumeFileUrl,
