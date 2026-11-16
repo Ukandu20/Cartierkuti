@@ -1,3 +1,4 @@
+import { normalizeAboutContent } from '@/utils/aboutContent'
 import { educationDateFields, formatStudyPeriod, isStudyInProgress, studyDateErrors } from '@/utils/educationDates'
 import { getCategoryLabel, normalizeCategoryValue } from '@/utils/projectCategories'
 
@@ -22,6 +23,7 @@ export const emptyProjectForm = {
 export const emptyProjectErrors = {}
 
 export const emptyResumeForm = {
+  pageContent: normalizeAboutContent(),
   headline: '',
   summary: '',
   highlightsText: '',
@@ -73,6 +75,7 @@ export const isCompleted = (value) => normalizeStatus(value) === 'completed'
 export const normalizeResumeForm = (data = {}) => {
   const safeArray = (value) => (Array.isArray(value) ? value : [])
   return {
+    pageContent: normalizeAboutContent(data.pageContent),
     headline: data.headline || '',
     summary: data.summary || '',
     highlightsText: splitLines(safeArray(data.highlights).join('\n')).join('\n'),
@@ -132,6 +135,7 @@ export const normalizeResumeForm = (data = {}) => {
 }
 
 export const buildResumePayload = (form) => ({
+  pageContent: normalizeAboutContent(form.pageContent),
   headline: form.headline?.trim() || '',
   summary: form.summary?.trim() || '',
   highlights: splitLines(form.highlightsText),
@@ -195,6 +199,10 @@ export const buildResumePayload = (form) => ({
 
 export const validateResumeForm = (form) => {
   const errors = {}
+  const content = normalizeAboutContent(form.pageContent)
+  for (const key of ['heroTitle', 'pageTitle', 'contactButtonLabel', 'resumeButtonLabel', 'credentialButtonLabel']) {
+    if (!content[key]?.trim()) errors[`pageContent.${key}`] = 'Add text for this heading or button.'
+  }
   if (!form.headline?.trim()) errors.headline = 'Add the About page headline.'
   if (!form.summary?.trim()) errors.summary = 'Add the About page summary.'
   if (form.headline?.length > 120) errors.headline = 'Keep the headline to 120 characters or fewer.'

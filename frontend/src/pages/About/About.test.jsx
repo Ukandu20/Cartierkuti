@@ -60,6 +60,23 @@ describe('About', () => {
     getPublicResume.mockResolvedValue(resume)
   })
 
+  it('renders editable page copy and respects empty experience, skills, and working approaches', async () => {
+    getPublicResume.mockResolvedValue({ ...resume, experience: [], education: [], certifications: [], skills: { primary: [], secondary: [], tools: [] }, pageContent: {
+      heroTitle: 'My research and learning journey', introductionLabel: 'About me',
+      principles: [], ctaTitle: 'Discuss a research idea', ctaDescription: 'Send me a message.',
+      contactButtonLabel: 'Get in touch',
+    } })
+    renderWithProviders(<About />)
+    expect(await screen.findByRole('heading', { name: 'My research and learning journey' })).toBeInTheDocument()
+    expect(screen.getByText('About me')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Discuss a research idea' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Get in touch' })).toHaveLength(2)
+    expect(screen.queryByText('Full-Stack Developer')).not.toBeInTheDocument()
+    expect(screen.queryByText('Freelance')).not.toBeInTheDocument()
+    expect(screen.queryByText('Python')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Frame the question' })).not.toBeInTheDocument()
+  })
+
   it('omits the stored project-count metric while preserving other profile metrics', async () => {
     getPublicResume.mockResolvedValue({ ...resume, metrics: [...resume.metrics, { label: 'Projects', value: '5+', note: 'Completed projects' }] })
     renderWithProviders(<About />)

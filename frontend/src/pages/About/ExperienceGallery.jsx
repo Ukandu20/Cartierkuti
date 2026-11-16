@@ -3,14 +3,14 @@ import { AspectRatio, Box, Button, CloseButton, Dialog, Heading, Image, Portal, 
 import { projectImageProps } from '@/utils/projectImages'
 import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
 
-export default function ExperienceGallery({ items }) {
+export default function ExperienceGallery({ items, content }) {
   const [expanded, setExpanded] = useState(false)
   const [selected, setSelected] = useState(null)
   const ordered = [...items].sort((left, right) => Number(Boolean(right.featured)) - Number(Boolean(left.featured)))
   const shown = expanded ? ordered : ordered.slice(0, 6)
   return <Box as="section" aria-labelledby="about-gallery-heading">
-    <Text fontFamily="mono" fontSize="xs" color="accent.default" textTransform="uppercase" letterSpacing="0.14em">Places, people, and moments</Text>
-    <Heading as="h2" id="about-gallery-heading" fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} mt={3} mb={7}>Experiences in pictures</Heading>
+    <Text fontFamily="mono" fontSize="xs" color="accent.default" textTransform="uppercase" letterSpacing="0.14em">{content.galleryLabel}</Text>
+    <Heading as="h2" id="about-gallery-heading" fontFamily="heading" fontSize={{ base: '3xl', md: '4xl' }} mt={3} mb={7}>{content.galleryTitle}</Heading>
     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
       {shown.map((item, index) => <Box as="figure" key={item._id || item._editorId || index} m={0}>
         <Box as="button" type="button" aria-label={`Open photo: ${item.title}`} onClick={() => setSelected(item)} display="block" w="full" overflow="hidden" borderRadius="lg" cursor="pointer" _focusVisible={{ outline: '2px solid', outlineColor: 'accent.default', outlineOffset: '3px' }}>

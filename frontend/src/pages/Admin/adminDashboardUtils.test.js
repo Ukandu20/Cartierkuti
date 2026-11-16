@@ -14,6 +14,10 @@ import {
 } from './adminDashboardUtils'
 
 describe('adminDashboardUtils', () => {
+  it('round-trips editable page text and intentionally empty working approaches', () => {
+    const form = normalizeResumeForm({ pageContent: { heroTitle: 'My story', metaDescription: 'Research and learning.', principles: [], ctaDescription: '' } })
+    expect(buildResumePayload(form).pageContent).toMatchObject({ heroTitle: 'My story', metaDescription: 'Research and learning.', principles: [], ctaDescription: '' })
+  })
   it('round-trips separate program levels, personal cards, and gallery metadata', () => {
     const form = normalizeResumeForm({
       education: [{ school: 'University', program: 'Data Science', level: 'Master’s degree', status: 'In progress', visible: false }],

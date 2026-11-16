@@ -184,8 +184,14 @@ const studyDate = z.string().trim().regex(/^(?:\d{4}(?:-(?:0[1-9]|1[0-2]))?)?$/,
 
 const stringArray = z.array(text(160)).max(50).default([])
 
+const aboutContentSchema = z.object({
+  ...Object.fromEntries(['pageTitle', 'metaDescription', 'introductionLabel', 'heroTitle', 'educationLabel', 'experienceLabel', 'experienceTitle', 'credentialsLabel', 'processLabel', 'processTitle', 'processDescription', 'capabilitiesLabel', 'capabilitiesTitle', 'capabilitiesDescription', 'primarySkillsLabel', 'secondarySkillsLabel', 'toolsSkillsLabel', 'personalLabel', 'personalTitle', 'galleryLabel', 'galleryTitle', 'ctaLabel', 'ctaTitle', 'ctaDescription', 'contactButtonLabel', 'resumeButtonLabel', 'credentialButtonLabel'].map(key => [key, optionalText(key === 'metaDescription' ? 320 : 1000)])),
+  principles: z.array(z.object({ title: optionalText(160), description: optionalText(1000) }).strict()).max(12).optional(),
+}).strict()
+
 export const resumeWriteSchema = z
   .object({
+    pageContent: aboutContentSchema.optional(),
     headline: optionalText(200),
     summary: optionalText(4000),
     highlights: stringArray,

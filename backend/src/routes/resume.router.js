@@ -89,55 +89,8 @@ const parseResumeContent = (req, _res, next) => {
 }
 
 const DEFAULT_RESUME = {
-  headline: 'Data science and analytics practitioner',
-  summary:
-    'I turn messy data into clear stories, useful models, and decision-ready dashboards.',
-  highlights: [
-    'Dashboarding, KPI reporting, and stakeholder data storytelling.',
-    'Predictive modeling, experimentation, and practical model evaluation.',
-    'Sports performance analytics and applied decision intelligence.',
-  ],
-  metrics: [
-    { label: 'Years', value: '3+', note: 'Professional practice' },
-    { label: 'Focus', value: 'Analytics', note: 'Models and sports' },
-  ],
-  experience: [
-    {
-      role: 'Full-Stack Developer',
-      company: 'Freelance',
-      location: 'Remote',
-      period: '2022 - Present',
-      bullets: [
-        'Shipped analytics dashboards and data pipelines for clients.',
-        'Automated reporting workflows and data QA checks.',
-      ],
-    },
-  ],
-  education: [
-    {
-      school: 'University of Windsor',
-      degree: 'B.Sc. Computer Science',
-      period: '2019 - 2023',
-      bullets: ['Data structures, algorithms, and software engineering.'],
-    },
-  ],
-  certifications: [
-    {
-      name: 'Data Science Specialisation',
-      issuer: 'Coursera / edX',
-      year: '2023',
-      credentialId: '',
-      credentialUrl: '',
-      showCredentialLink: false,
-    },
-  ],
-  skills: {
-    primary: ['Python', 'SQL', 'Pandas', 'React'],
-    secondary: ['Tableau', 'Power BI', 'scikit-learn', 'Node.js'],
-    tools: ['Git', 'Docker', 'Linux', 'MongoDB'],
-  },
-  resumeFileUrl: '',
-  resumeFileName: '',
+  headline: '', summary: '', highlights: [], metrics: [], experience: [], education: [], certifications: [],
+  personalItems: [], gallery: [], skills: { primary: [], secondary: [], tools: [] }, resumeFileUrl: '', resumeFileName: '',
 }
 
 const getSafePdfFilename = (value) => {

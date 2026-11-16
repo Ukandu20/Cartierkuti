@@ -1,3 +1,4 @@
+import AboutPageTextFields from './components/AboutPageTextFields'
 import { educationDateFields } from '@/utils/educationDates'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -46,6 +47,7 @@ import apiClient from '@/utils/axiosConfig'
 const DRAFT_KEY = 'adminAboutDraft'
 
 const sections = [
+  { id: 'pageContent', label: 'Page text', description: 'Headings, approach, labels and search details' },
   { id: 'introduction', label: 'Introduction', description: 'Headline, summary and highlights' },
   { id: 'metrics', label: 'Metrics', description: 'Profile proof points' },
   { id: 'experience', label: 'Experience', description: 'Roles and outcomes' },
@@ -435,9 +437,9 @@ export default function AboutEditor() {
             {sections.map((section) => {
               const count = errorCountFor(section.id)
               return (
-                <Button key={section.id} variant={activeSection === section.id ? 'subtle' : 'ghost'} colorPalette={activeSection === section.id ? 'brand' : 'gray'} justifyContent="space-between" h="auto" py={3} px={3} onClick={() => setActiveSection(section.id)}>
-                  <Box textAlign="left"><Text fontWeight="700">{section.label}</Text><Text fontSize="xs" color="fg.muted">{section.description}</Text></Box>
-                  {count ? <Badge colorPalette="red">{count}</Badge> : null}
+                <Button key={section.id} variant={activeSection === section.id ? 'subtle' : 'ghost'} colorPalette={activeSection === section.id ? 'brand' : 'gray'} justifyContent="space-between" h="auto" minW={0} whiteSpace="normal" gap={3} py={3} px={3} onClick={() => setActiveSection(section.id)}>
+                  <Box textAlign="left" minW={0} flex={1} overflowWrap="anywhere"><Text fontWeight="700">{section.label}</Text><Text fontSize="xs" color="fg.muted">{section.description}</Text></Box>
+                  {count ? <Badge colorPalette="red" flexShrink={0}>{count}</Badge> : null}
                 </Button>
               )
             })}
@@ -447,6 +449,12 @@ export default function AboutEditor() {
         <SurfaceCard data-about-editor-content p={0} minH="620px" minW={0}>
           <Box ref={editorContentRef} p={{ base: 4, md: 7 }}>
           {resumeLoading ? <Text color="fg.muted">Loading About content…</Text> : null}
+
+          {!resumeLoading && activeSection === 'pageContent' ? (
+            <EditorSection title="Page text" description="Edit the headings, section introductions, working approach, button labels, and search details. Clear optional text to remove it from the public page.">
+              <AboutPageTextFields value={resumeForm.pageContent} onChange={value => updateField('pageContent', value)} errors={errors} />
+            </EditorSection>
+          ) : null}
 
           {!resumeLoading && activeSection === 'introduction' ? (
             <EditorSection eyebrow="01" title="Introduction" description="Set the first message visitors see and the analytical strengths you want to reinforce.">

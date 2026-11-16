@@ -52,6 +52,7 @@ const certificationSchema = new mongoose.Schema(
 const resumeSchema = new mongoose.Schema(
   {
     key: { type: String, default: 'primary', unique: true, immutable: true },
+    pageContent: { type: mongoose.Schema.Types.Mixed, default: undefined },
     headline: { type: String, default: '' },
     summary: { type: String, default: '' },
     highlights: { type: [String], default: [] },

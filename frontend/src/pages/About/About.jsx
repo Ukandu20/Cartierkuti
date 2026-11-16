@@ -26,76 +26,14 @@ import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResu
 import { PageCta } from '@/components/ui/DesignSystem'
 import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
 import { absoluteUrl } from '@/utils/siteConfig'
+import { normalizeAboutContent } from '@/utils/aboutContent'
 import { visibleProfileMetrics } from '@/utils/profileMetrics'
 
 const DEFAULT_RESUME = {
-  headline: 'Data science and analytics practitioner',
-  summary:
-    'I turn messy data into clear stories, useful models, and decision-ready dashboards.',
-  highlights: [
-    'Dashboarding, KPI reporting, and stakeholder data storytelling.',
-    'Predictive modeling, experimentation, and practical model evaluation.',
-    'Sports performance analytics and applied decision intelligence.',
-  ],
-  metrics: [
-    { label: 'Practice', value: 'Data science', note: 'Models and evaluation' },
-    { label: 'Domain', value: 'Sports analytics', note: 'Performance and game context' },
-    { label: 'Delivery', value: 'Decision-ready', note: 'Dashboards and narratives' },
-  ],
-  experience: [
-    {
-      role: 'Full-Stack Developer',
-      company: 'Freelance',
-      location: 'Remote',
-      period: '2022 - Present',
-      bullets: [
-        'Shipped analytics dashboards and data pipelines for clients.',
-        'Automated reporting workflows and data QA checks.',
-      ],
-    },
-  ],
-  education: [
-    {
-      school: 'University of Windsor',
-      degree: 'B.Sc. Computer Science',
-      period: '2019 - 2023',
-      bullets: ['Data structures, algorithms, and software engineering.'],
-    },
-  ],
-  certifications: [],
-  skills: {
-    primary: ['Python', 'SQL', 'Pandas', 'React'],
-    secondary: ['Tableau', 'Power BI', 'scikit-learn', 'Node.js'],
-    tools: ['Git', 'Docker', 'Linux', 'MongoDB'],
-  },
-  resumeFileUrl: '',
-  resumeFileName: '',
-  resumeFileUpdatedAt: '',
+  headline: '', summary: '', highlights: [], metrics: [], experience: [], education: [], certifications: [],
+  personalItems: [], gallery: [], skills: { primary: [], secondary: [], tools: [] },
+  resumeFileUrl: '', resumeFileName: '', resumeFileUpdatedAt: '', pageContent: normalizeAboutContent(),
 }
-
-const workingPrinciples = [
-  {
-    number: '01',
-    title: 'Frame the question',
-    description: 'Start with the decision, define what success means, and identify the evidence that can support it.',
-  },
-  {
-    number: '02',
-    title: 'Build and evaluate',
-    description: 'Clean the data, choose an honest method, and test whether the result holds beyond a single metric.',
-  },
-  {
-    number: '03',
-    title: 'Make it useful',
-    description: 'Turn the analysis into a dashboard, narrative, or product that makes the next action clearer.',
-  },
-]
-
-const skillGroups = [
-  { key: 'primary', label: 'Analysis and modelling' },
-  { key: 'secondary', label: 'Visualisation and delivery' },
-  { key: 'tools', label: 'Engineering and tools' },
-]
 
 const normalizeSkillItems = (value) => {
   const entries = Array.isArray(value) ? value : []
@@ -113,22 +51,21 @@ const normalizeSkillItems = (value) => {
     })
 }
 
-const normalizeResume = (data) => {
+export const normalizeResume = (data) => {
   const safeArray = (value) => (Array.isArray(value) ? value : [])
   const primarySkills = normalizeSkillItems(data?.skills?.primary)
   const secondarySkills = normalizeSkillItems(data?.skills?.secondary)
   const tools = normalizeSkillItems(data?.skills?.tools)
 
   return {
-    headline: data?.headline || DEFAULT_RESUME.headline,
+    pageContent: normalizeAboutContent(data?.pageContent),
+    headline: data?.headline || '',
     summary: data?.summary || DEFAULT_RESUME.summary,
     highlights: safeArray(data?.highlights).length
       ? safeArray(data?.highlights)
       : DEFAULT_RESUME.highlights,
     metrics: visibleProfileMetrics(Array.isArray(data?.metrics) ? data.metrics : DEFAULT_RESUME.metrics),
-    experience: safeArray(data?.experience).length
-      ? safeArray(data?.experience)
-      : DEFAULT_RESUME.experience,
+    experience: safeArray(data?.experience),
     education: Array.isArray(data?.education)
       ? data.education.filter(item => item.visible !== false)
       : DEFAULT_RESUME.education,
@@ -176,8 +113,6 @@ const headingWrapProps = {
 export default function About() {
   const [resume, setResume] = useState(DEFAULT_RESUME)
   const [loading, setLoading] = useState(true)
-  const resumeUrl = getResumeDownloadUrl(resume)
-  const resumeFilename = getResumeDownloadFilename(resume)
 
   useEffect(() => {
     let active = true
@@ -198,21 +133,33 @@ export default function About() {
     }
   }, [])
 
+  return <AboutContent resume={resume} loading={loading} />
+}
+
+export function AboutContent({ resume, loading = false, preview = false }) {
+  const content = normalizeAboutContent(resume.pageContent)
+  const resumeUrl = getResumeDownloadUrl(resume)
+  const resumeFilename = getResumeDownloadFilename(resume)
+  const skillGroups = [
+    { key: 'primary', label: content.primarySkillsLabel },
+    { key: 'secondary', label: content.secondarySkillsLabel },
+    { key: 'tools', label: content.toolsSkillsLabel },
+  ].filter(group => resume.skills[group.key].length)
   return (
     <Box bg={'bg.canvas'} color={'fg.default'} fontFamily={'body'}>
-      <Helmet>
-        <title>About | Preston Ukandu</title>
+      {!preview ? <Helmet>
+        <title>{content.pageTitle}</title>
         <meta
           name="description"
-          content="Meet Preston Ukandu, a data science and sports analytics practitioner who turns complex evidence into useful models, dashboards, and decisions."
+          content={content.metaDescription}
         />
         <link rel="canonical" href={absoluteUrl('/about')} />
-      </Helmet>
+      </Helmet> : null}
 
       <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 14, md: 24 }}>
         <SimpleGrid columns={{ base: 1, lg: resume.education.length ? 2 : 1 }} gap={{ base: 12, lg: 20 }} alignItems="start">
           <Stack gap={7}>
-            <SectionLabel color={'accent.default'}>About / Data science &amp; sports analytics</SectionLabel>
+            <SectionLabel color={'accent.default'}>{content.introductionLabel}</SectionLabel>
             <Heading
               as="h1"
               fontFamily={'heading'}
@@ -223,8 +170,7 @@ export default function About() {
               maxW="820px"
               {...headingWrapProps}
             >
-              I make analytical work{' '}
-              <Box as="span" color={'accent.default'}>useful, explainable,</Box> and ready for decisions.
+              {content.heroTitle}
             </Heading>
             <Stack gap={3} maxW="680px">
               <Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="600" color={'fg.default'}>
@@ -233,7 +179,7 @@ export default function About() {
               <FormattedParagraphs
                 value={resume.summary}
                 role="group"
-                aria-label="About summary"
+                aria-label={preview ? 'About summary preview' : 'About summary'}
                 gap={4}
                 textProps={{ fontSize: { base: 'md', md: 'lg' }, color: 'fg.muted', lineHeight: '1.8' }}
               />
@@ -243,17 +189,17 @@ export default function About() {
               <Button asChild size="lg" colorPalette="brand" fontWeight="700">
                 <a href={resumeUrl} download={resumeFilename}>
                   <Icon as={FaDownload} aria-hidden="true" />
-                  Download résumé
+                  {content.resumeButtonLabel}
                 </a>
               </Button>
               <Button asChild size="lg" variant="outline" colorPalette="brand" fontWeight="700">
-                <Link to="/contact">Start a conversation</Link>
+                <Link to="/contact">{content.contactButtonLabel}</Link>
               </Button>
             </ButtonGroup>
           </Stack>
 
           {resume.education.length ? <Box>
-            <SectionLabel color={'fg.muted'}>Education</SectionLabel>
+            <SectionLabel color={'fg.muted'}>{content.educationLabel}</SectionLabel>
             <Stack mt={4} borderTop="1px solid" borderColor={'border.subtle'}>
               {resume.education.map((item, index) => (
                 <Box key={`${item.school}-${index}`} py={6} borderBottom="1px solid" borderColor={'border.subtle'}>
@@ -273,11 +219,11 @@ export default function About() {
         </SimpleGrid>
       </Box>
 
-      <Box as="section" bg={'bg.raised'} borderY="1px solid" borderColor={'border.subtle'}>
+      {resume.experience.length || resume.certifications.length ? <Box as="section" bg={'bg.raised'} borderY="1px solid" borderColor={'border.subtle'}>
         <Box maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
           <Stack gap={{ base: 10, md: 14 }}>
             <Stack gap={4} maxW="760px">
-              <SectionLabel color={'accent.default'}>01 / Experience</SectionLabel>
+              <SectionLabel color={'accent.default'}>{content.experienceLabel}</SectionLabel>
               <Heading
                 as="h2"
                 fontFamily={'heading'}
@@ -287,7 +233,7 @@ export default function About() {
                 lineHeight={{ base: '1.25', md: '1.16' }}
                 {...headingWrapProps}
               >
-                An engineering foundation, applied through analytics.
+                {content.experienceTitle}
               </Heading>
             </Stack>
 
@@ -325,7 +271,7 @@ export default function About() {
               <Stack gap={10}>
                 {resume.certifications.length ? (
                   <Box>
-                    <SectionLabel color={'fg.muted'}>Credentials</SectionLabel>
+                    <SectionLabel color={'fg.muted'}>{content.credentialsLabel}</SectionLabel>
                     <Stack mt={4} borderTop="1px solid" borderColor={'border.subtle'}>
                       {resume.certifications.map((item, index) => (
                         <HStack key={`${item.name}-${index}`} justify="space-between" align="start" gap={5} py={5} borderBottom="1px solid" borderColor={'border.subtle'}>
@@ -340,7 +286,7 @@ export default function About() {
                              {item.showCredentialLink && item.credentialUrl ? (
                                <Button asChild size="sm" variant="outline" colorPalette="brand" mt={3}>
                                  <a href={item.credentialUrl} target="_blank" rel="noopener noreferrer">
-                                   View credential <Icon as={FaExternalLinkAlt} aria-hidden="true" />
+                                   {content.credentialButtonLabel} <Icon as={FaExternalLinkAlt} aria-hidden="true" />
                                  </a>
                                </Button>
                              ) : null}
@@ -355,7 +301,7 @@ export default function About() {
             </SimpleGrid>
           </Stack>
         </Box>
-      </Box>
+      </Box> : null}
 
       {loading || resume.metrics.length ? <Box bg={'bg.surface'} borderY="1px solid" borderColor={'border.subtle'}>
         <Box maxW="7xl" mx="auto" px={{ base: 6, md: 10 }}>
@@ -388,10 +334,10 @@ export default function About() {
         </Box>
       </Box> : null}
 
-      <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
+      {content.principles.length ? <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
         <Stack gap={{ base: 10, md: 14 }}>
           <Stack gap={4} maxW="720px">
-            <SectionLabel color={'accent.default'}>02 / How I work</SectionLabel>
+            <SectionLabel color={'accent.default'}>{content.processLabel}</SectionLabel>
             <Heading
               as="h2"
               fontFamily={'heading'}
@@ -401,17 +347,17 @@ export default function About() {
               lineHeight={{ base: '1.25', md: '1.16' }}
               {...headingWrapProps}
             >
-              Rigour matters. So does usefulness.
+              {content.processTitle}
             </Heading>
             <Text fontSize="lg" color={'fg.muted'} lineHeight="1.75">
-              My process connects sound analysis to the people and decisions it is meant to serve.
+              {content.processDescription}
             </Text>
           </Stack>
 
           <SimpleGrid columns={{ base: 1, md: 3 }} gap={{ base: 8, md: 10 }}>
-            {workingPrinciples.map((principle) => (
-              <Box key={principle.title} borderTop="2px solid" borderColor={'accent.default'} pt={5}>
-                <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'}>{principle.number}</Text>
+            {content.principles.map((principle, index) => (
+              <Box key={`${principle.title}-${index}`} borderTop="2px solid" borderColor={'accent.default'} pt={5}>
+                <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'}>{String(index + 1).padStart(2, '0')}</Text>
                 <Heading
                   as="h3"
                   fontFamily={'heading'}
@@ -430,12 +376,12 @@ export default function About() {
             ))}
           </SimpleGrid>
         </Stack>
-      </Box>
+      </Box> : null}
 
-      <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
+      {skillGroups.length ? <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 12, lg: 20 }}>
           <Stack gap={6}>
-            <SectionLabel color={'accent.default'}>03 / Capabilities</SectionLabel>
+            <SectionLabel color={'accent.default'}>{content.capabilitiesLabel}</SectionLabel>
             <Heading
               as="h2"
               fontFamily={'heading'}
@@ -445,10 +391,10 @@ export default function About() {
               lineHeight={{ base: '1.25', md: '1.16' }}
               {...headingWrapProps}
             >
-              From raw data to a clear next move.
+              {content.capabilitiesTitle}
             </Heading>
             <Text fontSize="lg" color={'fg.muted'} lineHeight="1.75">
-              I combine analytical methods, visual communication, and software delivery so insights do not stop at a notebook.
+              {content.capabilitiesDescription}
             </Text>
           </Stack>
 
@@ -479,17 +425,17 @@ export default function About() {
             ))}
           </Stack>
         </SimpleGrid>
-      </Box>
+      </Box> : null}
 
-      <AboutExtras personalItems={resume.personalItems} gallery={resume.gallery} />
-      <PageCta
+      <AboutExtras personalItems={resume.personalItems} gallery={resume.gallery} content={content} />
+      {content.ctaTitle || content.ctaDescription ? <PageCta
         headingId="about-collaboration-heading"
-        eyebrow="Let's work together"
-        title="Have a data problem or a sports analytics idea?"
-        description="I am interested in thoughtful projects where evidence can make a real decision clearer."
+        eyebrow={content.ctaLabel}
+        title={content.ctaTitle}
+        description={content.ctaDescription}
       >
-        <Link to="/contact">Start a conversation <FaArrowRight /></Link>
-      </PageCta>
+        <Link to="/contact">{content.contactButtonLabel} <FaArrowRight /></Link>
+      </PageCta> : null}
     </Box>
   )
 }

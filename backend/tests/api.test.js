@@ -635,6 +635,7 @@ describe('reviews and resume', () => {
   it('saves structured education and personal content while excluding hidden entries from public reads', async () => {
     const payload = {
       headline: 'Analyst', summary: 'About me',
+      pageContent: { heroTitle: 'My learning journey', principles: [], metaDescription: 'My research and learning.' },
       education: [
         { school: 'Example University', program: 'Data Science', level: 'Master’s degree', status: 'In progress', startDate: '2025-09', expectedFinishDate: '2027-06', visible: true },
         { school: 'Private school', program: 'Private program', visible: false },
@@ -651,6 +652,7 @@ describe('reviews and resume', () => {
     await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send(payload).expect(200)
     const publicPage = await request(app).get('/api/resume').expect(200)
     expect(publicPage.body.education).toHaveLength(1)
+    expect(publicPage.body.pageContent).toEqual(payload.pageContent)
     expect(publicPage.body.education[0]).toMatchObject({ program: 'Data Science', level: 'Master’s degree', status: 'In progress', startDate: '2025-09', finishDate: '', expectedFinishDate: '2027-06' })
     expect(publicPage.body.personalItems.map(item => item.title)).toEqual(['French'])
     expect(publicPage.body.gallery.map(item => item.title)).toEqual(['Conference'])
