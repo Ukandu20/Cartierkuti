@@ -180,6 +180,8 @@ export const reviewQuerySchema = z
   })
   .strict()
 
+const studyDate = z.string().trim().regex(/^(?:\d{4}(?:-(?:0[1-9]|1[0-2]))?)?$/, 'Use a year or year and month').optional()
+
 const stringArray = z.array(text(160)).max(50).default([])
 
 export const resumeWriteSchema = z
@@ -219,10 +221,24 @@ export const resumeWriteSchema = z
           .object({
             school: optionalText(160),
             degree: optionalText(160),
+            program: optionalText(160),
+            level: optionalText(80),
+            status: optionalText(80),
+            visible: z.boolean().default(true),
+            startDate: studyDate,
+            finishDate: studyDate,
+            expectedFinishDate: studyDate,
             period: optionalText(120),
             bullets: stringArray,
           })
           .strict()
+          .superRefine((item, ctx) => {
+            const ongoing = /^in[ -]progress$/i.test(item.status || '')
+            if (ongoing && item.finishDate) ctx.addIssue({ code: 'custom', path: ['finishDate'], message: 'Use an expected finish for studies in progress' })
+            const key = ongoing ? 'expectedFinishDate' : 'finishDate'
+            const length = Math.min(item.startDate?.length || 0, item[key]?.length || 0)
+            if (length && item[key].slice(0, length) < item.startDate.slice(0, length)) ctx.addIssue({ code: 'custom', path: [key], message: 'The finish must be on or after the start' })
+          })
       )
       .max(20)
       .default([]),
@@ -245,6 +261,27 @@ export const resumeWriteSchema = z
       )
       .max(30)
       .default([]),
+    personalItems: z.array(z.object({
+      title: text(100),
+      category: z.enum(['Language', 'Learning', 'Interest', 'Volunteering']),
+      status: optionalText(80),
+      level: optionalText(80),
+      notes: optionalText(800),
+      visible: z.boolean().default(true),
+    }).strict()).max(20).optional(),
+    gallery: z.array(z.object({
+      title: text(160),
+      caption: optionalText(1000),
+      date: optionalText(80),
+      location: optionalText(160),
+      imageUrl: optionalUrl,
+      imageAssetId: optionalText(180),
+      altText: optionalText(200),
+      visible: z.boolean().default(true),
+      featured: z.boolean().default(false),
+    }).strict().refine(item => !item.visible || Boolean(item.imageUrl), {
+      path: ['imageUrl'], message: 'Add an image or hide this gallery entry',
+    })).max(30).optional(),
     skills: z
       .object({
         primary: stringArray,

@@ -1,6 +1,6 @@
 import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import About from './About'
 import { renderWithProviders } from '../../test-utils'
 import { getPublicResume } from '@/services/resumeService'
@@ -58,6 +58,69 @@ const resume = {
 describe('About', () => {
   beforeEach(() => {
     getPublicResume.mockResolvedValue(resume)
+  })
+
+  it('omits the stored project-count metric while preserving other profile metrics', async () => {
+    getPublicResume.mockResolvedValue({ ...resume, metrics: [...resume.metrics, { label: 'Projects', value: '5+', note: 'Completed projects' }] })
+    renderWithProviders(<About />)
+    expect(await screen.findByText('Performance')).toBeInTheDocument()
+    expect(screen.queryByText('5+')).not.toBeInTheDocument()
+    expect(screen.queryByText('Completed projects')).not.toBeInTheDocument()
+  })
+
+  it('shows highlight tags and places education and experience before metrics and working principles', async () => {
+    renderWithProviders(<About />)
+    const experience = await screen.findByRole('heading', { name: 'Data Scientist' })
+    const education = screen.getByRole('heading', { name: 'B.Sc. Computer Science' })
+    const introduction = screen.getByRole('group', { name: 'About summary' }).closest('section')
+    expect(introduction).toContainElement(education)
+    expect(screen.getAllByRole('heading', { name: 'B.Sc. Computer Science' })).toHaveLength(1)
+    expect(screen.queryByText('Statistical analysis, predictive models, and evaluation grounded in the question at hand.')).not.toBeInTheDocument()
+    const metrics = screen.getByText('Performance')
+    expect(experience.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(education.compareDocumentPosition(screen.getByRole('heading', { name: 'Frame the question' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    for (const label of ['About highlights', 'Experience highlights', 'Education highlights']) {
+      expect(within(screen.getByRole('list', { name: label })).getAllByRole('listitem')).toHaveLength(1)
+    }
+  })
+
+  it('distinguishes programs and levels and displays only visible personal and gallery content', async () => {
+    getPublicResume.mockResolvedValue({ ...resume,
+      education: [
+        { school: 'Example University', program: 'Data Science', level: 'Master’s degree', status: 'In progress' },
+        { school: 'Private school', program: 'Private program', visible: false },
+      ],
+      personalItems: [
+        { title: 'French', category: 'Language', level: 'Beginner', status: 'Currently learning', notes: 'Practising conversation.' },
+        { title: 'Private learning plan', category: 'Learning', visible: false },
+      ],
+      gallery: [
+        { title: 'Conference', imageUrl: 'https://example.com/conference.jpg', caption: 'Sharing analytical ideas.', altText: 'People at a conference', date: 'June 2026', location: 'Toronto' },
+        { title: 'Private trip', imageUrl: 'https://example.com/private.jpg', visible: false },
+      ],
+    })
+    renderWithProviders(<About />)
+    expect(await screen.findByRole('heading', { name: 'Data Science' })).toBeInTheDocument()
+    expect(screen.getByText('Master’s degree')).toBeInTheDocument()
+    expect(screen.getByText('In progress')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'French' })).toBeInTheDocument()
+    expect(screen.getByText('Beginner')).toBeInTheDocument()
+    expect(screen.queryByText('Private program')).not.toBeInTheDocument()
+    expect(screen.queryByText('Private learning plan')).not.toBeInTheDocument()
+    expect(screen.queryByText('Private trip')).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Open photo: Conference' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('heading', { name: 'Conference' })).toBeInTheDocument()
+    expect(within(dialog).getByAltText('People at a conference')).toBeInTheDocument()
+  })
+
+  it('hides empty optional sections instead of showing placeholder personal information', async () => {
+    getPublicResume.mockResolvedValue({ ...resume, education: [], personalItems: [], gallery: [] })
+    renderWithProviders(<About />)
+    await screen.findByText('Applied data scientist')
+    expect(screen.queryByText('Education', { exact: true })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Outside my work' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Experiences in pictures' })).not.toBeInTheDocument()
   })
 
   it('presents a clear analytics narrative and collaboration path', async () => {

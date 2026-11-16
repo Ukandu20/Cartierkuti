@@ -95,6 +95,16 @@ Credential changes require the current password and a TOTP or one-time recovery 
 
 The previous `x-admin-secret` flow has been removed.
 
+### About Page Content
+
+The About editor separates education into institution, program name, program level, start date, finish date, and status. Dates accept a year or year and month. For In progress, the finish field becomes an optional expected finish; leaving it empty displays Present. Education and experience follow the introduction, ahead of metrics and working principles. Highlights appear as wrapping tags throughout the page and preview. The program is displayed as a heading; level and status appear as badges. Existing `degree` and `period` values remain readable.
+
+“Outside my work” supports optional Language, Learning, Interest, and Volunteering cards with a status, descriptive proficiency level, and personal note. The experience gallery supports photos, accessible descriptions, captions or stories, dates, locations, and featured entries. Both collections support reordering, removal with undo, visibility controls, and public preview. Empty or fully hidden sections disappear from the public page.
+
+Gallery photos accept JPEG, PNG, WebP, or GIF up to 2 MB. Uploads are kept separate from the published page until Save About page is selected. Unsaved photo references are retained with the browser draft; explicit discard cleans them up. Removed or replaced photos are cleaned up after a successful save. The gallery initially shows six photos, prioritizes featured entries, and loads additional photos through View more. Full-size photos load only when opened.
+
+Public `GET /api/resume` excludes hidden education, personal cards, and gallery entries. The editor uses protected `GET /api/resume/admin` to load all entries, including hidden ones. Gallery uploads and cleanup use authenticated `POST`/`DELETE /api/resume/gallery-image`; cleanup rejects assets still referenced by the saved About page. Deploy the updated backend before the frontend.
+
 ## Deployment Notes
 
 - About-page saves use `PUT /api/resume`: JSON for text-only updates, or multipart with a JSON `content` field and optional `resume` PDF (maximum 5 MB). The PDF uploads to a unique asset before content and file metadata publish together in one database update. Failed uploads preserve the published page; failed saves retain the editor draft and staged file for retry. Deploy the backend supporting this contract before deploying the frontend.

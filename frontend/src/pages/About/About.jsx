@@ -9,7 +9,6 @@ import {
   Heading,
   HStack,
   Icon,
-  Separator,
   SimpleGrid,
   Spinner,
   Stack,
@@ -17,12 +16,17 @@ import {
 } from '@chakra-ui/react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { FaArrowRight, FaCheck, FaDownload, FaExternalLinkAlt } from 'react-icons/fa'
+import { FaArrowRight, FaDownload, FaExternalLinkAlt } from 'react-icons/fa'
 import { getPublicResume } from '@/services/resumeService'
+import EducationDetails from './EducationDetails'
+import HighlightTags from './HighlightTags'
+import { formatStudyPeriod } from '@/utils/educationDates'
+import AboutExtras from './AboutExtras'
 import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
 import { PageCta } from '@/components/ui/DesignSystem'
 import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
 import { absoluteUrl } from '@/utils/siteConfig'
+import { visibleProfileMetrics } from '@/utils/profileMetrics'
 
 const DEFAULT_RESUME = {
   headline: 'Data science and analytics practitioner',
@@ -68,24 +72,6 @@ const DEFAULT_RESUME = {
   resumeFileName: '',
   resumeFileUpdatedAt: '',
 }
-
-const focusAreas = [
-  {
-    number: '01',
-    title: 'Data science',
-    description: 'Statistical analysis, predictive models, and evaluation grounded in the question at hand.',
-  },
-  {
-    number: '02',
-    title: 'Sports analytics',
-    description: 'Player, team, and game data translated into performance context and practical decisions.',
-  },
-  {
-    number: '03',
-    title: 'Decision intelligence',
-    description: 'Reliable data workflows, clear reporting, and evidence stakeholders can confidently use.',
-  },
-]
 
 const workingPrinciples = [
   {
@@ -139,13 +125,15 @@ const normalizeResume = (data) => {
     highlights: safeArray(data?.highlights).length
       ? safeArray(data?.highlights)
       : DEFAULT_RESUME.highlights,
-    metrics: safeArray(data?.metrics).length ? safeArray(data?.metrics) : DEFAULT_RESUME.metrics,
+    metrics: visibleProfileMetrics(Array.isArray(data?.metrics) ? data.metrics : DEFAULT_RESUME.metrics),
     experience: safeArray(data?.experience).length
       ? safeArray(data?.experience)
       : DEFAULT_RESUME.experience,
-    education: safeArray(data?.education).length
-      ? safeArray(data?.education)
+    education: Array.isArray(data?.education)
+      ? data.education.filter(item => item.visible !== false)
       : DEFAULT_RESUME.education,
+    personalItems: safeArray(data?.personalItems).filter(item => item.visible !== false),
+    gallery: safeArray(data?.gallery).filter(item => item.visible !== false),
     certifications: safeArray(data?.certifications),
     resumeFileUrl: data?.resumeFileUrl || DEFAULT_RESUME.resumeFileUrl,
     resumeFileName: data?.resumeFileName || DEFAULT_RESUME.resumeFileName,
@@ -185,21 +173,6 @@ const headingWrapProps = {
   overflowWrap: 'break-word',
 }
 
-function BulletList({ items }) {
-  return (
-    <Stack gap={3}>
-      {items.map((item, index) => (
-        <HStack key={`${item}-${index}`} align="start" gap={3}>
-          <Icon as={FaCheck} color={'accent.default'} mt="1.5" boxSize="3" flexShrink="0" aria-hidden="true" />
-          <Text fontFamily={'body'} color={'fg.muted'} lineHeight="1.7">
-            {item}
-          </Text>
-        </HStack>
-      ))}
-    </Stack>
-  )
-}
-
 export default function About() {
   const [resume, setResume] = useState(DEFAULT_RESUME)
   const [loading, setLoading] = useState(true)
@@ -237,7 +210,7 @@ export default function About() {
       </Helmet>
 
       <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 14, md: 24 }}>
-        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 12, lg: 20 }} alignItems="center">
+        <SimpleGrid columns={{ base: 1, lg: resume.education.length ? 2 : 1 }} gap={{ base: 12, lg: 20 }} alignItems="start">
           <Stack gap={7}>
             <SectionLabel color={'accent.default'}>About / Data science &amp; sports analytics</SectionLabel>
             <Heading
@@ -265,6 +238,7 @@ export default function About() {
                 textProps={{ fontSize: { base: 'md', md: 'lg' }, color: 'fg.muted', lineHeight: '1.8' }}
               />
             </Stack>
+            <HighlightTags items={resume.highlights} label="About highlights" />
             <ButtonGroup gap={3} flexWrap="wrap">
               <Button asChild size="lg" colorPalette="brand" fontWeight="700">
                 <a href={resumeUrl} download={resumeFilename}>
@@ -278,49 +252,119 @@ export default function About() {
             </ButtonGroup>
           </Stack>
 
-          <Box borderTop="1px solid" borderColor={'border.subtle'}>
-            {focusAreas.map((area) => (
-              <SimpleGrid
-                key={area.title}
-                columns="auto 1fr"
-                gap={{ base: 4, md: 6 }}
-                py={{ base: 5, md: 6 }}
-                borderBottom="1px solid"
-                borderColor={'border.subtle'}
-              >
-                <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} pt="1">
-                  {area.number}
-                </Text>
-                <Box>
-                  <Heading
-                    as="h2"
-                    fontFamily={'heading'}
-                    fontSize="xl"
-                    fontWeight="600"
-                    lineHeight="1.35"
-                    mb={1}
-                    {...headingWrapProps}
-                  >
-                    {area.title}
-                  </Heading>
-                  <Text color={'fg.muted'} lineHeight="1.65">
-                    {area.description}
-                  </Text>
+          {resume.education.length ? <Box>
+            <SectionLabel color={'fg.muted'}>Education</SectionLabel>
+            <Stack mt={4} borderTop="1px solid" borderColor={'border.subtle'}>
+              {resume.education.map((item, index) => (
+                <Box key={`${item.school}-${index}`} py={6} borderBottom="1px solid" borderColor={'border.subtle'}>
+                  <Stack gap={3}>
+                    <Box>
+                      <EducationDetails item={item} />
+                    </Box>
+                    <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textAlign="left">
+                      {formatStudyPeriod(item)}
+                    </Text>
+                  </Stack>
+                  {item.bullets?.length ? <Box mt={4}><HighlightTags items={item.bullets} label="Education highlights" /></Box> : null}
                 </Box>
-              </SimpleGrid>
-            ))}
-          </Box>
+              ))}
+            </Stack>
+          </Box> : null}
         </SimpleGrid>
       </Box>
 
-      <Box bg={'bg.surface'} borderY="1px solid" borderColor={'border.subtle'}>
+      <Box as="section" bg={'bg.raised'} borderY="1px solid" borderColor={'border.subtle'}>
+        <Box maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
+          <Stack gap={{ base: 10, md: 14 }}>
+            <Stack gap={4} maxW="760px">
+              <SectionLabel color={'accent.default'}>01 / Experience</SectionLabel>
+              <Heading
+                as="h2"
+                fontFamily={'heading'}
+                fontSize={{ base: '3xl', md: '5xl' }}
+                fontWeight="500"
+                letterSpacing="-0.025em"
+                lineHeight={{ base: '1.25', md: '1.16' }}
+                {...headingWrapProps}
+              >
+                An engineering foundation, applied through analytics.
+              </Heading>
+            </Stack>
+
+            <SimpleGrid columns={{ base: 1, lg: resume.certifications.length ? 2 : 1 }} gap={{ base: 12, lg: 20 }}>
+              <Stack gap={0} borderTop="1px solid" borderColor={'border.subtle'}>
+                {resume.experience.map((item, index) => (
+                  <Box key={`${item.role}-${index}`} py={{ base: 7, md: 9 }} borderBottom="1px solid" borderColor={'border.subtle'}>
+                    <SimpleGrid columns={{ base: 1, sm: '140px 1fr' }} gap={{ base: 3, sm: 6 }}>
+                      <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} pt="1">
+                        {item.period}
+                      </Text>
+                      <Stack gap={4}>
+                        <Box>
+                          <Heading
+                            as="h3"
+                            fontFamily={'heading'}
+                            fontSize="2xl"
+                            fontWeight="600"
+                            lineHeight="1.3"
+                            {...headingWrapProps}
+                          >
+                            {item.role}
+                          </Heading>
+                          <Text color={'fg.muted'} mt={1}>
+                            {item.company}{item.location ? ` · ${item.location}` : ''}
+                          </Text>
+                        </Box>
+                        <HighlightTags items={item.bullets || []} label="Experience highlights" />
+                      </Stack>
+                    </SimpleGrid>
+                  </Box>
+                ))}
+              </Stack>
+
+              <Stack gap={10}>
+                {resume.certifications.length ? (
+                  <Box>
+                    <SectionLabel color={'fg.muted'}>Credentials</SectionLabel>
+                    <Stack mt={4} borderTop="1px solid" borderColor={'border.subtle'}>
+                      {resume.certifications.map((item, index) => (
+                        <HStack key={`${item.name}-${index}`} justify="space-between" align="start" gap={5} py={5} borderBottom="1px solid" borderColor={'border.subtle'}>
+                          <Box>
+                             <Text fontWeight="700">{item.name}</Text>
+                             <Text color={'fg.muted'}>{item.issuer}</Text>
+                             {item.credentialId ? (
+                               <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} mt={2}>
+                                 Credential ID: {item.credentialId}
+                               </Text>
+                             ) : null}
+                             {item.showCredentialLink && item.credentialUrl ? (
+                               <Button asChild size="sm" variant="outline" colorPalette="brand" mt={3}>
+                                 <a href={item.credentialUrl} target="_blank" rel="noopener noreferrer">
+                                   View credential <Icon as={FaExternalLinkAlt} aria-hidden="true" />
+                                 </a>
+                               </Button>
+                             ) : null}
+                           </Box>
+                          <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'}>{item.year}</Text>
+                        </HStack>
+                      ))}
+                    </Stack>
+                  </Box>
+                ) : null}
+              </Stack>
+            </SimpleGrid>
+          </Stack>
+        </Box>
+      </Box>
+
+      {loading || resume.metrics.length ? <Box bg={'bg.surface'} borderY="1px solid" borderColor={'border.subtle'}>
         <Box maxW="7xl" mx="auto" px={{ base: 6, md: 10 }}>
           {loading ? (
             <HStack minH="144px" justify="center" role="status" aria-label="Loading profile details">
               <Spinner color={'accent.default'} />
             </HStack>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 3 }}>
+            <SimpleGrid columns={{ base: 1, md: Math.min(resume.metrics.length, 3) }}>
               {resume.metrics.map((metric, index) => (
                 <Box
                   key={`${metric.label}-${index}`}
@@ -342,12 +386,12 @@ export default function About() {
             </SimpleGrid>
           )}
         </Box>
-      </Box>
+      </Box> : null}
 
       <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
         <Stack gap={{ base: 10, md: 14 }}>
           <Stack gap={4} maxW="720px">
-            <SectionLabel color={'accent.default'}>01 / How I work</SectionLabel>
+            <SectionLabel color={'accent.default'}>02 / How I work</SectionLabel>
             <Heading
               as="h2"
               fontFamily={'heading'}
@@ -388,119 +432,6 @@ export default function About() {
         </Stack>
       </Box>
 
-      <Box as="section" bg={'bg.raised'} borderY="1px solid" borderColor={'border.subtle'}>
-        <Box maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
-          <Stack gap={{ base: 10, md: 14 }}>
-            <Stack gap={4} maxW="760px">
-              <SectionLabel color={'accent.default'}>02 / Experience</SectionLabel>
-              <Heading
-                as="h2"
-                fontFamily={'heading'}
-                fontSize={{ base: '3xl', md: '5xl' }}
-                fontWeight="500"
-                letterSpacing="-0.025em"
-                lineHeight={{ base: '1.25', md: '1.16' }}
-                {...headingWrapProps}
-              >
-                An engineering foundation, applied through analytics.
-              </Heading>
-            </Stack>
-
-            <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 12, lg: 20 }}>
-              <Stack gap={0} borderTop="1px solid" borderColor={'border.subtle'}>
-                {resume.experience.map((item, index) => (
-                  <Box key={`${item.role}-${index}`} py={{ base: 7, md: 9 }} borderBottom="1px solid" borderColor={'border.subtle'}>
-                    <SimpleGrid columns={{ base: 1, sm: '140px 1fr' }} gap={{ base: 3, sm: 6 }}>
-                      <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} pt="1">
-                        {item.period}
-                      </Text>
-                      <Stack gap={4}>
-                        <Box>
-                          <Heading
-                            as="h3"
-                            fontFamily={'heading'}
-                            fontSize="2xl"
-                            fontWeight="600"
-                            lineHeight="1.3"
-                            {...headingWrapProps}
-                          >
-                            {item.role}
-                          </Heading>
-                          <Text color={'fg.muted'} mt={1}>
-                            {item.company}{item.location ? ` · ${item.location}` : ''}
-                          </Text>
-                        </Box>
-                        <BulletList items={item.bullets || []} />
-                      </Stack>
-                    </SimpleGrid>
-                  </Box>
-                ))}
-              </Stack>
-
-              <Stack gap={10}>
-                <Box>
-                  <SectionLabel color={'fg.muted'}>Education</SectionLabel>
-                  <Stack mt={4} borderTop="1px solid" borderColor={'border.subtle'}>
-                    {resume.education.map((item, index) => (
-                      <Box key={`${item.school}-${index}`} py={6} borderBottom="1px solid" borderColor={'border.subtle'}>
-                        <HStack justify="space-between" align="start" gap={5}>
-                          <Box>
-                            <Heading
-                              as="h3"
-                              fontFamily={'heading'}
-                              fontSize="xl"
-                              fontWeight="600"
-                              lineHeight="1.35"
-                              {...headingWrapProps}
-                            >
-                              {item.degree}
-                            </Heading>
-                            <Text color={'fg.muted'} mt={1}>{item.school}</Text>
-                          </Box>
-                          <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textAlign="right" flexShrink="0">
-                            {item.period}
-                          </Text>
-                        </HStack>
-                        {item.bullets?.length ? <Box mt={4}><BulletList items={item.bullets} /></Box> : null}
-                      </Box>
-                    ))}
-                  </Stack>
-                </Box>
-
-                {resume.certifications.length ? (
-                  <Box>
-                    <SectionLabel color={'fg.muted'}>Credentials</SectionLabel>
-                    <Stack mt={4} borderTop="1px solid" borderColor={'border.subtle'}>
-                      {resume.certifications.map((item, index) => (
-                        <HStack key={`${item.name}-${index}`} justify="space-between" align="start" gap={5} py={5} borderBottom="1px solid" borderColor={'border.subtle'}>
-                          <Box>
-                             <Text fontWeight="700">{item.name}</Text>
-                             <Text color={'fg.muted'}>{item.issuer}</Text>
-                             {item.credentialId ? (
-                               <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} mt={2}>
-                                 Credential ID: {item.credentialId}
-                               </Text>
-                             ) : null}
-                             {item.showCredentialLink && item.credentialUrl ? (
-                               <Button asChild size="sm" variant="outline" colorPalette="brand" mt={3}>
-                                 <a href={item.credentialUrl} target="_blank" rel="noopener noreferrer">
-                                   View credential <Icon as={FaExternalLinkAlt} aria-hidden="true" />
-                                 </a>
-                               </Button>
-                             ) : null}
-                           </Box>
-                          <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'}>{item.year}</Text>
-                        </HStack>
-                      ))}
-                    </Stack>
-                  </Box>
-                ) : null}
-              </Stack>
-            </SimpleGrid>
-          </Stack>
-        </Box>
-      </Box>
-
       <Box as="section" maxW="7xl" mx="auto" px={{ base: 6, md: 10 }} py={{ base: 16, md: 24 }}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 12, lg: 20 }}>
           <Stack gap={6}>
@@ -519,8 +450,6 @@ export default function About() {
             <Text fontSize="lg" color={'fg.muted'} lineHeight="1.75">
               I combine analytical methods, visual communication, and software delivery so insights do not stop at a notebook.
             </Text>
-            <Separator borderColor={'border.subtle'} />
-            <BulletList items={resume.highlights} />
           </Stack>
 
           <Stack gap={0} borderTop="1px solid" borderColor={'border.subtle'}>
@@ -552,6 +481,7 @@ export default function About() {
         </SimpleGrid>
       </Box>
 
+      <AboutExtras personalItems={resume.personalItems} gallery={resume.gallery} />
       <PageCta
         headingId="about-collaboration-heading"
         eyebrow="Let's work together"

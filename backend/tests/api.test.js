@@ -632,6 +632,73 @@ describe('project API', () => {
 })
 
 describe('reviews and resume', () => {
+  it('saves structured education and personal content while excluding hidden entries from public reads', async () => {
+    const payload = {
+      headline: 'Analyst', summary: 'About me',
+      education: [
+        { school: 'Example University', program: 'Data Science', level: 'Master’s degree', status: 'In progress', startDate: '2025-09', expectedFinishDate: '2027-06', visible: true },
+        { school: 'Private school', program: 'Private program', visible: false },
+      ],
+      personalItems: [
+        { title: 'French', category: 'Language', status: 'Currently learning', level: 'Beginner', notes: 'Practising conversation.', visible: true },
+        { title: 'Private learning plan', category: 'Learning', visible: false },
+      ],
+      gallery: [
+        { title: 'Conference', imageUrl: 'https://example.com/conference.jpg', caption: 'A useful experience.', visible: true },
+        { title: 'Private trip', imageUrl: 'https://example.com/private.jpg', visible: false },
+      ],
+    }
+    await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send(payload).expect(200)
+    const publicPage = await request(app).get('/api/resume').expect(200)
+    expect(publicPage.body.education).toHaveLength(1)
+    expect(publicPage.body.education[0]).toMatchObject({ program: 'Data Science', level: 'Master’s degree', status: 'In progress', startDate: '2025-09', finishDate: '', expectedFinishDate: '2027-06' })
+    expect(publicPage.body.personalItems.map(item => item.title)).toEqual(['French'])
+    expect(publicPage.body.gallery.map(item => item.title)).toEqual(['Conference'])
+    expect(JSON.stringify(publicPage.body)).not.toMatch(/Private|private.jpg/)
+    await request(app).get('/api/resume/admin').expect(401)
+    const adminPage = await request(app).get('/api/resume/admin').set('Authorization', `Bearer ${token}`).expect(200)
+    expect(adminPage.body.education).toHaveLength(2)
+    expect(adminPage.body.personalItems).toHaveLength(2)
+    expect(adminPage.body.gallery).toHaveLength(2)
+    expect(adminPage.headers['cache-control']).toBe('no-store')
+    // Older clients can still update the page without clearing the new optional collections.
+    await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send({ headline: 'Updated' }).expect(200)
+    expect((await Resume.findOne()).personalItems).toHaveLength(2)
+  })
+
+  it('validates personal cards and gallery entries before saving', async () => {
+    for (const payload of [
+      { personalItems: [{ title: 'French', category: 'Unsupported' }] },
+      { gallery: [{ title: 'Missing photo' }] },
+      { gallery: [{ title: 'Bad URL', imageUrl: 'javascript:alert(1)' }] },
+      { gallery: Array.from({ length: 31 }, () => ({ title: 'Hidden', visible: false })) },
+    ]) {
+      await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send(payload).expect(400)
+    }
+    expect(await Resume.countDocuments()).toBe(0)
+  })
+
+  it('stages gallery uploads without publishing and protects saved images from draft cleanup', async () => {
+    const assetId = 'cartierkuti/about-gallery/12345678-1234-1234-1234-123456789abc'
+    const signature = Buffer.from('89504e470d0a1a0a00000000', 'hex')
+    await request(app).post('/api/resume/gallery-image').attach('image', signature, { filename: 'photo.png', contentType: 'image/png' }).expect(401)
+    await request(app).post('/api/resume/gallery-image').set('Authorization', `Bearer ${token}`)
+      .attach('image', Buffer.from('forged image'), { filename: 'photo.png', contentType: 'image/png' }).expect(400)
+    uploadStreamMock.mockImplementationOnce((_options, callback) => ({ end: () => callback(null, { secure_url: 'https://example.com/photo.png', public_id: assetId }) }))
+    const uploaded = await request(app).post('/api/resume/gallery-image').set('Authorization', `Bearer ${token}`)
+      .attach('image', signature, { filename: 'photo.png', contentType: 'image/png' }).expect(200)
+    expect(uploaded.body.imageAssetId).toBe(assetId)
+    expect(await Resume.countDocuments()).toBe(0)
+    expect(uploadStreamMock).toHaveBeenCalledWith(expect.objectContaining({ resource_type: 'image', overwrite: false }), expect.any(Function))
+    await Resume.create({ key: 'primary', gallery: [{ title: 'Saved', imageUrl: uploaded.body.imageUrl, imageAssetId: assetId, visible: false }] })
+    await request(app).delete('/api/resume/gallery-image').set('Authorization', `Bearer ${token}`).send({ imageAssetId: assetId }).expect(409)
+    expect(destroyImageMock).not.toHaveBeenCalled()
+    await Resume.deleteMany()
+    await request(app).delete('/api/resume/gallery-image').set('Authorization', `Bearer ${token}`).send({ imageAssetId: assetId }).expect(204)
+    expect(destroyImageMock).toHaveBeenCalledWith(assetId, { resource_type: 'image', invalidate: true })
+    await request(app).delete('/api/resume/gallery-image').set('Authorization', `Bearer ${token}`).send({ imageAssetId: 'another-folder/image' }).expect(400)
+  })
+
   it('validates public review submissions', async () => {
     const project = await Project.create(validProject)
 

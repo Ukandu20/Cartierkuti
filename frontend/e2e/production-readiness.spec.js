@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+const galleryPhotoFixture = '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600"><rect width="960" height="600" fill="#e2ded8"/><circle cx="480" cy="300" r="120" fill="#0f766e" opacity=".5"/></svg>'
 
 const baseProjects = () => [
   {
@@ -64,6 +65,7 @@ const emptyResume = {
 }
 
 const setupApi = async (page) => {
+  await page.route(/^https:\/\/example\.com\/(?:gallery\/.*|photo\.jpg)$/, route => route.fulfill({ contentType: 'image/svg+xml', body: galleryPhotoFixture }))
   const state = {
     projects: baseProjects(),
     projectWrites: [],
@@ -87,6 +89,8 @@ const setupApi = async (page) => {
     failResumeUpload: false,
     imageUploads: 0,
     projectReads: 0,
+    galleryUploads: 0,
+    galleryDeletes: [],
     categories: [
       { _id: 'category-1', name: 'Machine Learning & Forecasting', slug: 'machine-learning-forecasting', aliases: [], order: 10 },
       { _id: 'category-2', name: 'Web Applications', slug: 'web-applications', aliases: [], order: 20 },
@@ -229,8 +233,21 @@ const setupApi = async (page) => {
       return route.fulfill({ status: 201, json: { ok: true } })
     }
 
-    if (path === '/api/resume' && method === 'GET') {
-      return route.fulfill({ status: 200, json: state.resume })
+    if ((path === '/api/resume' || path === '/api/resume/admin') && method === 'GET') {
+      const value = { ...state.resume }
+      if (path === '/api/resume') {
+        for (const key of ['education', 'personalItems', 'gallery']) value[key] = (value[key] || []).filter(item => item.visible !== false)
+      }
+      return route.fulfill({ status: 200, json: value })
+    }
+
+    if (path === '/api/resume/gallery-image' && method === 'POST') {
+      state.galleryUploads += 1
+      return route.fulfill({ status: 200, json: { imageUrl: 'https://example.com/gallery/conference.jpg', imageAssetId: 'cartierkuti/about-gallery/12345678-1234-1234-1234-123456789abc' } })
+    }
+    if (path === '/api/resume/gallery-image' && method === 'DELETE') {
+      state.galleryDeletes.push(request.postDataJSON().imageAssetId)
+      return route.fulfill({ status: 204 })
     }
 
     if (path === '/api/resume' && method === 'PUT') {
@@ -644,6 +661,124 @@ test('About editor structures content, stages the PDF, previews, and saves as on
     showCredentialLink: true,
   }])
   expect(api.resumeFileUploads).toBe(1)
+})
+
+test('About education and personal cards distinguish programs, levels, and learning interests', async ({ page }, testInfo) => {
+  test.setTimeout(60_000)
+  const api = await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await page.getByRole('button', { name: /Education.*Schools and qualifications/i }).click()
+  await page.getByRole('button', { name: 'Add education' }).click()
+  await page.getByLabel('Institution', { exact: true }).fill('Example University')
+  await page.getByLabel('Program name', { exact: true }).fill('Data Science')
+  await page.getByLabel('Program level', { exact: true }).fill('Master’s degree')
+  await page.getByLabel('Education status').fill('In progress')
+  await page.getByLabel('Study start date').fill('2025-09')
+  await expect(page.getByLabel('Study finish date', { exact: true })).toHaveCount(0)
+  await page.getByLabel('Expected finish date (optional)', { exact: true }).fill('2027-06')
+  await page.getByRole('button', { name: /Outside my work.*Languages, interests and learning/i }).click()
+  await page.getByRole('button', { name: 'Add personal card' }).click()
+  await page.getByLabel('Personal card title').fill('French')
+  await page.getByLabel('Type of personal card').selectOption('Language')
+  await page.getByLabel('Current status').fill('Currently learning')
+  await page.getByLabel('Proficiency or experience level').fill('Beginner')
+  await page.getByLabel('Personal note').fill('I practise conversation each week.')
+  await page.getByRole('button', { name: 'Add personal card' }).click()
+  await page.getByLabel('Personal card title').last().fill('Hiking')
+  await page.getByRole('button', { name: 'Move Hiking up', exact: true }).click()
+  await page.getByRole('button', { name: 'Add personal card' }).click()
+  await page.getByLabel('Personal card title').last().fill('Private learning plan')
+  await page.getByLabel('Show personal card Private learning plan').locator('..').locator('[data-part="control"]').click()
+  await page.getByRole('button', { name: 'Preview public page' }).click()
+  const preview = page.getByRole('dialog', { name: 'About page preview' })
+  await expect(preview.getByRole('heading', { name: 'Data Science', exact: true })).toBeVisible()
+  await expect(preview.getByText('Master’s degree', { exact: true })).toBeVisible()
+  await expect(preview.getByText('Beginner', { exact: true })).toBeVisible()
+  await expect(preview.getByText('Private learning plan', { exact: true })).toHaveCount(0)
+  await preview.getByRole('button', { name: /close/i }).click()
+  await page.getByRole('button', { name: 'Save About page' }).first().click()
+  await expect(page.getByText(/saved at/i)).toBeVisible()
+  expect(api.resumeWrites.at(-1).education[0]).toMatchObject({ program: 'Data Science', level: 'Master’s degree', status: 'In progress', startDate: '2025-09', finishDate: '', expectedFinishDate: '2027-06' })
+  expect(api.resumeWrites.at(-1).personalItems.map(item => item.title)).toEqual(['Hiking', 'French', 'Private learning plan'])
+  await page.goto('/about')
+  await expect(page.getByRole('heading', { name: 'Data Science', exact: true })).toBeVisible()
+  await expect(page.getByText('Sep 2025 – Expected Jun 2027', { exact: true })).toBeVisible()
+  await expect(page.getByText('Master’s degree', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'French', exact: true })).toBeVisible()
+  await expect(page.getByText('Currently learning', { exact: true })).toBeVisible()
+  await expect(page.getByText('Private learning plan', { exact: true })).toHaveCount(0)
+  await page.getByRole('heading', { name: 'Data Science', exact: true }).locator('..').screenshot({ path: testInfo.outputPath('education.png') })
+  await page.locator('section[aria-labelledby="about-personal-heading"]').screenshot({ path: testInfo.outputPath('personal-cards.png') })
+})
+
+test('About experience gallery stages a photo, previews it, and publishes it with its story', async ({ page }) => {
+  test.setTimeout(60_000)
+  const api = await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await page.getByRole('button', { name: /Experience gallery.*Photos and personal stories/i }).click()
+  await page.getByRole('button', { name: 'Add gallery entry' }).click()
+  await page.getByLabel('Gallery title', { exact: true }).fill('Analytics conference')
+  await page.getByLabel('Upload gallery photo').setInputFiles({ name: 'conference.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a00000000', 'hex') })
+  await expect(page.getByAltText('Analytics conference')).toBeVisible()
+  expect(api.galleryUploads).toBe(1)
+  expect(api.resume.gallery || []).toHaveLength(0)
+  await page.getByLabel('Photo description for accessibility').fill('Participants sharing ideas at a conference')
+  await page.getByLabel('Caption or story').fill('Sharing analytical ideas.\n\nA memorable day of learning.')
+  await page.getByLabel('Gallery date or period').fill('June 2026')
+  await page.getByLabel('Gallery location', { exact: true }).fill('Toronto')
+  await page.getByLabel('Feature this photo').locator('..').locator('[data-part="control"]').click()
+  await page.getByRole('button', { name: 'Preview public page' }).click()
+  const preview = page.getByRole('dialog', { name: 'About page preview' })
+  await expect(preview.getByRole('heading', { name: 'Experiences in pictures' })).toBeVisible()
+  await expect(preview.getByRole('button', { name: 'Open photo: Analytics conference' })).toBeVisible()
+  await preview.getByRole('button', { name: /close/i }).click()
+  await page.getByRole('button', { name: 'Save About page' }).first().click()
+  await expect(page.getByText(/saved at/i)).toBeVisible()
+  expect(api.resumeWrites.at(-1).gallery[0]).toMatchObject({ title: 'Analytics conference', date: 'June 2026', location: 'Toronto', featured: true, visible: true })
+  await page.goto('/about')
+  await page.getByRole('button', { name: 'Open photo: Analytics conference' }).click()
+  const photo = page.getByRole('dialog', { name: 'Analytics conference' })
+  await expect(photo).toBeVisible()
+  await expect(photo.getByAltText('Participants sharing ideas at a conference')).toBeVisible()
+  await expect(photo.getByText('A memorable day of learning.', { exact: true })).toBeVisible()
+  await photo.getByRole('button', { name: 'Close photo' }).click()
+})
+
+test('About gallery prioritizes featured photos and reveals the rest on demand', async ({ page }, testInfo) => {
+  const api = await setupApi(page)
+  api.resume.gallery = Array.from({ length: 8 }, (_, index) => ({ title: `Experience ${index + 1}`, imageUrl: 'https://example.com/photo.jpg', featured: index === 7, visible: true }))
+  api.resume.gallery.push({ title: 'Private photo', imageUrl: 'https://example.com/private.jpg', visible: false })
+  await page.goto('/about')
+  const photos = page.getByRole('button', { name: /^Open photo:/ })
+  await expect(photos).toHaveCount(6)
+  await page.locator('section[aria-labelledby="about-gallery-heading"]').screenshot({ path: testInfo.outputPath('gallery.png'), style: 'header { visibility: hidden !important; }' })
+  await expect(photos.first()).toHaveAttribute('aria-label', 'Open photo: Experience 8')
+  await page.getByRole('button', { name: 'View more photos (2)' }).click()
+  await expect(photos).toHaveCount(8)
+  await expect(page.getByText('Private photo', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Show fewer photos' }).click()
+  await expect(photos).toHaveCount(6)
+})
+
+test('About gallery discards unpublished uploads without changing the saved page', async ({ page }) => {
+  const api = await setupApi(page)
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await page.getByRole('button', { name: /Experience gallery.*Photos and personal stories/i }).click()
+  await page.getByRole('button', { name: 'Add gallery entry' }).click()
+  await page.getByLabel('Gallery title', { exact: true }).fill('Unsaved photo')
+  await page.getByLabel('Upload gallery photo').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a00000000', 'hex') })
+  await expect(page.getByAltText('Unsaved photo')).toBeVisible()
+  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  await page.getByRole('button', { name: 'Back to dashboard' }).click()
+  const discard = page.getByRole('alertdialog')
+  await discard.getByRole('button', { name: 'Discard changes' }).click()
+  await expect(page).toHaveURL(/\/admin$/)
+  await expect.poll(() => api.galleryDeletes.length).toBe(1)
+  expect(api.resume.gallery || []).toHaveLength(0)
+  expect(api.resumeWrites).toHaveLength(0)
 })
 
 test('About highlights remain separate tags through editing, saving, and reopening', async ({ page }) => {

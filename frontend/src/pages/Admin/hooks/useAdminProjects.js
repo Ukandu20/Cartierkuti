@@ -38,7 +38,7 @@ export function useAdminProjects() {
   const fetchResume = useCallback(async () => {
     setResumeLoading(true)
     try {
-      const { data } = await apiClient.get('/api/resume')
+      const { data } = await apiClient.get('/api/resume/admin')
       const normalized = normalizeResumeForm(data)
       setResumeForm(normalized)
       return normalized

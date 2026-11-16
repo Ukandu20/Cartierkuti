@@ -1,3 +1,4 @@
+import { educationDateFields, formatStudyPeriod, isStudyInProgress, studyDateErrors } from '@/utils/educationDates'
 import { getCategoryLabel, normalizeCategoryValue } from '@/utils/projectCategories'
 
 export const emptyProjectForm = {
@@ -28,6 +29,8 @@ export const emptyResumeForm = {
   experience: [],
   education: [],
   certifications: [],
+  personalItems: [],
+  gallery: [],
   skillsPrimaryText: '',
   skillsSecondaryText: '',
   skillsToolsText: '',
@@ -89,8 +92,13 @@ export const normalizeResumeForm = (data = {}) => {
     })),
     education: safeArray(data.education).map((item, index) => ({
       _editorId: item?._editorId || `education-${index}`,
+      ...educationDateFields(item),
       school: item?.school || '',
       degree: item?.degree || '',
+      program: item?.program || item?.degree || '',
+      level: item?.level || '',
+      status: item?.status || (/present/i.test(item?.period || '') ? 'In progress' : ''),
+      visible: item?.visible !== false,
       period: item?.period || '',
       bulletsText: splitLines(safeArray(item?.bullets).join('\n')).join('\n'),
     })),
@@ -102,6 +110,17 @@ export const normalizeResumeForm = (data = {}) => {
       credentialId: item?.credentialId || '',
       credentialUrl: item?.credentialUrl || '',
       showCredentialLink: Boolean(item?.showCredentialLink),
+    })),
+    personalItems: safeArray(data.personalItems).map((item, index) => ({
+      _editorId: item?._editorId || `personal-${index}`,
+      title: item?.title || '', category: item?.category || 'Interest',
+      status: item?.status || '', level: item?.level || '', notes: item?.notes || '', visible: item?.visible !== false,
+    })),
+    gallery: safeArray(data.gallery).map((item, index) => ({
+      _editorId: item?._editorId || `gallery-${index}`,
+      title: item?.title || '', caption: item?.caption || '', date: item?.date || '', location: item?.location || '',
+      imageUrl: item?.imageUrl || '', imageAssetId: item?.imageAssetId || '', altText: item?.altText || '',
+      visible: item?.visible !== false, featured: Boolean(item?.featured),
     })),
     resumeFileUrl: data.resumeFileUrl || '',
     resumeFileName: data.resumeFileName || '',
@@ -133,11 +152,18 @@ export const buildResumePayload = (form) => ({
       bullets: splitLines(item.bulletsText),
     })),
   education: (form.education || [])
-    .filter((item) => item.school || item.degree || item.period || item.bulletsText)
+    .filter((item) => item.school || item.program || item.degree || item.level || item.status || item.startDate || item.finishDate || item.expectedFinishDate || item.period || item.bulletsText)
     .map((item) => ({
+      startDate: item.startDate?.trim() || '',
+      finishDate: isStudyInProgress(item.status) ? '' : item.finishDate?.trim() || '',
+      expectedFinishDate: isStudyInProgress(item.status) ? item.expectedFinishDate?.trim() || '' : '',
       school: item.school?.trim() || '',
       degree: item.degree?.trim() || '',
-      period: item.period?.trim() || '',
+      program: (item.program || item.degree || '').trim(),
+      level: item.level?.trim() || '',
+      status: item.status?.trim() || '',
+      visible: item.visible !== false,
+      period: formatStudyPeriod(item),
       bullets: splitLines(item.bulletsText),
     })),
   certifications: (form.certifications || [])
@@ -150,6 +176,16 @@ export const buildResumePayload = (form) => ({
       credentialUrl: item.credentialUrl?.trim() || '',
       showCredentialLink: Boolean(item.showCredentialLink),
     })),
+  personalItems: (form.personalItems || []).map(item => ({
+    title: item.title?.trim() || '', category: item.category || 'Interest', status: item.status?.trim() || '',
+    level: item.level?.trim() || '', notes: item.notes?.trim() || '', visible: item.visible !== false,
+  })),
+  gallery: (form.gallery || []).map(item => ({
+    title: item.title?.trim() || '', caption: item.caption?.trim() || '', date: item.date?.trim() || '',
+    location: item.location?.trim() || '', imageUrl: item.imageUrl?.trim() || '',
+    imageAssetId: item.imageAssetId || '', altText: item.altText?.trim() || '',
+    visible: item.visible !== false, featured: Boolean(item.featured),
+  })),
   skills: {
     primary: splitSkillItems(form.skillsPrimaryText),
     secondary: splitSkillItems(form.skillsSecondaryText),
@@ -173,8 +209,10 @@ export const validateResumeForm = (form) => {
     if ((item.role || item.company || item.period || item.bulletsText) && !item.company?.trim()) errors[`experience.${index}.company`] = `Experience ${index + 1} needs a company.`
   })
   ;(form.education || []).forEach((item, index) => {
-    if ((item.school || item.degree || item.period || item.bulletsText) && !item.school?.trim()) errors[`education.${index}.school`] = `Education ${index + 1} needs a school.`
-    if ((item.school || item.degree || item.period || item.bulletsText) && !item.degree?.trim()) errors[`education.${index}.degree`] = `Education ${index + 1} needs a degree.`
+    Object.entries(studyDateErrors(item)).forEach(([field, message]) => { errors[`education.${index}.${field}`] = message })
+    const hasContent = item.school || item.program || item.degree || item.level || item.status || item.startDate || item.finishDate || item.expectedFinishDate || item.period || item.bulletsText
+    if (hasContent && !item.school?.trim()) errors[`education.${index}.school`] = `Education ${index + 1} needs an institution.`
+    if (hasContent && !(item.program || item.degree)?.trim()) errors[`education.${index}.program`] = `Education ${index + 1} needs a program name.`
   })
   ;(form.certifications || []).forEach((item, index) => {
     const hasContent = item.name || item.issuer || item.year || item.credentialId || item.credentialUrl
@@ -187,6 +225,20 @@ export const validateResumeForm = (form) => {
     }
   })
 
+  ;(form.personalItems || []).forEach((item, index) => {
+    if (!item.title?.trim()) errors[`personalItems.${index}.title`] = 'Add a title for this personal card.'
+    if (item.title?.length > 100) errors[`personalItems.${index}.title`] = 'Keep the title to 100 characters.'
+    if (item.notes?.length > 800) errors[`personalItems.${index}.notes`] = 'Keep the note to 800 characters.'
+  })
+  ;(form.gallery || []).forEach((item, index) => {
+    if (!item.title?.trim()) errors[`gallery.${index}.title`] = 'Add a title for this gallery entry.'
+    if (item.title?.length > 160) errors[`gallery.${index}.title`] = 'Keep the title to 160 characters.'
+    if (item.visible !== false && !item.imageUrl) errors[`gallery.${index}.imageUrl`] = 'Upload a photo or hide this entry.'
+    else if (item.imageUrl && !isValidUrl(item.imageUrl)) errors[`gallery.${index}.imageUrl`] = 'Use a valid http or https image URL.'
+    if (item.caption?.length > 1000) errors[`gallery.${index}.caption`] = 'Keep the story to 1,000 characters.'
+  })
+  if ((form.personalItems || []).length > 20) errors.personalItems = 'Keep up to 20 personal cards.'
+  if ((form.gallery || []).length > 30) errors.gallery = 'Keep up to 30 gallery entries.'
   return errors
 }
 

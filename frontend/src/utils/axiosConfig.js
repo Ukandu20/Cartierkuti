@@ -17,6 +17,7 @@ apiClient.interceptors.request.use(
     const protectedRead =
       config.url?.includes('/api/admin/verify') ||
       config.url?.includes('/api/admin/account') ||
+      config.url?.includes('/api/resume/admin') ||
       config.url?.includes('/api/projects/archived') ||
       config.url?.includes('/api/activities');
     const isFormData =

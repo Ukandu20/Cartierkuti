@@ -70,7 +70,7 @@ describe('Admin dashboard components', () => {
     apiGet.mockImplementation((url) => {
       if (url === '/api/admin/verify') return Promise.resolve({ data: { valid: true } })
       if (url === '/api/projects') return Promise.resolve({ data: [] })
-      if (url === '/api/resume') return Promise.resolve({ data: {} })
+      if (url === '/api/resume/admin') return Promise.resolve({ data: {} })
       if (url === '/api/activities') return Promise.resolve({ data: { activities: [], total: 0 } })
       return Promise.resolve({ data: {} })
     })

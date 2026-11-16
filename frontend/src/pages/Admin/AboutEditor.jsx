@@ -1,3 +1,4 @@
+import { educationDateFields } from '@/utils/educationDates'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Badge,
@@ -39,6 +40,8 @@ import TagInput from './components/TagInput'
 import { useAdminAuth } from './hooks/useAdminAuth'
 import { useAdminProjects } from './hooks/useAdminProjects'
 import { validateResumeForm } from './adminDashboardUtils'
+import { EducationFields, PersonalFields, GalleryFields } from './components/AboutExtraFields'
+import apiClient from '@/utils/axiosConfig'
 
 const DRAFT_KEY = 'adminAboutDraft'
 
@@ -49,14 +52,18 @@ const sections = [
   { id: 'education', label: 'Education', description: 'Schools and qualifications' },
   { id: 'certifications', label: 'Certifications', description: 'Professional credentials' },
   { id: 'skills', label: 'Skills', description: 'Capabilities and tools' },
+  { id: 'personalItems', label: 'Outside my work', description: 'Languages, interests and learning' },
+  { id: 'gallery', label: 'Experience gallery', description: 'Photos and personal stories' },
   { id: 'resume', label: 'Résumé PDF', description: 'Downloadable document' },
 ]
 
 const collectionDefaults = {
   metrics: { label: '', value: '', note: '' },
   experience: { role: '', company: '', location: '', period: '', bulletsText: '' },
-  education: { school: '', degree: '', period: '', bulletsText: '' },
+  education: { school: '', degree: '', program: '', level: '', status: '', period: '', startDate: '', finishDate: '', expectedFinishDate: '', bulletsText: '', visible: true },
   certifications: { name: '', issuer: '', year: '', credentialId: '', credentialUrl: '', showCredentialLink: true },
+  personalItems: { title: '', category: 'Interest', status: '', level: '', notes: '', visible: true },
+  gallery: { title: '', caption: '', date: '', location: '', imageUrl: '', imageAssetId: '', altText: '', visible: true, featured: false },
 }
 
 const sectionForError = (key) => {
@@ -77,11 +84,13 @@ function EditorSection({ eyebrow, title, description, children }) {
   )
 }
 
-function ReorderableCard({ title, subtitle, index, count, onMove, onRemove, onDragStart, onDrop, children }) {
+function ReorderableCard({ title, subtitle, index, count, initiallyOpen, onMove, onRemove, onDragStart, onDrop, children }) {
+  const [expanded, setExpanded] = useState(index === 0 || initiallyOpen)
   return (
     <SurfaceCard
       as="details"
-      open={index === 0}
+      open={expanded}
+      onToggle={event => setExpanded(event.currentTarget.open)}
       boxShadow="none"
       draggable
       onDragStart={onDragStart}
@@ -117,6 +126,8 @@ function ReorderableCard({ title, subtitle, index, count, onMove, onRemove, onDr
 export default function AboutEditor() {
   const navigate = useNavigate()
   const editorContentRef = useRef(null)
+  const draftImages = useRef(new Set())
+  const [imageUploads, setImageUploads] = useState(0)
   const [activeSection, setActiveSection] = useState('introduction')
   const [baseline, setBaseline] = useState('')
   const [availableDraft, setAvailableDraft] = useState(null)
@@ -166,11 +177,16 @@ export default function AboutEditor() {
   } = useAdminAuth({ onAuthenticated: loadAbout })
 
   const serializedForm = useMemo(() => JSON.stringify(resumeForm), [resumeForm])
-  const isDirty = Boolean(baseline) && (serializedForm !== baseline || Boolean(pendingFile))
+  const isDirty = Boolean(baseline) && (serializedForm !== baseline || Boolean(pendingFile) || imageUploads > 0 || draftImages.current.size > 0)
 
   useEffect(() => {
-    if (baseline && serializedForm !== baseline) sessionStorage.setItem(DRAFT_KEY, serializedForm)
-  }, [baseline, serializedForm])
+    if (!baseline) return
+    if (serializedForm !== baseline || draftImages.current.size > 0) {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...resumeForm, _draftImageAssets: [...draftImages.current] }))
+    } else {
+      sessionStorage.removeItem(DRAFT_KEY)
+    }
+  }, [baseline, serializedForm, imageUploads])
 
   useEffect(() => {
     const warnBeforeUnload = (event) => {
@@ -217,7 +233,7 @@ export default function AboutEditor() {
   const addEntry = (section) => {
     setResumeForm((current) => ({
       ...current,
-      [section]: [...current[section], { ...collectionDefaults[section], _editorId: `${section}-${Date.now()}` }],
+      [section]: [...(current[section] || []), { ...collectionDefaults[section], _editorId: crypto.randomUUID(), _newEntry: true }],
     }))
     setUndoEntry(null)
   }
@@ -260,7 +276,25 @@ export default function AboutEditor() {
     setDraggedEntry(null)
   }
 
+  const cleanupImages = async (ids) => {
+    await Promise.all([...new Set(ids)].filter(id => id?.startsWith('cartierkuti/about-gallery/')).map(imageAssetId =>
+      apiClient.delete('/api/resume/gallery-image', { data: { imageAssetId } }).catch(() => {}),
+    ))
+  }
+
+  const uploadedImage = (editorId, data) => {
+    draftImages.current.add(data.imageAssetId)
+    setResumeForm(current => ({ ...current, gallery: current.gallery.map(item => item._editorId === editorId
+      ? { ...item, ...data, _newUpload: true } : item) }))
+    setErrors(current => {
+      const next = { ...current }
+      Object.keys(next).filter(key => key.startsWith('gallery.') && key.endsWith('.imageUrl')).forEach(key => delete next[key])
+      return next
+    })
+  }
+
   const persist = async () => {
+    if (imageUploads > 0) return
     const validationErrors = validateResumeForm(resumeForm)
     setErrors(validationErrors)
     if (Object.keys(validationErrors).length) {
@@ -277,6 +311,10 @@ export default function AboutEditor() {
     }
 
     setPendingFile(null)
+    const usedImages = new Set(savedForm.gallery.map(item => item.imageAssetId))
+    const previousImages = JSON.parse(baseline || '{}').gallery || []
+    void cleanupImages([...draftImages.current, ...previousImages.map(item => item.imageAssetId)].filter(id => !usedImages.has(id)))
+    draftImages.current.clear()
 
     setBaseline(JSON.stringify(savedForm))
     sessionStorage.removeItem(DRAFT_KEY)
@@ -286,6 +324,7 @@ export default function AboutEditor() {
   }
 
   const requestExit = (action) => {
+    if (imageUploads > 0) return
     if (!isDirty) {
       action()
       return
@@ -295,11 +334,34 @@ export default function AboutEditor() {
   }
 
   const discardAndExit = () => {
+    void cleanupImages([...draftImages.current, ...(resumeForm.gallery || []).filter(item => item._newUpload).map(item => item.imageAssetId)])
     sessionStorage.removeItem(DRAFT_KEY)
     setDiscardOpen(false)
     pendingExit?.()
     setPendingExit(null)
   }
+
+  const discardDraft = () => {
+    void cleanupImages([...(availableDraft._draftImageAssets || []), ...(availableDraft.gallery || []).filter(item => item._newUpload).map(item => item.imageAssetId)])
+    sessionStorage.removeItem(DRAFT_KEY)
+    setAvailableDraft(null)
+  }
+
+  const restoreDraft = () => {
+    const restored = { ...resumeForm, ...availableDraft,
+      personalItems: availableDraft.personalItems || [], gallery: availableDraft.gallery || [],
+      education: (availableDraft.education || []).map(item => ({ ...item, ...educationDateFields(item), program: item.program || item.degree || '' })),
+    }
+    restored.gallery.filter(item => item._newUpload).forEach(item => draftImages.current.add(item.imageAssetId))
+    ;(availableDraft._draftImageAssets || []).forEach(id => draftImages.current.add(id))
+    setResumeForm(restored)
+    setAvailableDraft(null)
+  }
+
+  const collectionErrors = (section, index) => Object.fromEntries(
+    Object.entries(errors).filter(([key]) => key.startsWith(`${section}.${index}.`))
+      .map(([key, value]) => [key.split('.').at(-1), value]),
+  )
 
   if (!isAuth) {
     return <AdminLoginPanel username={username} setUsername={setUsername} password={password} setPassword={setPassword} isLoggingIn={isLoggingIn} handleLogin={handleLogin} mfaRequired={mfaRequired} mfaCode={mfaCode} setMfaCode={setMfaCode} handleMfaLogin={handleMfaLogin} cancelMfaLogin={cancelMfaLogin} />
@@ -310,12 +372,13 @@ export default function AboutEditor() {
 
   const renderCollection = (section, titleFor, subtitleFor, fields) => (
     <Stack gap={4}>
-      {resumeForm[section].map((item, index) => (
+      {(resumeForm[section] || []).map((item, index) => (
         <ReorderableCard
           key={item._editorId || `${section}-${index}`}
           title={titleFor(item, index)}
           subtitle={subtitleFor(item)}
           index={index}
+          initiallyOpen={item._newEntry}
           count={resumeForm[section].length}
           onMove={(offset) => moveEntry(section, index, offset)}
           onRemove={() => removeEntry(section, index)}
@@ -325,7 +388,7 @@ export default function AboutEditor() {
           {fields(item, index)}
         </ReorderableCard>
       ))}
-      <Button alignSelf="flex-start" variant="outline" colorPalette="brand" onClick={() => addEntry(section)}><HiPlus /> Add {section === 'certifications' ? 'certification' : section.replace(/s$/, '')}</Button>
+      <Button alignSelf="flex-start" variant="outline" colorPalette="brand" disabled={(section === 'personalItems' && resumeForm.personalItems?.length >= 20) || (section === 'gallery' && resumeForm.gallery?.length >= 30)} onClick={() => addEntry(section)}><HiPlus /> Add {section === 'personalItems' ? 'personal card' : section === 'gallery' ? 'gallery entry' : section === 'certifications' ? 'certification' : section.replace(/s$/, '')}</Button>
     </Stack>
   )
 
@@ -334,14 +397,14 @@ export default function AboutEditor() {
       <SurfaceCard p={{ base: 4, md: 6 }} mb={6}>
         <Flex justify="space-between" align={{ base: 'flex-start', lg: 'center' }} gap={5} direction={{ base: 'column', lg: 'row' }}>
           <Box>
-            <Button variant="ghost" size="sm" mb={2} onClick={() => requestExit(() => navigate('/admin'))}><HiArrowLeft /> Back to dashboard</Button>
+            <Button variant="ghost" size="sm" mb={2} disabled={imageUploads > 0} onClick={() => requestExit(() => navigate('/admin'))}><HiArrowLeft /> Back to dashboard</Button>
             <Text fontFamily="mono" fontSize="xs" color="accent.default" textTransform="uppercase" letterSpacing="0.14em">Content workspace</Text>
             <Heading fontFamily="body" fontSize={{ base: '2xl', md: '3xl' }}>Edit About page</Heading>
             <Text color="fg.muted" mt={1}>Manage the public narrative, experience, credentials, skills, and résumé download.</Text>
           </Box>
           <Flex gap={3} wrap="wrap" w={{ base: 'full', lg: 'auto' }}>
             <Button variant="outline" colorPalette="brand" onClick={() => setPreviewOpen(true)} flex={{ base: 1, sm: 'initial' }}><HiEye /> Preview public page</Button>
-            <Button colorPalette="brand" onClick={persist} loading={saveState === 'saving'} disabled={resumeLoading} flex={{ base: 1, sm: 'initial' }}><HiCheck /> Save About page</Button>
+            <Button colorPalette="brand" onClick={persist} loading={saveState === 'saving'} disabled={resumeLoading || imageUploads > 0} flex={{ base: 1, sm: 'initial' }}><HiCheck /> Save About page</Button>
           </Flex>
         </Flex>
       </SurfaceCard>
@@ -350,7 +413,7 @@ export default function AboutEditor() {
         <SurfaceCard mb={5} p={4} bg="bg.warning" borderColor="border.warning" boxShadow="none">
           <Flex justify="space-between" align="center" gap={4} wrap="wrap">
             <Box><Text fontWeight="700">An unsaved About draft was found.</Text><Text color="fg.muted" fontSize="sm">Restore it or continue with the last saved version.</Text></Box>
-            <Flex gap={2}><Button size="sm" variant="ghost" onClick={() => { sessionStorage.removeItem(DRAFT_KEY); setAvailableDraft(null) }}>Discard draft</Button><Button size="sm" colorPalette="brand" onClick={() => { setResumeForm(availableDraft); setAvailableDraft(null) }}>Restore draft</Button></Flex>
+            <Flex gap={2}><Button size="sm" variant="ghost" onClick={discardDraft}>Discard draft</Button><Button size="sm" colorPalette="brand" onClick={restoreDraft}>Restore draft</Button></Flex>
           </Flex>
         </SurfaceCard>
       ) : null}
@@ -442,13 +505,9 @@ export default function AboutEditor() {
 
           {!resumeLoading && activeSection === 'education' ? (
             <EditorSection eyebrow="04" title="Education" description="Keep qualifications concise and add only highlights that strengthen the portfolio narrative.">
-              {renderCollection('education', (item, index) => item.degree || `Education ${index + 1}`, (item) => item.school || 'Add a school', (item, index) => (
+              {renderCollection('education', (item, index) => item.program || item.degree || `Education ${index + 1}`, (item) => [item.level, item.school, item.visible === false ? 'Hidden' : ''].filter(Boolean).join(' · '), (item, index) => (
                 <Stack gap={4}>
-                  <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-                    <Field.Root invalid={Boolean(errors[`education.${index}.school`])}><Field.Label>School</Field.Label><Input value={item.school} onChange={(event) => updateCollection('education', index, 'school', event.target.value)} /><Field.ErrorText>{errors[`education.${index}.school`]}</Field.ErrorText></Field.Root>
-                    <Field.Root invalid={Boolean(errors[`education.${index}.degree`])}><Field.Label>Degree or qualification</Field.Label><Input value={item.degree} onChange={(event) => updateCollection('education', index, 'degree', event.target.value)} /><Field.ErrorText>{errors[`education.${index}.degree`]}</Field.ErrorText></Field.Root>
-                    <Field.Root><Field.Label>Period</Field.Label><Input value={item.period} onChange={(event) => updateCollection('education', index, 'period', event.target.value)} /></Field.Root>
-                  </SimpleGrid>
+                  <EducationFields item={item} onChange={(key, value) => updateCollection('education', index, key, value)} errors={collectionErrors('education', index)} />
                   <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={item.bulletsText} delimiter={'\n'} commitOnComma={false} onChange={(value) => updateCollection('education', index, 'bulletsText', value)} placeholder="Add a relevant course or achievement…" /></Field.Root>
                 </Stack>
               ))}
@@ -528,6 +587,20 @@ export default function AboutEditor() {
               </SurfaceCard>
             </EditorSection>
           ) : null}
+          {!resumeLoading && activeSection === 'personalItems' ? (
+            <EditorSection eyebrow="07" title="Outside my work" description="Share languages, interests, volunteering, or something you are learning. Leave this section empty to keep it off the public page.">
+              {renderCollection('personalItems', (item, index) => item.title || `Personal card ${index + 1}`, item => [item.category, item.visible === false ? 'Hidden' : item.status].filter(Boolean).join(' · '), (item, index) => (
+                <PersonalFields item={item} onChange={(key, value) => updateCollection('personalItems', index, key, value)} errors={collectionErrors('personalItems', index)} />
+              ))}
+            </EditorSection>
+          ) : null}
+          {!resumeLoading && activeSection === 'gallery' ? (
+            <EditorSection eyebrow="08" title="Experience gallery" description="Add photos and short stories from your experiences. Featured photos lead the gallery; other photos remain available through View more.">
+              {renderCollection('gallery', (item, index) => item.title || `Gallery entry ${index + 1}`, item => [item.location || item.date, item.visible === false ? 'Hidden' : item.featured ? 'Featured' : ''].filter(Boolean).join(' · '), (item, index) => (
+                <GalleryFields item={item} onChange={(key, value) => updateCollection('gallery', index, key, value)} onImageUploaded={data => uploadedImage(item._editorId, data)} onUploadingChange={busy => setImageUploads(count => Math.max(0, count + (busy ? 1 : -1)))} errors={collectionErrors('gallery', index)} />
+              ))}
+            </EditorSection>
+          ) : null}
           </Box>
         </SurfaceCard>
       </Grid>
@@ -538,11 +611,11 @@ export default function AboutEditor() {
             <Text fontWeight="700">
               {saveState === 'saving' ? 'Saving changes…' : saveState === 'error' ? 'Changes need attention' : isDirty ? 'Unsaved changes' : savedAt ? `Saved at ${savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'All changes saved'}
             </Text>
-            <Text color="fg.muted" fontSize="sm">A local draft is kept in this browser until the page is saved.</Text>
+            <Text color="fg.muted" fontSize="sm">{imageUploads > 0 ? 'Wait for photo uploads to finish before saving or leaving.' : 'A local draft is kept in this browser until the page is saved.'}</Text>
           </Box>
           <Flex gap={3} direction={{ base: 'column-reverse', sm: 'row' }}>
-            <Button variant="ghost" onClick={() => requestExit(() => navigate('/admin'))}>Cancel</Button>
-            <Button colorPalette="brand" onClick={persist} loading={saveState === 'saving'} disabled={!isDirty || resumeLoading}>Save About page</Button>
+            <Button variant="ghost" disabled={imageUploads > 0} onClick={() => requestExit(() => navigate('/admin'))}>Cancel</Button>
+            <Button colorPalette="brand" onClick={persist} loading={saveState === 'saving'} disabled={!isDirty || resumeLoading || imageUploads > 0}>Save About page</Button>
           </Flex>
         </Flex>
       </SurfaceCard>

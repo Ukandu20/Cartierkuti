@@ -10,9 +10,11 @@ import Resume from '../models/resume.model.js'
 import { resumeWriteSchema } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
 import logger from '../logger.js'
+import galleryRouter from './about-gallery.router.js'
 
 const resumeRouter = Router()
 const RESUME_KEY = 'primary'
+resumeRouter.use('/gallery-image', galleryRouter)
 
 const findResume = () => Resume.findOne({ key: RESUME_KEY }).then(
   (resume) => resume || Resume.findOne({ key: { $exists: false } }),
@@ -97,7 +99,6 @@ const DEFAULT_RESUME = {
   ],
   metrics: [
     { label: 'Years', value: '3+', note: 'Professional practice' },
-    { label: 'Projects', value: '20+', note: 'Analytics and software' },
     { label: 'Focus', value: 'Analytics', note: 'Models and sports' },
   ],
   experience: [
@@ -153,9 +154,18 @@ resumeRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
     const resume = await findResume()
-    res.json(resume || { ...DEFAULT_RESUME, key: RESUME_KEY })
+    const value = resume ? resume.toObject() : { ...DEFAULT_RESUME, key: RESUME_KEY }
+    for (const key of ['education', 'personalItems', 'gallery']) {
+      value[key] = (value[key] || []).filter(item => item.visible !== false)
+    }
+    res.json(value)
   })
 )
+
+resumeRouter.get('/admin', requireAdmin, asyncHandler(async (_req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.json(await findResume() || { ...DEFAULT_RESUME, key: RESUME_KEY })
+}))
 
 resumeRouter.put(
   '/',

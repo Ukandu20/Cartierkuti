@@ -14,6 +14,21 @@ import {
 } from './adminDashboardUtils'
 
 describe('adminDashboardUtils', () => {
+  it('round-trips separate program levels, personal cards, and gallery metadata', () => {
+    const form = normalizeResumeForm({
+      education: [{ school: 'University', program: 'Data Science', level: 'Master’s degree', status: 'In progress', visible: false }],
+      personalItems: [{ title: 'French', category: 'Language', level: 'Beginner', status: 'Currently learning', notes: 'Conversation practice.', visible: true }],
+      gallery: [{ title: 'Conference', imageUrl: 'https://example.com/photo.jpg', caption: 'A day of learning.', date: 'June 2026', location: 'Toronto', altText: 'Conference participants', featured: true }],
+    })
+    const payload = buildResumePayload(form)
+    expect(payload.education[0]).toMatchObject({ program: 'Data Science', level: 'Master’s degree', status: 'In progress', visible: false })
+    expect(payload.personalItems[0]).toMatchObject({ title: 'French', category: 'Language', level: 'Beginner' })
+    expect(payload.gallery[0]).toMatchObject({ caption: 'A day of learning.', date: 'June 2026', location: 'Toronto', featured: true })
+    expect(JSON.stringify(payload)).not.toContain('_editorId')
+    expect(validateResumeForm({ ...form, headline: 'Analyst', summary: 'About me' })).toEqual({})
+    expect(validateResumeForm({ ...form, headline: 'Analyst', summary: 'About me', gallery: [{ title: 'Photo', imageUrl: '', visible: true }] })).toHaveProperty('gallery.0.imageUrl')
+  })
+
   it('normalizes and builds resume payloads', () => {
     const form = normalizeResumeForm({
       headline: ' Analyst ',
@@ -188,7 +203,7 @@ describe('adminDashboardUtils', () => {
       summary: 'Add the About page summary.',
       'metrics.0.value': 'Metric 1 needs a value.',
       'experience.0.company': 'Experience 1 needs a company.',
-      'education.0.degree': 'Education 1 needs a degree.',
+      'education.0.program': 'Education 1 needs a program name.',
       'certifications.0.issuer': 'Certification 1 needs an issuer.',
     })
   })
