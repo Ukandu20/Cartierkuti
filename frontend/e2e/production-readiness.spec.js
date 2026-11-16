@@ -646,6 +646,55 @@ test('About editor structures content, stages the PDF, previews, and saves as on
   expect(api.resumeFileUploads).toBe(1)
 })
 
+test('About highlights remain separate tags through editing, saving, and reopening', async ({ page }) => {
+  const api = await setupApi(page)
+  api.resume.highlights = ['Existing outcome\\nEarlier outcome']
+  api.resume.experience = [{ role: 'Analyst', company: 'Example', bullets: ['Initial outcome'] }]
+  api.resume.education = [{ school: 'Example University', degree: 'Statistics', bullets: ['Initial course'] }]
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await expect(page.getByRole('button', { name: 'Remove Existing outcome', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Remove Earlier outcome', exact: true })).toBeVisible()
+
+  const highlights = page.getByLabel('Add a capability or outcome…')
+  await highlights.fill('Dashboards, reporting')
+  await highlights.press('Enter')
+  await highlights.fill('Forecasting')
+  await highlights.press('Enter')
+  await expect(page.getByRole('button', { name: 'Remove Dashboards, reporting', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Remove Forecasting', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Remove Earlier outcome', exact: true }).click()
+
+  await page.getByRole('button', { name: /Experience.*Roles and outcomes/i }).click()
+  const experience = page.getByLabel('Add an outcome or responsibility…')
+  for (const item of ['Built pipelines', 'Automated reporting']) {
+    await experience.fill(item)
+    await experience.press('Enter')
+    await expect(page.getByRole('button', { name: `Remove ${item}`, exact: true })).toBeVisible()
+  }
+  await page.getByRole('button', { name: /Education.*Schools and qualifications/i }).click()
+  const education = page.getByLabel('Add a relevant course or achievement…')
+  for (const item of ['Statistics', 'Machine learning']) {
+    await education.fill(item)
+    await education.press('Enter')
+    await expect(page.getByRole('button', { name: `Remove ${item}`, exact: true })).toBeVisible()
+  }
+  await page.getByRole('button', { name: 'Save About page' }).first().click()
+  await expect(page.getByText(/saved at/i)).toBeVisible()
+  expect(api.resumeWrites.at(-1)).toMatchObject({
+    highlights: ['Existing outcome', 'Dashboards, reporting', 'Forecasting'],
+    experience: [{ bullets: ['Initial outcome', 'Built pipelines', 'Automated reporting'] }],
+    education: [{ bullets: ['Initial course', 'Statistics', 'Machine learning'] }],
+  })
+  await page.goto('/about')
+  await expect(page.getByText('Dashboards, reporting', { exact: true })).toBeVisible()
+  await expect(page.getByText('Forecasting', { exact: true })).toBeVisible()
+  await login(page)
+  await page.getByRole('button', { name: 'Edit About' }).click()
+  await expect(page.getByRole('button', { name: 'Remove Dashboards, reporting', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Remove Forecasting', exact: true })).toBeVisible()
+})
+
 test('About editor retains text and staged PDF after a failed save and can retry', async ({ page }) => {
   const api = await setupApi(page)
   const originalHeadline = api.resume.headline

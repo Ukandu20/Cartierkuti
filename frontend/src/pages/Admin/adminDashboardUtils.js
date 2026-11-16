@@ -38,7 +38,7 @@ export const emptyResumeForm = {
 
 export const splitLines = (value) =>
   (value || '')
-    .split('\n')
+    .split(/\r?\n|\\n/)
     .map((line) => line.trim())
     .filter(Boolean)
 
@@ -72,7 +72,7 @@ export const normalizeResumeForm = (data = {}) => {
   return {
     headline: data.headline || '',
     summary: data.summary || '',
-    highlightsText: safeArray(data.highlights).join('\n'),
+    highlightsText: splitLines(safeArray(data.highlights).join('\n')).join('\n'),
     metrics: safeArray(data.metrics).map((metric, index) => ({
       _editorId: metric?._editorId || `metric-${index}`,
       label: metric?.label || '',
@@ -85,14 +85,14 @@ export const normalizeResumeForm = (data = {}) => {
       company: item?.company || '',
       location: item?.location || '',
       period: item?.period || '',
-      bulletsText: safeArray(item?.bullets).join('\n'),
+      bulletsText: splitLines(safeArray(item?.bullets).join('\n')).join('\n'),
     })),
     education: safeArray(data.education).map((item, index) => ({
       _editorId: item?._editorId || `education-${index}`,
       school: item?.school || '',
       degree: item?.degree || '',
       period: item?.period || '',
-      bulletsText: safeArray(item?.bullets).join('\n'),
+      bulletsText: splitLines(safeArray(item?.bullets).join('\n')).join('\n'),
     })),
     certifications: safeArray(data.certifications).map((item, index) => ({
       _editorId: item?._editorId || `certification-${index}`,

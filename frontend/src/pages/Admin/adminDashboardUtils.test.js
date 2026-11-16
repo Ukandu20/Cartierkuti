@@ -58,6 +58,20 @@ describe('adminDashboardUtils', () => {
     })
   })
 
+  it('repairs highlights previously saved with literal newline separators without splitting commas', () => {
+    const form = normalizeResumeForm({
+      highlights: ['Dashboards, reporting\\nForecasting'],
+      experience: [{ bullets: ['Built pipelines\\nAutomated reporting'] }],
+      education: [{ bullets: ['Statistics\\nMachine learning'] }],
+    })
+    expect(form.highlightsText).toBe('Dashboards, reporting\nForecasting')
+    expect(form.experience[0].bulletsText).toBe('Built pipelines\nAutomated reporting')
+    expect(form.education[0].bulletsText).toBe('Statistics\nMachine learning')
+    expect(buildResumePayload(form)).toMatchObject({
+      highlights: ['Dashboards, reporting', 'Forecasting'],
+    })
+  })
+
   it('derives project forms, payloads, filters, counts, and analytics', () => {
     const projects = [
       { id: '1', title: 'A', status: 'In Progress', featured: true, views: 10, methods: ['API Design'], tools: ['JavaScript'], tags: ['Portfolio'], createdDate: '2025-01-01' },

@@ -408,7 +408,7 @@ export default function AboutEditor() {
                 </Field.HelperText>
                 <Field.ErrorText>{errors.summary}</Field.ErrorText>
               </Field.Root>
-              <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={resumeForm.highlightsText} delimiter="\n" commitOnComma={false} onChange={(value) => updateField('highlightsText', value)} placeholder="Add a capability or outcome…" /><Field.HelperText>Press Enter to add each highlight.</Field.HelperText></Field.Root>
+              <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={resumeForm.highlightsText} delimiter={'\n'} commitOnComma={false} onChange={(value) => updateField('highlightsText', value)} placeholder="Add a capability or outcome…" /><Field.HelperText>Press Enter to add each highlight.</Field.HelperText></Field.Root>
             </EditorSection>
           ) : null}
 
@@ -434,7 +434,7 @@ export default function AboutEditor() {
                     <Field.Root><Field.Label>Location</Field.Label><Input value={item.location} onChange={(event) => updateCollection('experience', index, 'location', event.target.value)} /></Field.Root>
                     <Field.Root><Field.Label>Period</Field.Label><Input value={item.period} onChange={(event) => updateCollection('experience', index, 'period', event.target.value)} placeholder="2022 – Present" /></Field.Root>
                   </SimpleGrid>
-                  <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={item.bulletsText} delimiter="\n" commitOnComma={false} onChange={(value) => updateCollection('experience', index, 'bulletsText', value)} placeholder="Add an outcome or responsibility…" /></Field.Root>
+                  <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={item.bulletsText} delimiter={'\n'} commitOnComma={false} onChange={(value) => updateCollection('experience', index, 'bulletsText', value)} placeholder="Add an outcome or responsibility…" /></Field.Root>
                 </Stack>
               ))}
             </EditorSection>
@@ -449,7 +449,7 @@ export default function AboutEditor() {
                     <Field.Root invalid={Boolean(errors[`education.${index}.degree`])}><Field.Label>Degree or qualification</Field.Label><Input value={item.degree} onChange={(event) => updateCollection('education', index, 'degree', event.target.value)} /><Field.ErrorText>{errors[`education.${index}.degree`]}</Field.ErrorText></Field.Root>
                     <Field.Root><Field.Label>Period</Field.Label><Input value={item.period} onChange={(event) => updateCollection('education', index, 'period', event.target.value)} /></Field.Root>
                   </SimpleGrid>
-                  <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={item.bulletsText} delimiter="\n" commitOnComma={false} onChange={(value) => updateCollection('education', index, 'bulletsText', value)} placeholder="Add a relevant course or achievement…" /></Field.Root>
+                  <Field.Root><Field.Label>Highlights</Field.Label><TagInput value={item.bulletsText} delimiter={'\n'} commitOnComma={false} onChange={(value) => updateCollection('education', index, 'bulletsText', value)} placeholder="Add a relevant course or achievement…" /></Field.Root>
                 </Stack>
               ))}
             </EditorSection>
