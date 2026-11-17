@@ -20,6 +20,7 @@ const archivedSchema = new mongoose.Schema(
     imageUrl:      String,
     imageAssetId:  String,
     featured:      Boolean,
+    visible:       Boolean,
     views:         Number,
     reviews:       Array,         // or [reviewSchema] if you want to reuse it
     createdDate:   Date,

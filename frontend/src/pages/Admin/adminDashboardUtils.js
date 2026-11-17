@@ -18,6 +18,7 @@ export const emptyProjectForm = {
   tags: '',
   date: '',
   featured: false,
+  visible: true,
 }
 
 export const emptyProjectErrors = {}
@@ -267,6 +268,7 @@ export const projectToFormData = (project = {}) => ({
   tags: (project.tags || []).join(', '),
   date: project.createdDate ? new Date(project.createdDate).toISOString().slice(0, 10) : '',
   featured: project.featured || false,
+  visible: project.visible !== false,
 })
 
 export const buildProjectPayload = (formData) => ({
@@ -285,6 +287,7 @@ export const buildProjectPayload = (formData) => ({
   tags: formData.tags.split(',').map((item) => item.trim()).filter(Boolean),
   metadata: formData.metadata?.trim() || '',
   featured: Boolean(formData.featured),
+  visible: formData.visible !== false,
 })
 
 const isValidUrl = (value) => {
@@ -375,6 +378,7 @@ export const projectWriteContractFields = Object.freeze([
   'tags',
   'title',
   'tools',
+  'visible',
 ])
 
 export const getAvgStars = (project) => {

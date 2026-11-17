@@ -131,9 +131,14 @@ const setupApi = async (page) => {
       return route.fulfill({ status: 200, json: publicProjectFixture(state.projects, url.href, state.categories) })
     }
 
+    if (path === '/api/projects/admin' && method === 'GET') {
+      if (!request.headers().authorization) return route.fulfill({ status: 401, json: { message: 'Unauthorized' } })
+      return route.fulfill({ status: 200, json: state.projects })
+    }
+
     if (path === '/api/projects' && method === 'GET') {
       state.projectReads += 1
-      return route.fulfill({ status: 200, json: state.projects })
+      return route.fulfill({ status: 200, json: state.projects.filter(project => project.visible !== false) })
     }
 
     if (path === '/api/categories' && method === 'GET') {
@@ -660,6 +665,7 @@ test('create project sends the backend write contract payload', async ({ page })
     imageUrl: 'https://example.com/uploads/project-preview.png',
     imageAssetId: 'cartierkuti/project-preview',
     featured: false,
+    visible: true,
   })
   expect(api.projectWrites[0]).not.toHaveProperty('date')
   expect(api.imageUploads).toBe(1)
@@ -676,6 +682,40 @@ test('edit project updates displayed data', async ({ page }) => {
 
   await expect(page.getByText('Alpha Analytics Updated', { exact: true }).filter({ visible: true })).toBeVisible()
   expect(api.projectWrites.at(-1).title).toBe('Alpha Analytics Updated')
+})
+
+test('admin hides and restores projects without deleting their saved content', async ({ page }) => {
+  const api = await setupApi(page)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
+  await login(page)
+  const projects = page.getByRole('region', { name: 'Projects', exact: true })
+  const actions = () => projects.getByRole('button', { name: 'Actions for Alpha Analytics', exact: true }).filter({ visible: true })
+  await actions().click()
+  await page.getByRole('menuitem', { name: 'Hide from website' }).click()
+  await expect.poll(() => api.projects[0].visible).toBe(false)
+  expect(api.projects).toHaveLength(2)
+  expect(api.projectWrites.at(-1)).toEqual({ visible: false })
+  await projects.getByRole('combobox', { name: 'Filter by visibility' }).selectOption('hidden')
+  await expect(projects.getByText('1 of 2 projects')).toBeVisible()
+  await expect(projects.getByRole('button', { name: 'Actions for Beta Portfolio', exact: true })).toHaveCount(0)
+  await expect(actions()).toBeEnabled()
+  await page.getByRole('link', { name: 'Home', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Beta Portfolio' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toHaveCount(0)
+  await page.getByRole('link', { name: /view selected work/i }).click()
+  await expect(page.getByText('1 of 1 projects')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toHaveCount(0)
+  await page.goBack()
+  await page.goBack()
+  await expect(actions()).toBeVisible()
+  await actions().click()
+  await page.getByRole('menuitem', { name: 'Show on website' }).click()
+  await expect.poll(() => api.projects[0].visible).toBe(true)
+  expect(api.projects[0]).toMatchObject({ title: 'Alpha Analytics', featured: true, views: 42 })
+  await expect(actions()).toBeEnabled()
+  await page.getByRole('link', { name: 'Home', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
 })
 
 test('admin activity filters apply once from a later page and recover from load failures', async ({ page }) => {

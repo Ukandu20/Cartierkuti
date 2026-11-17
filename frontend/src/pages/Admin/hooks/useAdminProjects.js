@@ -25,7 +25,7 @@ export function useAdminProjects() {
   const fetchProjects = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await apiClient.get('/api/projects')
+      const { data } = await apiClient.get('/api/projects/admin')
       setProjects(normalizeProjects(data))
       setError('')
     } catch {

@@ -101,6 +101,12 @@ Home uses `GET /api/projects/selected?limit=3`, prioritizing featured projects a
 
 The selected endpoint accepts at most 3 entries and browse accepts at most 24 per page. The existing `GET /api/projects` array response remains compatible with the admin dashboard and older clients. Public query results are cached for 60 seconds, with at most 60 entries; successful project, review, or category writes invalidate the relevant variants. Search requests wait 250 ms after typing and changed filters reset pagination together. Deploy these backend routes before the frontend for bounded downloads. If an older backend returns a missing-route response (404 or an invalid project ID for these route names), the frontend temporarily uses the cached legacy list with local filtering and pagination. Other API errors still display Retry.
 
+### Project Visibility
+
+In Admin > Projects, use the project's actions menu to **Hide from website** or **Show on website**. The editor also provides **Show on public website** under Publishing. Hidden projects remain editable, with their images, reviews, views, and featured setting preserved. Use **Filter by visibility** to find hidden projects. Existing projects default to public.
+
+The admin dashboard reads the authenticated `GET /api/projects/admin` endpoint. Public lists, selected work, category counts, search, individual project reads, reviews, and view tracking exclude projects with `visible: false`. Successful visibility changes invalidate the browser's public project cache; other visitors' cached lists expire within 60 seconds. Deploy the backend before the frontend to enable the protected admin list and visibility enforcement. Hiding removes a project from this website; previously shared external links and image URLs are unchanged.
+
 ### About Page Content
 
 The About editor separates education into institution, program name, program level, start date, finish date, and status. Dates accept a year or year and month. For In progress, the finish field becomes an optional expected finish; leaving it empty displays Present. Education sits alongside the introduction, followed by experience, ahead of metrics and working principles. Highlights appear as wrapping tags throughout the page and preview. The program is displayed as a heading; level and status appear as badges. Existing `degree` and `period` values remain readable.

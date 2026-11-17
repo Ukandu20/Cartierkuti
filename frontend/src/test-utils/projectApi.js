@@ -5,7 +5,8 @@ import { sortProjects } from '../utils/projectSorting'
 // Fixtures for public-list consumers; database behavior is covered by API tests.
 export function publicProjectFixture(projects, path, categories) {
   const url = new URL(path, 'http://fixture.test')
-  const all = normalizeProjects(projects).map(({ reviews, ...project }) => project)
+  const visibleProjects = projects.filter(project => project.visible !== false)
+  const all = normalizeProjects(visibleProjects).map(({ reviews, ...project }) => project)
   const selected = [...all].sort((a, b) => Number(b.featured) - Number(a.featured) || (b.views || 0) - (a.views || 0))
   if (url.pathname.endsWith('/selected')) return selected.slice(0, Number(url.searchParams.get('limit') || 3))
   const search = (url.searchParams.get('search') || '').toLowerCase()
@@ -16,6 +17,6 @@ export function publicProjectFixture(projects, path, categories) {
   return {
     projects: sortProjects(filtered, url.searchParams.get('sort') || 'date').slice((page - 1) * limit, page * limit),
     total: filtered.length, totalProjects: all.length, featuredProject: selected[0] || null,
-    categories: getPopulatedProjectCategories(projects, categories).filter(item => item.value !== 'all').map(item => ({ slug: item.value, name: item.label })), page, limit,
+    categories: getPopulatedProjectCategories(visibleProjects, categories).filter(item => item.value !== 'all').map(item => ({ slug: item.value, name: item.label })), page, limit,
   }
 }

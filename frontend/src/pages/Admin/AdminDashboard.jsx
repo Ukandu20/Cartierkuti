@@ -141,6 +141,9 @@ export default function AdminDashboard() {
   const [projectSearch, setProjectSearch] = useState('')
   const [projectStatusFilter, setProjectStatusFilter] = useState('all')
   const [projectCategoryFilter, setProjectCategoryFilter] = useState('all')
+  const [projectVisibilityFilter, setProjectVisibilityFilter] = useState('all')
+  const [changingVisibility, setChangingVisibility] = useState(false)
+  const visibilityInFlight = useRef(false)
   const [editMode, setEditMode] = useState(false)
   const [current, setCurrent] = useState(null)
   const [formData, setFormData] = useState(emptyProjectForm)
@@ -175,10 +178,11 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setProjectPage(1)
-  }, [projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter])
+  }, [projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter, projectVisibilityFilter])
 
   useEffect(() => {
     const filteredLength = getFilteredProjects(projects, projectFilter)
+      .filter((project) => projectVisibilityFilter === 'all' || (project.visible !== false) === (projectVisibilityFilter === 'public'))
       .filter((project) => projectStatusFilter === 'all' || project.status === projectStatusFilter)
       .filter((project) => projectCategoryFilter === 'all' || project.category === projectCategoryFilter)
       .filter((project) => {
@@ -191,7 +195,7 @@ export default function AdminDashboard() {
       .length
     const maxPage = Math.max(1, Math.ceil(filteredLength / PROJECT_PAGE_SIZE))
     if (projectPage > maxPage) setProjectPage(maxPage)
-  }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter, projectPage])
+  }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter, projectVisibilityFilter, projectPage])
 
   const onChange = (event) => {
     const { name, value, type, checked } = event.target
@@ -281,6 +285,7 @@ export default function AdminDashboard() {
     setProjectSearch('')
     setProjectStatusFilter('all')
     setProjectCategoryFilter('all')
+    setProjectVisibilityFilter('all')
     setProjectPage(1)
     listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -350,6 +355,25 @@ export default function AdminDashboard() {
       })
     } finally {
       setIsSavingProject(false)
+    }
+  }
+
+  const toggleProjectVisibility = async (project) => {
+    if (visibilityInFlight.current) return
+    visibilityInFlight.current = true
+    setChangingVisibility(true)
+    const visible = project.visible === false
+    try {
+      await apiClient.put(`/api/projects/${project.id}`, { visible })
+      toaster.create({ title: visible ? 'Project is now public' : 'Project hidden from the website', type: 'success', closable: true })
+      await Promise.all([fetchProjects(), fetchActivities()])
+    } catch (error) {
+      reportAdminError(error)
+      if (handleUnauthorized(error)) return
+      toaster.create({ title: 'Could not change project visibility', description: getApiErrorMessage(error, 'Please try again.'), type: 'error', closable: true })
+    } finally {
+      visibilityInFlight.current = false
+      setChangingVisibility(false)
     }
   }
 
@@ -440,12 +464,13 @@ export default function AdminDashboard() {
   const filteredProjects = useMemo(() => {
     const query = projectSearch.trim().toLowerCase()
     return getFilteredProjects(projects, projectFilter)
+      .filter((project) => projectVisibilityFilter === 'all' || (project.visible !== false) === (projectVisibilityFilter === 'public'))
       .filter((project) => projectStatusFilter === 'all' || project.status === projectStatusFilter)
       .filter((project) => projectCategoryFilter === 'all' || project.category === projectCategoryFilter)
       .filter((project) => !query || [project.title, project.category, project.status, ...(project.tags || []), ...(project.methods || []), ...(project.tools || [])]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)))
-  }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter])
+  }, [projects, projectFilter, projectSearch, projectStatusFilter, projectCategoryFilter, projectVisibilityFilter])
   const projectFilterLabel = getProjectFilterLabel(projectFilter)
   const projectPageCount = Math.max(1, Math.ceil(filteredProjects.length / PROJECT_PAGE_SIZE))
   const paginatedProjects = filteredProjects.slice(
@@ -509,6 +534,10 @@ export default function AdminDashboard() {
             onOpenEdit={onOpenEdit}
             onConfirmDelete={confirmDelete}
             onOpenAnalytics={openProjectAnalytics}
+            onToggleVisibility={toggleProjectVisibility}
+            changingVisibility={changingVisibility}
+            visibilityFilter={projectVisibilityFilter}
+            onVisibilityFilterChange={setProjectVisibilityFilter}
             search={projectSearch}
             onSearchChange={setProjectSearch}
             statusFilter={projectStatusFilter}
@@ -520,6 +549,7 @@ export default function AdminDashboard() {
               setProjectSearch('')
               setProjectStatusFilter('all')
               setProjectCategoryFilter('all')
+              setProjectVisibilityFilter('all')
             }}
             dialogBg={dialogBg}
             dialogBorder={dialogBorder}

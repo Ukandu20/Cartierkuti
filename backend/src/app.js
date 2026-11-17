@@ -28,7 +28,7 @@ app.use(mongoSanitize())
 app.use(express.json({ limit: '1mb' }))
 app.use(corsMiddleware)
 
-const apiLimiter = rateLimit({ windowMs: 60_000, max: 150 })
+export const apiLimiter = rateLimit({ windowMs: 60_000, max: 150 })
 app.use('/api/', apiLimiter)
 
 app.get('/health', (_req, res) => {

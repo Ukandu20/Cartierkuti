@@ -260,6 +260,16 @@ export default function ProjectEditorDialog({
 
                     <Flex justify="space-between" align="center" gap={4} p={4} bg="bg.subtle" borderRadius="md">
                       <Box>
+                        <Text fontWeight="700">Show on public website</Text>
+                        <Text color="fg.muted" fontSize="sm">Turn off to hide this project. Its content, reviews, and views stay saved.</Text>
+                      </Box>
+                      <Switch.Root checked={formData.visible !== false} onCheckedChange={(details) => setFormData((current) => ({ ...current, visible: Boolean(details.checked) }))}>
+                        <Switch.HiddenInput name="visible" aria-label="Show on public website" />
+                        <Switch.Control><Switch.Thumb /></Switch.Control>
+                      </Switch.Root>
+                    </Flex>
+                    <Flex justify="space-between" align="center" gap={4} p={4} bg="bg.subtle" borderRadius="md">
+                      <Box>
                         <Text fontWeight="700">Feature this project</Text>
                         <Text color="fg.muted" fontSize="sm">Featured work is prioritised on the Home and Portfolio pages.</Text>
                       </Box>

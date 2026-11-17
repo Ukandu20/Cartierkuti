@@ -26,7 +26,7 @@ import {
   updateProject,
 } from '../services/project.service.js'
 import { destroyProjectImage } from '../services/project-image.service.js'
-import { browseProjects, listSelectedProjects } from '../services/public-project.service.js'
+import { browseProjects, listSelectedProjects, publicProjectFilter } from '../services/public-project.service.js'
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 })
 const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 })
@@ -38,6 +38,7 @@ const serializeProject = (project) => {
   const ratings = (value?.reviews || []).map(review => review.stars).filter(Number.isFinite)
   return {
     ...value,
+    visible: value?.visible !== false,
     avgStars: ratings.length ? Math.round(ratings.reduce((sum, stars) => sum + stars, 0) / ratings.length * 100) / 100 : 0,
     reviewCount: (value?.reviews || []).length,
     methods: value?.methods || [],
@@ -118,6 +119,14 @@ projectRouter.delete(
 )
 
 /* CRUD: PROJECTS */
+const listProjects = async (filter) => (await Project.find(filter)
+  .select('category categorySlug title description methods tools languages status tags metadata externalLink githubLink liveDemoLink imageUrl imageAssetId featured visible views reviews.stars createdDate lastUpdatedDate')
+  .lean()).map(serializeProject)
+
+projectRouter.get('/admin', requireAdmin, asyncHandler(async (_req, res) => {
+  res.json(await listProjects({}))
+}))
+
 projectRouter.get('/selected', validate({ query: selectedProjectsQuerySchema }), asyncHandler(async (req, res) => {
   res.json(await listSelectedProjects(req.query.limit))
 }))
@@ -129,10 +138,7 @@ projectRouter.get('/browse', validate({ query: browseProjectsQuerySchema }), asy
 projectRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const projects = await Project.find()
-      .select('category categorySlug title description methods tools languages status tags metadata externalLink githubLink liveDemoLink imageUrl imageAssetId featured views reviews.stars createdDate lastUpdatedDate')
-      .lean()
-    res.json(projects.map(serializeProject))
+    res.json(await listProjects(publicProjectFilter))
   }),
 )
 
@@ -161,7 +167,7 @@ projectRouter.get(
   '/:id',
   validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
-    const project = await Project.findById(req.params.id)
+    const project = await Project.findOne({ _id: req.params.id, ...publicProjectFilter })
     if (!project) return res.status(404).json({ message: 'Not found' })
     res.json(serializeProject(project))
   }),
@@ -172,8 +178,8 @@ projectRouter.patch(
   hitLimiter,
   validate({ params: objectIdSchema }),
   asyncHandler(async (req, res) => {
-    const project = await Project.findByIdAndUpdate(
-      req.params.id,
+    const project = await Project.findOneAndUpdate(
+      { _id: req.params.id, ...publicProjectFilter },
       { $inc: { views: 1 } },
       { new: true, select: 'views' },
     )
@@ -220,7 +226,7 @@ projectRouter.get(
     const { page = 1, limit = 20 } = req.query
     const skip = (page - 1) * limit
     const [result] = await Project.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(req.params.id) } },
+      { $match: { _id: new mongoose.Types.ObjectId(req.params.id), ...publicProjectFilter } },
       {
         $project: {
           total: { $size: { $ifNull: ['$reviews', []] } },
@@ -245,7 +251,7 @@ projectRouter.post(
   validate({ params: objectIdSchema, body: reviewWriteSchema }),
   asyncHandler(async (req, res) => {
     const { stars, comment } = req.body
-    const project = await Project.findById(req.params.id)
+    const project = await Project.findOne({ _id: req.params.id, ...publicProjectFilter })
     if (!project) return res.status(404).json({ message: 'Project not found' })
 
     if (project.reviews.length >= 500) {

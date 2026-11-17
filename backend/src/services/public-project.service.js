@@ -3,6 +3,7 @@ import { DEFAULT_CATEGORIES, listCategories, normalizeCategoryName } from './cat
 
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const selectedOrder = { featured: -1, views: -1, _id: 1 }
+export const publicProjectFilter = { visible: { $ne: false } }
 const cardProjection = {
   category: 1, categorySlug: 1, title: 1, description: 1, methods: 1, tools: 1, languages: 1,
   status: 1, tags: 1, metadata: 1, externalLink: 1, githubLink: 1, liveDemoLink: 1,
@@ -12,6 +13,7 @@ const cardProjection = {
 }
 
 export const listSelectedProjects = limit => Project.aggregate([
+  { $match: publicProjectFilter },
   { $sort: selectedOrder }, { $limit: limit }, { $project: cardProjection },
 ])
 
@@ -34,7 +36,7 @@ export async function browseProjects({ page, limit, category, search, sort }) {
   }
   const filter = matches.length ? { $and: matches } : {}
   const order = sort === 'views' ? { views: -1, _id: 1 } : sort === 'title' ? { title: 1, _id: 1 } : { createdDate: -1, _id: 1 }
-  const [result] = await Project.aggregate([{ $facet: {
+  const [result] = await Project.aggregate([{ $match: publicProjectFilter }, { $facet: {
     projects: [{ $match: filter }, { $sort: order }, { $skip: (page - 1) * limit }, { $limit: limit }, { $project: cardProjection }],
     matched: [{ $match: filter }, { $count: 'count' }],
     total: [{ $count: 'count' }],

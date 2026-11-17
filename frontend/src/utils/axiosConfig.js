@@ -19,6 +19,7 @@ apiClient.interceptors.request.use(
       config.url?.includes('/api/admin/account') ||
       config.url?.includes('/api/resume/admin') ||
       config.url?.includes('/api/projects/archived') ||
+      config.url?.includes('/api/projects/admin') ||
       config.url?.includes('/api/activities');
     const isFormData =
       typeof FormData !== 'undefined' && config.data instanceof FormData;

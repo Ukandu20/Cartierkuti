@@ -58,10 +58,10 @@ const ProjectIdentity = ({ project, compact = false }) => (
   </Flex>
 )
 
-const ProjectActions = ({ project, onEdit, onDelete, onAnalytics }) => (
+const ProjectActions = ({ project, onEdit, onDelete, onAnalytics, onToggleVisibility, changingVisibility }) => (
   <Menu.Root positioning={{ placement: 'bottom-end' }}>
     <Menu.Trigger asChild>
-      <IconButton size="sm" variant="ghost" aria-label={`Actions for ${project.title || 'project'}`}>
+      <IconButton size="sm" variant="ghost" disabled={changingVisibility} aria-label={`Actions for ${project.title || 'project'}`}>
         <HiDotsVertical />
       </IconButton>
     </Menu.Trigger>
@@ -75,6 +75,9 @@ const ProjectActions = ({ project, onEdit, onDelete, onAnalytics }) => (
             <HiEye /> Analytics
           </Menu.Item>
           <Menu.Separator />
+          <Menu.Item value="visibility" onClick={() => onToggleVisibility(project)}>
+            <HiEye /> {project.visible === false ? 'Show on website' : 'Hide from website'}
+          </Menu.Item>
           <Menu.Item value="delete" color="fg.error" onClick={() => onDelete(project)}>
             <HiTrash /> Delete
           </Menu.Item>
@@ -84,15 +87,16 @@ const ProjectActions = ({ project, onEdit, onDelete, onAnalytics }) => (
   </Menu.Root>
 )
 
-const ProjectCard = ({ project, onEdit, onDelete, onAnalytics }) => (
+const ProjectCard = ({ project, onEdit, onDelete, onAnalytics, onToggleVisibility, changingVisibility }) => (
   <Box p={4} {...interactiveSurfaceStyles}>
     <Flex justify="space-between" align="flex-start" gap={3}>
       <ProjectIdentity project={project} compact />
-      <ProjectActions project={project} onEdit={onEdit} onDelete={onDelete} onAnalytics={onAnalytics} />
+      <ProjectActions project={project} onEdit={onEdit} onDelete={onDelete} onAnalytics={onAnalytics} onToggleVisibility={onToggleVisibility} changingVisibility={changingVisibility} />
     </Flex>
     <Flex mt={4} gap={2} wrap="wrap">
       <Badge colorPalette={statusPalette(project.status)} variant="subtle">{project.status || 'Not set'}</Badge>
       {project.featured && <Badge colorPalette="yellow" variant="subtle">Featured</Badge>}
+      <Badge colorPalette={project.visible === false ? 'gray' : 'green'} variant="subtle">{project.visible === false ? 'Hidden' : 'Public'}</Badge>
     </Flex>
     <Flex mt={4} pt={3} borderTopWidth="1px" borderColor="border.subtle" justify="space-between" gap={4}>
       <Box><Text fontSize="xs" color="fg.muted">Views</Text><Text fontWeight="semibold">{project.views || 0}</Text></Box>
@@ -112,6 +116,10 @@ export default function ProjectTableSection({
   onOpenEdit,
   onConfirmDelete,
   onOpenAnalytics,
+  onToggleVisibility,
+  changingVisibility = false,
+  visibilityFilter = 'all',
+  onVisibilityFilterChange,
   search,
   onSearchChange,
   statusFilter,
@@ -126,7 +134,7 @@ export default function ProjectTableSection({
     () => [...new Set(projects.map((project) => project.category).filter(Boolean))].sort(),
     [projects],
   )
-  const hasFilters = Boolean(search || statusFilter !== 'all' || categoryFilter !== 'all')
+  const hasFilters = Boolean(search || statusFilter !== 'all' || categoryFilter !== 'all' || visibilityFilter !== 'all')
 
   return (
     <SurfaceCard
@@ -169,6 +177,14 @@ export default function ProjectTableSection({
           </NativeSelect.Field>
           <NativeSelect.Indicator />
         </NativeSelect.Root>
+        <NativeSelect.Root maxW={{ base: '100%', sm: '190px' }}>
+          <NativeSelect.Field value={visibilityFilter} onChange={(event) => onVisibilityFilterChange(event.target.value)} {...fieldStyles} aria-label="Filter by visibility">
+            <option value="all">All visibility</option>
+            <option value="public">Public projects</option>
+            <option value="hidden">Hidden projects</option>
+          </NativeSelect.Field>
+          <NativeSelect.Indicator />
+        </NativeSelect.Root>
         {hasFilters && <Button size="sm" variant="ghost" onClick={onClearFilters}>Clear filters</Button>}
       </Flex>
 
@@ -182,6 +198,7 @@ export default function ProjectTableSection({
                   <Table.ColumnHeader>Status</Table.ColumnHeader>
                   <Table.ColumnHeader>Featured</Table.ColumnHeader>
                   <Table.ColumnHeader textAlign="end">Views</Table.ColumnHeader>
+                  <Table.ColumnHeader>Visibility</Table.ColumnHeader>
                   <Table.ColumnHeader>Updated</Table.ColumnHeader>
                   <Table.ColumnHeader width="56px"><Text srOnly>Actions</Text></Table.ColumnHeader>
                 </Table.Row>
@@ -193,8 +210,9 @@ export default function ProjectTableSection({
                     <Table.Cell><Badge colorPalette={statusPalette(project.status)} variant="subtle">{project.status || 'Not set'}</Badge></Table.Cell>
                     <Table.Cell>{project.featured ? <Badge colorPalette="yellow" variant="subtle">Featured</Badge> : <Text color="fg.muted">—</Text>}</Table.Cell>
                     <Table.Cell textAlign="end" fontWeight="medium">{project.views || 0}</Table.Cell>
+                    <Table.Cell><Badge colorPalette={project.visible === false ? 'gray' : 'green'} variant="subtle">{project.visible === false ? 'Hidden' : 'Public'}</Badge></Table.Cell>
                     <Table.Cell whiteSpace="nowrap">{projectDate(project)}</Table.Cell>
-                    <Table.Cell><ProjectActions project={project} onEdit={onOpenEdit} onDelete={onConfirmDelete} onAnalytics={onOpenAnalytics} /></Table.Cell>
+                    <Table.Cell><ProjectActions project={project} onEdit={onOpenEdit} onDelete={onConfirmDelete} onAnalytics={onOpenAnalytics} onToggleVisibility={onToggleVisibility} changingVisibility={changingVisibility} /></Table.Cell>
                   </Table.Row>
                 ))}
               </Table.Body>
@@ -202,7 +220,7 @@ export default function ProjectTableSection({
           </Box>
           <Stack display={{ base: 'flex', md: 'none' }} p={4} gap={3} bg="bg.subtle">
             {paginatedProjects.map((project) => (
-              <ProjectCard key={project.id || project._id} project={project} onEdit={onOpenEdit} onDelete={onConfirmDelete} onAnalytics={onOpenAnalytics} />
+              <ProjectCard key={project.id || project._id} project={project} onEdit={onOpenEdit} onDelete={onConfirmDelete} onAnalytics={onOpenAnalytics} onToggleVisibility={onToggleVisibility} changingVisibility={changingVisibility} />
             ))}
           </Stack>
         </>

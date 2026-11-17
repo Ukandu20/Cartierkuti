@@ -14,6 +14,12 @@ import {
 } from './adminDashboardUtils'
 
 describe('adminDashboardUtils', () => {
+  it('keeps hidden projects hidden through editing and defaults older projects to public', () => {
+    expect(projectToFormData({}).visible).toBe(true)
+    const form = projectToFormData({ title: 'Hidden work', visible: false, featured: true })
+    expect(buildProjectPayload(form)).toMatchObject({ visible: false, featured: true })
+    expect(buildProjectPayload({ ...form, visible: true }).visible).toBe(true)
+  })
   it('round-trips editable page text and intentionally empty working approaches', () => {
     const form = normalizeResumeForm({ pageContent: { heroTitle: 'My story', metaDescription: 'Research and learning.', principles: [], ctaDescription: '' } })
     expect(buildResumePayload(form).pageContent).toMatchObject({ heroTitle: 'My story', metaDescription: 'Research and learning.', principles: [], ctaDescription: '' })

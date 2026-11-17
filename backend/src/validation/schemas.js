@@ -152,6 +152,7 @@ export const projectWriteSchema = z
     imageUrl: optionalUrl,
     imageAssetId: optionalText(180),
     featured: z.boolean().optional(),
+    visible: z.boolean().optional(),
   })
   .strict()
 

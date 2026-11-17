@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 import request from 'supertest'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MongoMemoryServer } from 'mongodb-memory-server'
-import app from '../src/app.js'
+import app, { apiLimiter } from '../src/app.js'
 import Project from '../src/models/project.model.js'
 import Activity from '../src/models/activity.model.js'
 import ArchivedProject from '../src/models/archive.model.js'
@@ -69,6 +69,10 @@ beforeAll(async () => {
 }, 60_000)
 
 beforeEach(async () => {
+  // Each test has its own database and client budget, independent of suite size.
+  apiLimiter.resetKey('::ffff:127.0.0.1')
+  apiLimiter.resetKey('127.0.0.1')
+  apiLimiter.resetKey('::1')
   securityEmailMock.mockClear()
   uploadStreamMock.mockReset()
   destroyImageMock.mockReset()
@@ -499,9 +503,10 @@ describe('project API', () => {
       throw new Error('audit unavailable')
     })
     try {
-      await expect(updateProject(project.id, { title: 'Failed edit' })).rejects.toThrow('audit unavailable')
+      await expect(updateProject(project.id, { title: 'Failed edit', visible: false })).rejects.toThrow('audit unavailable')
       const saved = await Project.findById(project.id)
       expect(saved.title).toBe(validProject.title)
+      expect(saved.visible).toBe(true)
       expect(saved.views).toBe(1)
       expect(saved.reviews[0].comment).toBe('Arrived during edit')
     } finally {
@@ -632,6 +637,53 @@ describe('project API', () => {
 })
 
 describe('bounded public project browsing', () => {
+  it('hides projects across public reads while keeping all content editable by admins', async () => {
+    const project = await Project.create({ ...validProject, views: 42, imageAssetId: 'cartierkuti/kept', reviews: [{ stars: 5, comment: 'Keep this feedback' }] })
+    const legacy = await Project.create({ ...validProject, title: 'Legacy visible project', featured: false })
+    await Project.collection.updateOne({ _id: legacy._id }, { $unset: { visible: '' } })
+    await request(app).get('/api/projects/admin').expect(401)
+    await request(app).put(`/api/projects/${project.id}`).send({ visible: false }).expect(401)
+    await request(app).put(`/api/projects/${project.id}`).set('Authorization', `Bearer ${token}`).send({ visible: 'false' }).expect(400)
+    const hidden = await request(app).put(`/api/projects/${project.id}`).set('Authorization', `Bearer ${token}`).send({ visible: false }).expect(200)
+    expect(hidden.body.visible).toBe(false)
+    const admin = await request(app).get('/api/projects/admin').set('Authorization', `Bearer ${token}`).expect(200)
+    expect(admin.body).toHaveLength(2)
+    expect(admin.body.find(item => item._id === project.id)).toMatchObject({ visible: false, views: 42, reviewCount: 1, imageAssetId: 'cartierkuti/kept' })
+    const publicList = await request(app).get('/api/projects').expect(200)
+    expect(publicList.body.map(item => item._id)).toEqual([legacy.id])
+    const selected = await request(app).get('/api/projects/selected').expect(200)
+    expect(selected.body.map(item => item._id)).toEqual([legacy.id])
+    const browse = await request(app).get('/api/projects/browse').expect(200)
+    expect(browse.body).toMatchObject({ total: 1, totalProjects: 1, featuredProject: { _id: legacy.id } })
+    expect(browse.body.categories[0].count).toBe(1)
+    const search = await request(app).get('/api/projects/browse').query({ search: validProject.title }).expect(200)
+    expect(search.body.total).toBe(0)
+    await request(app).get(`/api/projects/${project.id}`).expect(404)
+    await request(app).get(`/api/projects/${project.id}/reviews`).expect(404)
+    await request(app).patch(`/api/projects/${project.id}/hit`).expect(404)
+    await request(app).post(`/api/projects/${project.id}/reviews`).send({ stars: 1, comment: 'Hidden feedback' }).expect(404)
+    await request(app).put(`/api/projects/${project.id}`).set('Authorization', `Bearer ${token}`).send({ title: 'Still editable' }).expect(200)
+    expect((await Project.findById(project.id)).visible).toBe(false)
+    expect(await ArchivedProject.countDocuments()).toBe(0)
+    expect(destroyImageMock).not.toHaveBeenCalled()
+    await request(app).put(`/api/projects/${project.id}`).set('Authorization', `Bearer ${token}`).send({ visible: true }).expect(200)
+    const restored = await request(app).get(`/api/projects/${project.id}`).expect(200)
+    expect(restored.body).toMatchObject({ visible: true, title: 'Still editable', views: 42, reviewCount: 1 })
+    const restoredBrowse = await request(app).get('/api/projects/browse').expect(200)
+    expect(restoredBrowse.body.total).toBe(2)
+    expect(await Activity.countDocuments({ projectId: project._id, type: 'Updated' })).toBe(3)
+  })
+
+  it('can create a hidden project and returns empty public lists when all projects are hidden', async () => {
+    await request(app).post('/api/projects').set('Authorization', `Bearer ${token}`).send({ ...validProject, visible: false }).expect(201)
+    const selected = await request(app).get('/api/projects/selected').expect(200)
+    expect(selected.body).toEqual([])
+    const browse = await request(app).get('/api/projects/browse').expect(200)
+    expect(browse.body).toMatchObject({ projects: [], total: 0, totalProjects: 0, categories: [], featuredProject: null })
+    const legacy = await request(app).get('/api/projects').expect(200)
+    expect(legacy.body).toEqual([])
+  })
+
   it('limits selected work and paginates filtered projects with collection-wide counts', async () => {
     await Project.insertMany(Array.from({ length: 22 }, (_, index) => ({
       ...validProject, title: `Project ${String(index).padStart(2, '0')}`, views: index, featured: index === 2,
