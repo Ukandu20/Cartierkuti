@@ -16,8 +16,9 @@ vi.mock('@/utils/axiosConfig', () => ({
 
 describe('Home', () => {
   beforeEach(() => {
+    apiGet.mockReset()
     apiGet.mockImplementation((url) => {
-      if (url === '/api/projects') {
+      if (url.startsWith('/api/projects/selected')) {
         return Promise.resolve({
           data: [
             {
@@ -53,6 +54,19 @@ describe('Home', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('offers retry when selected work fails to load instead of claiming there are no projects', async () => {
+    let failed = false
+    apiGet.mockImplementation(url => {
+      if (!url.includes('/selected')) return Promise.resolve({ data: {} })
+      if (!failed) { failed = true; return Promise.reject(new Error('Offline')) }
+      return Promise.resolve({ data: [{ _id: 'retry', title: 'Recovered project' }] })
+    })
+    renderWithProviders(<Home />)
+    await screen.findByText('Selected projects could not be loaded.')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('heading', { name: 'Recovered project' })).toBeInTheDocument()
   })
 
   it('presents the data science and sports analytics role with clear actions', async () => {

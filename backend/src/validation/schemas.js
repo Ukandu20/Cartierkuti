@@ -35,6 +35,18 @@ export const objectIdSchema = z.object({
   id: objectId,
 })
 
+export const selectedProjectsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(3).default(3),
+}).strict()
+
+export const browseProjectsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+  limit: z.coerce.number().int().min(1).max(24).default(9),
+  category: optionalText(90),
+  search: optionalText(160),
+  sort: z.enum(['date', 'title', 'views']).default('date'),
+}).strict()
+
 export const archiveQuerySchema = z
   .object({
     projectId: objectId.optional(),

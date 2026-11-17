@@ -1,3 +1,4 @@
+import { publicProjectFixture } from '../src/test-utils/projectApi.js'
 import { expect, test } from '@playwright/test'
 const galleryPhotoFixture = '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600"><rect width="960" height="600" fill="#e2ded8"/><circle cx="480" cy="300" r="120" fill="#0f766e" opacity=".5"/></svg>'
 
@@ -119,6 +120,17 @@ const setupApi = async (page) => {
       return route.fulfill({ status: 401, json: { message: 'Invalid credentials' } })
     }
 
+    if (['/api/projects/browse', '/api/projects/selected'].includes(path) && method === 'GET') {
+      state.projectReads += 1
+      state.publicProjectRequests ||= []
+      state.publicProjectRequests.push(url.pathname + url.search)
+      if (state.projectFailures > 0) {
+        state.projectFailures -= 1
+        return route.fulfill({ status: 503, json: { message: 'Temporarily unavailable' } })
+      }
+      return route.fulfill({ status: 200, json: publicProjectFixture(state.projects, url.href, state.categories) })
+    }
+
     if (path === '/api/projects' && method === 'GET') {
       state.projectReads += 1
       return route.fulfill({ status: 200, json: state.projects })
@@ -196,6 +208,28 @@ const setupApi = async (page) => {
       }
       state.projects.unshift(created)
       return route.fulfill({ status: 201, json: created })
+    }
+
+    const reviewMatch = path.match(/^\/api\/projects\/([^/]+)\/reviews$/)
+    if (reviewMatch) {
+      const project = state.projects.find(item => (item.id || item._id) === reviewMatch[1])
+      if (!project) return route.fulfill({ status: 404, json: { message: 'Project not found' } })
+      project.reviews = (project.reviews || []).map((review, index) => ({ _id: `review-${index}`, ...review }))
+      if (method === 'GET') {
+        if (state.reviewFailures > 0) {
+          state.reviewFailures -= 1
+          return route.fulfill({ status: 503, json: { message: 'Temporarily unavailable' } })
+        }
+        const page = Number(url.searchParams.get('page') || 1)
+        const limit = Number(url.searchParams.get('limit') || 20)
+        return route.fulfill({ status: 200, json: { reviews: [...project.reviews].reverse().slice((page - 1) * limit, page * limit), total: project.reviews.length, page, limit } })
+      }
+      if (method === 'POST') {
+        const review = { ...request.postDataJSON(), _id: `review-${project.reviews.length}`, date: new Date().toISOString() }
+        project.reviews.push(review)
+        const avgStars = project.reviews.reduce((sum, item) => sum + item.stars, 0) / project.reviews.length
+        return route.fulfill({ status: 201, json: { review, avgStars, total: project.reviews.length } })
+      }
     }
 
     const projectMatch = path.match(/^\/api\/projects\/([^/]+)$/)
@@ -359,7 +393,37 @@ test('home page leads with data science and sports analytics work', async ({ pag
   await expect(page.locator('main')).toHaveCount(1)
 })
 
-test('public navigation reuses projects already loaded on the home page', async ({ page }) => {
+test('public project lists request three selected projects and one filtered archive page at a time', async ({ page }) => {
+  const api = await setupApi(page)
+  const sample = api.projects[0]
+  api.projects = Array.from({ length: 25 }, (_, index) => ({ ...sample, id: `project-${index}`, _id: `project-${index}`, title: `Project ${String(index).padStart(2, '0')}`, featured: index === 0, category: index < 5 ? 'Sports Analytics' : 'Web Applications', categorySlug: index < 5 ? 'sports-analytics' : 'web-applications' }))
+  api.categories.push({ name: 'Sports Analytics', slug: 'sports-analytics' })
+  await page.goto('/')
+  const carousel = page.getByRole('region', { name: 'Selected projects' })
+  await expect(carousel.locator('[aria-roledescription="slide"]')).toHaveCount(3)
+  expect(api.publicProjectRequests).toEqual(['/api/projects/selected?limit=3'])
+  await page.getByRole('link', { name: /view selected work/i }).click()
+  const archive = page.getByRole('region', { name: 'Explore the full body of work.' })
+  await expect(archive.getByRole('article')).toHaveCount(9)
+  await expect(archive.getByText('25 of 25 projects')).toBeVisible()
+  await archive.getByRole('button', { name: 'Next page' }).click()
+  await expect.poll(() => new URL(api.publicProjectRequests.at(-1), 'http://fixture.test').searchParams.get('page')).toBe('2')
+  await expect(archive.getByRole('article')).toHaveCount(9)
+  await archive.getByRole('tab', { name: 'Sports Analytics', exact: true }).click()
+  await expect(archive.getByRole('article')).toHaveCount(5)
+  await expect(archive.getByText('5 of 25 projects')).toBeVisible()
+  const filtered = new URL(api.publicProjectRequests.at(-1), 'http://fixture.test')
+  expect(filtered.searchParams.get('page')).toBe('1')
+  expect(filtered.searchParams.get('category')).toBe('sports-analytics')
+  expect(filtered.searchParams.get('limit')).toBe('9')
+  const beforeSearch = api.publicProjectRequests.length
+  await archive.getByRole('textbox', { name: 'Search projects' }).fill('Project 02')
+  await expect(archive.getByRole('article')).toHaveCount(1)
+  expect(api.publicProjectRequests).toHaveLength(beforeSearch + 1)
+  expect(api.projectReads).toBe(api.publicProjectRequests.length)
+})
+
+test('public navigation caches its bounded project requests', async ({ page }) => {
   const api = await setupApi(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
@@ -367,14 +431,17 @@ test('public navigation reuses projects already loaded on the home page', async 
   await page.getByRole('link', { name: /view selected work/i }).click()
   await expect(page.getByRole('heading', { name: /work built to move/i })).toBeVisible()
   await expect(page.getByText('Beta Portfolio').first()).toBeVisible()
-  expect(api.projectReads).toBe(1)
+  expect(api.projectReads).toBe(2)
+  await page.getByRole('link', { name: 'Home', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Alpha Analytics' })).toBeVisible()
+  expect(api.projectReads).toBe(2)
 })
 
 test('portfolio reserves its featured section while project data loads', async ({ page }) => {
   await setupApi(page)
   let releaseProjects
   const pendingProjects = new Promise(resolve => { releaseProjects = resolve })
-  await page.route('**/api/projects', async route => { await pendingProjects; await route.fallback() })
+  await page.route('**/api/projects/browse?**', async route => { await pendingProjects; await route.fallback() })
   try {
     await page.goto('/portfolio', { waitUntil: 'domcontentloaded' })
     await expect(page.getByLabel('Loading featured project')).toBeVisible()
@@ -638,6 +705,31 @@ test('admin activity filters apply once from a later page and recover from load 
   await expect(activity.getByText('Activity 1', { exact: true })).toBeVisible()
   expect(api.activityRequests).toHaveLength(beforeEditing + 2)
   expect(api.activityRequests.at(-1)).toEqual({ page: '1', limit: '5' })
+})
+
+test('project reviews retry failed loads, reveal older feedback, and update card ratings after submission', async ({ page }) => {
+  const api = await setupApi(page)
+  api.projects[0].reviews = Array.from({ length: 21 }, (_, index) => ({ _id: `feedback-${index}`, stars: 4, comment: `Reader feedback ${index + 1}` }))
+  api.reviewFailures = 1
+  await page.goto('/portfolio')
+  await expect(page.getByLabel('4.0 average rating').first()).toBeVisible()
+  await page.getByRole('button', { name: 'View case study' }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Alpha Analytics' })
+  await expect(dialog.getByRole('alert')).toContainText('Reviews could not be loaded')
+  await expect(dialog.getByText(/No reviews yet/)).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Retry reviews' }).click()
+  await expect(dialog.getByText('Showing 20 of 21 reviews')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Load more reviews' }).click()
+  await expect(dialog.getByText('Reader feedback 1', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Showing 21 of 21 reviews')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Load more reviews' })).toHaveCount(0)
+  await dialog.getByRole('button', { name: '5 star', exact: true }).click()
+  await dialog.getByLabel('Review comment').fill('A useful and clearly explained project.')
+  await dialog.getByRole('button', { name: 'Submit review' }).click()
+  await expect(dialog.getByText('Showing 22 of 22 reviews')).toBeVisible()
+  await expect(dialog.getByText('A useful and clearly explained project.', { exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Close case study' }).click()
+  await expect(page.getByText('4.0 · 22 reviews').first()).toBeVisible()
 })
 
 test('About editor structures content, stages the PDF, previews, and saves as one workflow', async ({ page }) => {

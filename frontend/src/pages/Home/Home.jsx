@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Badge,
   Box,
@@ -31,7 +31,8 @@ import { Link } from 'react-router-dom'
 import { useResumeDownload } from '@/hooks/useResumeDownload'
 import { PageCta, SectionLabel, SurfaceCard } from '@/components/ui/DesignSystem'
 import apiClient from '@/utils/axiosConfig'
-import { getPublicProjects } from '@/services/projectService'
+import { getSelectedPublicProjects } from '@/services/projectService'
+import { ErrorState } from '@/components/ui/StateFeedback'
 import { absoluteUrl, siteTitle } from '@/utils/siteConfig'
 import PortfolioProjectCard from '@/pages/Portfolio/ProjectCard'
 
@@ -174,7 +175,7 @@ const ProofStrip = () => {
   )
 }
 
-const SelectedWorkCarousel = ({ projects }) => {
+const SelectedWorkCarousel = ({ projects, onReviewSaved }) => {
   const [activeIndex, setActiveIndex] = useState(0)
   const [favorites, setFavorites] = useState([])
   const [isHovered, setIsHovered] = useState(false)
@@ -252,6 +253,7 @@ const SelectedWorkCarousel = ({ projects }) => {
                 favorites={favorites}
                 handleFavorite={toggleFavorite}
                 hitAndOpen={hitAndOpen}
+                onReviewSaved={onReviewSaved}
                 featured
               />
             </Box>
@@ -304,27 +306,16 @@ const FeaturedWork = () => {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let active = true
-    getPublicProjects()
-      .then((data) => {
-        if (active) setProjects(data)
-      })
-      .catch(() => {
-        if (active) setProjects([])
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => { active = false }
+  const [error, setError] = useState('')
+  const load = useCallback(async (fresh = false) => {
+    setLoading(true)
+    setError('')
+    try { setProjects(await getSelectedPublicProjects({ fresh })) }
+    catch { setError('Selected projects could not be loaded.') }
+    finally { setLoading(false) }
   }, [])
-
-  const selected = useMemo(
-    () => [...projects]
-      .sort((a, b) => Number(b.featured) - Number(a.featured) || (b.views || 0) - (a.views || 0))
-      .slice(0, 3),
-    [projects],
-  )
+  useEffect(() => { load() }, [load])
+  const selected = projects
 
   return (
     <Box as="section" aria-labelledby="featured-heading" bg={'bg.raised'} px={{ base: 5, md: 10 }} py={{ base: 16, md: 24 }}>
@@ -349,8 +340,10 @@ const FeaturedWork = () => {
             <Skeleton minH="420px" borderRadius="lg" gridColumn={{ lg: 'span 2' }} />
             <Skeleton minH="420px" borderRadius="lg" />
           </SimpleGrid>
+        ) : error ? (
+          <ErrorState title={error} description="Please try loading the selected work again." onRetry={() => load(true)} />
         ) : selected.length ? (
-          <SelectedWorkCarousel projects={selected} />
+          <SelectedWorkCarousel projects={selected} onReviewSaved={(id, summary) => setProjects(current => current.map(project => project.id === id ? { ...project, ...summary } : project))} />
         ) : (
           <Box py={12} borderY="1px solid" borderColor={'border.subtle'}>
             <Text fontFamily={'body'} color={'fg.muted'}>Selected projects are being prepared. Visit the full portfolio to explore the latest work.</Text>

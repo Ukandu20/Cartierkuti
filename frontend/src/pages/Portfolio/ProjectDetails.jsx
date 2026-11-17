@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AspectRatio,
   Badge,
@@ -29,6 +29,7 @@ import {
 import { toaster } from '../../components/ui/toaster'
 import apiClient from '@/utils/axiosConfig'
 import { projectImageProps } from '@/utils/projectImages'
+import { useProjectReviews } from '@/hooks/useProjectReviews'
 
 const formatDate = (value) => {
   if (!value) return 'Not specified'
@@ -62,13 +63,13 @@ const ClassificationBadges = ({ label, items }) => (
   </Box>
 )
 
-export default function ProjectDetails({ project, openLink, handleFavorite, isFavorite }) {
-  const [reviews, setReviews] = useState([])
+export default function ProjectDetails({ project, openLink, handleFavorite, isFavorite, onReviewSaved }) {
   const [tempStars, setTempStars] = useState(0)
   const [comment, setComment] = useState('')
-  const [loadingReviews, setLoadingReviews] = useState(false)
   const [submittingReview, setSubmittingReview] = useState(false)
+  const submitting = useRef(false)
   const projectId = project?._id ?? project?.id
+  const { reviews, total, loading: loadingReviews, error: reviewError, hasMore, loadMore, addReview } = useProjectReviews(projectId)
   const liveUrl = project.liveDemoLink || project.externalLink
   const tags = useMemo(() => Array.from(new Set(project.tags || [])), [project.tags])
   const methods = useMemo(() => Array.from(new Set(project.methods || [])), [project.methods])
@@ -77,39 +78,27 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
     [project.tools, project.languages]
   )
 
-  useEffect(() => {
-    if (!projectId) return
-    let active = true
-
-    const loadReviews = async () => {
-      setLoadingReviews(true)
-      try {
-        const { data } = await apiClient.get(`/api/projects/${projectId}/reviews`)
-        if (active) setReviews(Array.isArray(data) ? data : data?.reviews ?? [])
-      } catch {
-        if (active) setReviews([])
-      } finally {
-        if (active) setLoadingReviews(false)
-      }
-    }
-
-    loadReviews()
-    return () => { active = false }
-  }, [projectId])
+  useEffect(() => { setTempStars(0); setComment('') }, [projectId])
 
   const submitReview = async () => {
-    if (!projectId || submittingReview) return
+    if (!projectId || submitting.current || loadingReviews || !tempStars || !comment.trim()) return
+    submitting.current = true
     setSubmittingReview(true)
     try {
       const payload = { stars: tempStars, comment: comment.trim() }
       const { data } = await apiClient.post(`/api/projects/${projectId}/reviews`, payload)
-      setReviews((current) => (data?.review ? [data.review, ...current] : current))
+      addReview(data?.review, data?.total)
+      const summary = {}
+      if (Number.isFinite(data?.avgStars)) summary.avgStars = data.avgStars
+      if (Number.isFinite(data?.total)) summary.reviewCount = data.total
+      onReviewSaved?.(summary)
       setTempStars(0)
       setComment('')
       toaster.create({ title: 'Review submitted', description: 'Thanks for the review!', type: 'success' })
     } catch {
       toaster.create({ title: 'Review not saved', description: 'Could not save review.', type: 'error' })
     } finally {
+      submitting.current = false
       setSubmittingReview(false)
     }
   }
@@ -204,9 +193,9 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
                   Reviews
                 </Heading>
 
-                {loadingReviews ? (
+                {loadingReviews && !reviews.length ? (
                   <HStack color={'fg.muted'} role="status"><Spinner size="sm" /><Text>Loading reviews</Text></HStack>
-                ) : reviews.length === 0 ? (
+                ) : reviews.length === 0 && !reviewError ? (
                   <Text color={'fg.muted'}>No reviews yet. Be the first to leave thoughtful feedback.</Text>
                 ) : (
                   <Stack gap={5}>
@@ -227,6 +216,12 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
                     ))}
                   </Stack>
                 )}
+                {reviewError ? <Box role="alert" mt={4}>
+                  <Text color="fg.muted">{reviewError}</Text>
+                  <Button variant="outline" size="sm" mt={3} onClick={loadMore} disabled={loadingReviews || submittingReview}>Retry reviews</Button>
+                </Box> : null}
+                {reviews.length ? <Text fontSize="sm" color="fg.muted" mt={4} role="status">Showing {reviews.length} of {total} reviews</Text> : null}
+                {hasMore && !reviewError ? <Button mt={4} variant="outline" onClick={loadMore} loading={loadingReviews} disabled={loadingReviews || submittingReview} loadingText="Loading reviews">Load more reviews</Button> : null}
               </Box>
 
               <Box>
@@ -240,6 +235,7 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
                       key={index}
                       aria-label={`${index + 1} star`}
                       aria-pressed={tempStars === index + 1}
+                      disabled={submittingReview}
                       variant="ghost"
                       size="sm"
                       onClick={() => setTempStars(index + 1)}
@@ -251,6 +247,9 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
                 <Textarea
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
+                  maxLength={1000}
+                  aria-label="Review comment"
+                  disabled={submittingReview}
                   placeholder="What did you think?"
                   bg={'bg.surface'}
                   color={'fg.default'}
@@ -262,7 +261,7 @@ export default function ProjectDetails({ project, openLink, handleFavorite, isFa
                 <Button
                   onClick={submitReview}
                   colorPalette="brand"
-                  disabled={!tempStars || comment.trim() === ''}
+                  disabled={loadingReviews || submittingReview || !tempStars || comment.trim() === ''}
                   loading={submittingReview}
                   loadingText="Submitting"
                 >

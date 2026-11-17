@@ -16,6 +16,8 @@ import {
   reviewQuerySchema,
   reviewWriteSchema,
   imageAssetDeleteSchema,
+  browseProjectsQuerySchema,
+  selectedProjectsQuerySchema,
 } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
 import {
@@ -24,6 +26,7 @@ import {
   updateProject,
 } from '../services/project.service.js'
 import { destroyProjectImage } from '../services/project-image.service.js'
+import { browseProjects, listSelectedProjects } from '../services/public-project.service.js'
 
 const hitLimiter = rateLimit({ windowMs: 60_000, max: 5 })
 const reviewLimiter = rateLimit({ windowMs: 60_000, max: 10 })
@@ -32,8 +35,11 @@ const projectRouter = Router()
 const serializeProject = (project) => {
   const value = typeof project?.toObject === 'function' ? project.toObject() : project
   const tools = value?.tools?.length ? value.tools : value?.languages || []
+  const ratings = (value?.reviews || []).map(review => review.stars).filter(Number.isFinite)
   return {
     ...value,
+    avgStars: ratings.length ? Math.round(ratings.reduce((sum, stars) => sum + stars, 0) / ratings.length * 100) / 100 : 0,
+    reviewCount: (value?.reviews || []).length,
     methods: value?.methods || [],
     tools,
     // Keep the legacy response field until every deployed client has moved to `tools`.
@@ -112,6 +118,14 @@ projectRouter.delete(
 )
 
 /* CRUD: PROJECTS */
+projectRouter.get('/selected', validate({ query: selectedProjectsQuerySchema }), asyncHandler(async (req, res) => {
+  res.json(await listSelectedProjects(req.query.limit))
+}))
+
+projectRouter.get('/browse', validate({ query: browseProjectsQuerySchema }), asyncHandler(async (req, res) => {
+  res.json(await browseProjects(req.query))
+}))
+
 projectRouter.get(
   '/',
   asyncHandler(async (_req, res) => {

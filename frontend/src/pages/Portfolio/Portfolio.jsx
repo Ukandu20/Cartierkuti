@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import apiClient from '@/utils/axiosConfig'
-import { getPublicProjects, getPublicCategories } from '@/services/projectService'
+import { useProjectBrowser } from '@/hooks/useProjectBrowser'
 import {
   Box,
   Button,
@@ -27,32 +27,12 @@ import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState } from '@/components/ui/StateFeedback'
 import { PageCta, SectionLabel } from '@/components/ui/DesignSystem'
-import { getPopulatedProjectCategories, isProjectInCategory } from '@/utils/projectCategories'
-import { sortProjects } from '@/utils/projectSorting'
 import { absoluteUrl } from '@/utils/siteConfig'
 
 import ProjectList from './ProjectList'
 import ProjectCard from './ProjectCard'
 
 const PAGE_SIZE = 9
-
-const searchProject = (project, query) => {
-  const haystack = [
-    project.title,
-    project.description,
-    project.category,
-    project.status,
-    ...(project.tags || []),
-    ...(project.methods || []),
-    ...(project.tools || []),
-    ...(project.languages || []),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-
-  return haystack.includes(query.trim().toLowerCase())
-}
 
 export default function Portfolio() {
   const sortOptions = useMemo(
@@ -67,38 +47,15 @@ export default function Portfolio() {
     []
   )
 
-  const [projects, setProjects] = useState([])
-  const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, query, search, setSearch, loading, error, retry, onReviewSaved, setCategory, setSort, setPage } = useProjectBrowser()
   const [favorites, setFavorites] = useState([])
-  const [activeCategory, setActiveCategory] = useState('all')
-  const [search, setSearch] = useState('')
-  const [sort, setSort] = useState('date')
-  const [page, setPage] = useState(1)
-
-  const fetchProjects = async ({ fresh = false } = {}) => {
-    setLoading(true)
-    try {
-      const [projectData, categoryData] = await Promise.all([
-        getPublicProjects({ fresh }),
-        getPublicCategories({ fresh }).catch(() => []),
-      ])
-      setProjects(projectData)
-      setCategories(categoryData)
-      setError('')
-    } catch {
-      setError('Projects could not be loaded.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchProjects()
-  }, [])
-
-  useEffect(() => setPage(1), [search, sort, activeCategory])
+  const page = query.page
+  const sort = query.sort
+  const projects = data?.projects || []
+  const featuredProject = data?.featuredProject
+  const visibleCategories = [{ label: 'All', value: 'all' }, ...(data?.categories || []).map(item => ({ label: item.name, value: item.slug }))]
+  const currentCategory = visibleCategories.find(item => item.value === query.category) || visibleCategories[0]
+  const pageCount = Math.max(1, Math.ceil((data?.total || 0) / PAGE_SIZE))
 
   const toggleFavorite = (id) => {
     setFavorites((current) =>
@@ -113,30 +70,6 @@ export default function Portfolio() {
     apiClient.patch(`/api/projects/${id}/hit`).catch(() => {})
     window.open(url, '_blank', 'noopener,noreferrer')
   }
-
-  const visibleCategories = useMemo(
-    () => getPopulatedProjectCategories(projects, categories.length ? categories : undefined),
-    [projects, categories],
-  )
-  const currentCategory = visibleCategories.find((category) => category.value === activeCategory) || visibleCategories[0]
-  const filtered = useMemo(
-    () =>
-      projects.filter(
-        (project) =>
-          isProjectInCategory(project, currentCategory.value) && searchProject(project, search)
-      ),
-    [projects, currentCategory, search]
-  )
-  const sorted = useMemo(() => sortProjects(filtered, sort), [filtered, sort])
-  const featuredProject = useMemo(
-    () =>
-      [...projects].sort(
-        (a, b) => Number(b.featured) - Number(a.featured) || (b.views || 0) - (a.views || 0)
-      )[0],
-    [projects]
-  )
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <Box bg={'bg.canvas'} color={'fg.default'} fontFamily={'body'}>
@@ -185,7 +118,7 @@ export default function Portfolio() {
         </SimpleGrid>
       </Box>
 
-      {loading || featuredProject ? (
+      {(loading && !data) || featuredProject ? (
         <Box as="section" aria-labelledby="featured-project-heading" bg={'bg.raised'} borderY="1px solid" borderColor={'border.subtle'} px={{ base: 6, md: 10 }} py={{ base: 14, md: 20 }}>
           <Box maxW="7xl" mx="auto">
             <Stack gap={3} mb={8} maxW="760px">
@@ -194,11 +127,12 @@ export default function Portfolio() {
                 A closer look at the work.
               </Heading>
             </Stack>
-            {loading ? <Skeleton minH={{ base: '760px', lg: '480px' }} borderRadius="lg" aria-label="Loading featured project" /> : <ProjectCard
+            {loading && !data ? <Skeleton minH={{ base: '760px', lg: '480px' }} borderRadius="lg" aria-label="Loading featured project" /> : <ProjectCard
               project={featuredProject}
               favorites={favorites}
               handleFavorite={toggleFavorite}
               hitAndOpen={hitAndOpen}
+              onReviewSaved={onReviewSaved}
               featured
             />}
           </Box>
@@ -216,14 +150,14 @@ export default function Portfolio() {
             </Stack>
             {!loading && !error ? (
               <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.12em">
-                {sorted.length} of {projects.length} projects
+                {data?.total || 0} of {data?.totalProjects || 0} projects
               </Text>
             ) : null}
           </Flex>
 
           <Tabs.Root
             value={currentCategory.value}
-            onValueChange={(details) => setActiveCategory(details.value)}
+            onValueChange={(details) => setCategory(details.value)}
             variant="unstyled"
           >
             <Tabs.List
@@ -273,6 +207,7 @@ export default function Portfolio() {
                 <Icon as={FaSearch} color={'fg.muted'} aria-hidden="true" />
                 <Input
                   aria-label="Search projects"
+                  maxLength={160}
                   variant="flushed"
                   placeholder="Search titles, categories, tools, or status"
                   value={search}
@@ -323,23 +258,24 @@ export default function Portfolio() {
                   ))}
                 </SimpleGrid>
               ) : error ? (
-                <ErrorState title={error} description="Check the API connection and try again." onRetry={() => fetchProjects({ fresh: true })} />
-              ) : paginated.length === 0 ? (
+                <ErrorState title={error} description="Check the API connection and try again." onRetry={retry} />
+              ) : projects.length === 0 ? (
                 <Box borderY="1px solid" borderColor={'border.subtle'} py={8}>
                   <EmptyState title="No projects match those filters." description="Try another category or clear the search term." />
                 </Box>
               ) : (
                 <ProjectList
-                  searchedProjects={paginated}
+                  searchedProjects={projects}
                   favorites={favorites}
                   handleFavorite={toggleFavorite}
                   hitAndOpen={hitAndOpen}
+                  onReviewSaved={onReviewSaved}
                 />
               )}
 
-              {pageCount > 1 ? (
+              {!loading && !error && pageCount > 1 ? (
                 <Flex justify="center" mt={12}>
-                  <Pagination.Root count={sorted.length} pageSize={PAGE_SIZE} page={page} onPageChange={(event) => setPage(event.page)}>
+                  <Pagination.Root count={data?.total || 0} pageSize={PAGE_SIZE} page={page} onPageChange={(event) => setPage(event.page)}>
                     <ButtonGroup variant="outline" size="sm" gap={2}>
                       <Pagination.PrevTrigger asChild>
                         <IconButton aria-label="Previous page" colorPalette="brand"><HiChevronLeft /></IconButton>

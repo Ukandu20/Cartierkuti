@@ -1,4 +1,5 @@
 import { getCategoryLabel, normalizeCategoryValue } from './projectCategories'
+import { getProjectRating } from './projectRatings'
 
 export function normalizeProject(project = {}) {
   const id = project.id || project._id || ''
@@ -9,6 +10,7 @@ export function normalizeProject(project = {}) {
 
   return {
     ...project,
+    ...getProjectRating(project),
     _id: project._id || id,
     id,
     category: project.categorySlug ? project.category : getCategoryLabel(categoryValue),

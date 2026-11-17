@@ -4,6 +4,13 @@ import { getCachedPublicData, invalidatePublicData } from './publicDataCache'
 afterEach(() => vi.useRealTimers())
 
 describe('public data cache', () => {
+  it('expires old queries and bounds the number of cached search variants', async () => {
+    const fetcher = vi.fn().mockResolvedValue([])
+    await getCachedPublicData('/api/projects/browse?search=oldest', fetcher)
+    for (let index = 0; index < 60; index += 1) await getCachedPublicData(`/api/projects/browse?search=${index}`, fetcher)
+    await getCachedPublicData('/api/projects/browse?search=oldest', fetcher)
+    expect(fetcher).toHaveBeenCalledTimes(62)
+  })
   it('shares concurrent requests and reuses their result until the TTL expires', async () => {
     vi.useFakeTimers()
     const fetcher = vi.fn().mockResolvedValue(['project'])

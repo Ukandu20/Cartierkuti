@@ -7,6 +7,7 @@ export default function ProjectList({
   favorites,
   handleFavorite,
   hitAndOpen,
+  onReviewSaved,
 }) {
   return (
     <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={{ base: 6, md: 8 }} alignItems="stretch">
@@ -17,6 +18,7 @@ export default function ProjectList({
           favorites={favorites}
           handleFavorite={handleFavorite}
           hitAndOpen={hitAndOpen}
+          onReviewSaved={onReviewSaved}
         />
       ))}
     </SimpleGrid>

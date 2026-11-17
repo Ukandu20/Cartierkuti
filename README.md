@@ -95,6 +95,12 @@ Credential changes require the current password and a TOTP or one-time recovery 
 
 The previous `x-admin-secret` flow has been removed.
 
+### Public Project Browsing
+
+Home uses `GET /api/projects/selected?limit=3`, prioritizing featured projects and then views. Portfolio uses `GET /api/projects/browse?page=1&limit=9&category=all&search=&sort=date`. Browse supports `date`, `title`, and `views` sorting, literal search text, and category slugs including legacy aliases. Its response includes the current `projects` page, filtered `total`, `totalProjects`, populated `categories` with counts, and the collection's `featuredProject`. Public cards receive `avgStars` and `reviewCount` instead of review arrays; the existing review endpoint supplies paginated feedback when opened.
+
+The selected endpoint accepts at most 3 entries and browse accepts at most 24 per page. The existing `GET /api/projects` array response remains compatible with the admin dashboard and older clients. Public query results are cached for 60 seconds, with at most 60 entries; successful project, review, or category writes invalidate the relevant variants. Search requests wait 250 ms after typing and changed filters reset pagination together. Deploy these backend routes before the frontend.
+
 ### About Page Content
 
 The About editor separates education into institution, program name, program level, start date, finish date, and status. Dates accept a year or year and month. For In progress, the finish field becomes an optional expected finish; leaving it empty displays Present. Education sits alongside the introduction, followed by experience, ahead of metrics and working principles. Highlights appear as wrapping tags throughout the page and preview. The program is displayed as a heading; level and status appear as badges. Existing `degree` and `period` values remain readable.

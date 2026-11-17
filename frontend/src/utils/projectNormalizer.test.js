@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { normalizeProject, normalizeProjects } from './projectNormalizer'
 
 describe('project normalization', () => {
+  it('calculates legacy ratings and preserves explicit rating summaries', () => {
+    expect(normalizeProject({ reviews: [{ stars: 5 }, { stars: 3 }] })).toMatchObject({ avgStars: 4, reviewCount: 2 })
+    expect(normalizeProject({ avgStars: 4.5, reviewCount: 12, reviews: [] })).toMatchObject({ avgStars: 4.5, reviewCount: 12 })
+    expect(normalizeProject({ reviews: [] })).toMatchObject({ avgStars: 0, reviewCount: 0 })
+  })
   it('preserves API-backed category names and stable slugs', () => {
     expect(normalizeProject({ category: 'Decision Intelligence', categorySlug: 'decision-science' })).toMatchObject({
       category: 'Decision Intelligence',

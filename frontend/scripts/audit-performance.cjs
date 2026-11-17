@@ -48,7 +48,9 @@ async function audit() {
               featured: index === 0, views: index, reviews: [],
               createdDate: '2026-01-01T12:00:00Z', lastUpdatedDate: '2026-01-01T12:00:00Z',
             }))
-            const json = url.pathname === '/api/projects' ? projects
+            const json = url.pathname === '/api/projects/selected' ? projects.slice(0, 3)
+              : url.pathname === '/api/projects/browse' ? { projects: projects.slice(0, 9), total: projects.length, totalProjects: projects.length, categories: [{ name: 'Web Applications', slug: 'web-applications' }], featuredProject: projects[0], page: 1, limit: 9 }
+              : url.pathname === '/api/projects' ? projects
               : url.pathname === '/api/categories' ? [{ name: 'Web Applications', slug: 'web-applications' }]
               : url.pathname.endsWith('/reviews') ? { reviews: [], total: 0 }
               : { headline: 'Data science and analytics practitioner', summary: 'Evidence for useful decisions.', skills: { primary: [], secondary: [], tools: [] } }

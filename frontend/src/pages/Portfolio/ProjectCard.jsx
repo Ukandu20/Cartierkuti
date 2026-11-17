@@ -32,6 +32,7 @@ import {
 import { interactiveSurfaceStyles } from '@/components/ui/DesignSystem'
 import ProjectDetails from './ProjectDetails'
 import { projectImageProps } from '@/utils/projectImages'
+import { getProjectRating } from '@/utils/projectRatings'
 
 const formatProjectDate = (value) => {
   if (!value) return ''
@@ -46,13 +47,15 @@ export default function ProjectCard({
   favorites,
   handleFavorite,
   hitAndOpen,
+  onReviewSaved,
   featured = false,
 }) {
   const isFavorite = favorites.includes(project.id)
   const technologies = (project.tools?.length ? project.tools : project.languages || []).slice(0, 4)
   const liveUrl = project.liveDemoLink || project.externalLink
   const projectDate = formatProjectDate(project.lastUpdatedDate || project.createdDate)
-  const hasReviews = (project.reviews?.length || 0) > 0
+  const { avgStars, reviewCount } = getProjectRating(project)
+  const hasReviews = reviewCount > 0
 
   return (
     <Dialog.Root size="xl" placement="center" motionPreset="slide-in-bottom">
@@ -134,9 +137,9 @@ export default function ProjectCard({
               {hasReviews || project.views ? (
                 <HStack gap={4} color={'fg.muted'} fontSize="sm">
                   {hasReviews ? (
-                    <HStack gap={1} aria-label={`${project.avgStars?.toFixed(1) || '0'} average rating`}>
+                    <HStack gap={1} aria-label={`${avgStars.toFixed(1)} average rating`}>
                       <Icon as={FaStar} color="yellow.500" aria-hidden="true" />
-                      <Text>{project.avgStars?.toFixed(1)} · {project.reviews.length} review{project.reviews.length === 1 ? '' : 's'}</Text>
+                      <Text>{avgStars.toFixed(1)} · {reviewCount} review{reviewCount === 1 ? '' : 's'}</Text>
                     </HStack>
                   ) : null}
                   {project.views ? <Text>{project.views} views</Text> : null}
@@ -199,6 +202,7 @@ export default function ProjectCard({
                 openLink={hitAndOpen}
                 handleFavorite={handleFavorite}
                 isFavorite={isFavorite}
+                onReviewSaved={summary => onReviewSaved?.(project.id, summary)}
               />
             </Dialog.Body>
           </Dialog.Content>

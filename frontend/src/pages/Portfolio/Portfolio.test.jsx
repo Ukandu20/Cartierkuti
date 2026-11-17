@@ -1,3 +1,4 @@
+import { publicProjectFixture } from '@/test-utils/projectApi'
 import React from 'react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -19,7 +20,7 @@ describe('Portfolio', () => {
     vi.clearAllMocks()
     apiGet.mockImplementation((url) => {
       if (url.includes('/reviews')) return Promise.resolve({ data: { reviews: [] } })
-      return Promise.resolve({ data: [
+      const projects = [
         {
           _id: '1',
           title: 'Alias ML Project',
@@ -49,7 +50,8 @@ describe('Portfolio', () => {
           tags: [],
           reviews: [],
         },
-      ] })
+      ]
+      return Promise.resolve({ data: publicProjectFixture(projects, url) })
     })
   })
 

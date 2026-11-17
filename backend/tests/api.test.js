@@ -631,6 +631,53 @@ describe('project API', () => {
   })
 })
 
+describe('bounded public project browsing', () => {
+  it('limits selected work and paginates filtered projects with collection-wide counts', async () => {
+    await Project.insertMany(Array.from({ length: 22 }, (_, index) => ({
+      ...validProject, title: `Project ${String(index).padStart(2, '0')}`, views: index, featured: index === 2,
+      category: index < 10 ? 'Web Applications' : 'Sports Analytics',
+      categorySlug: index < 10 ? 'web-applications' : 'sports-analytics',
+      reviews: [{ stars: 5 }, { stars: 3 }],
+    })))
+    const selected = await request(app).get('/api/projects/selected?limit=3').expect(200)
+    expect(selected.body.map(item => item.title)).toEqual(['Project 02', 'Project 21', 'Project 20'])
+    expect(selected.body[0]).toMatchObject({ avgStars: 4, reviewCount: 2 })
+    expect(selected.body[0]).not.toHaveProperty('reviews')
+    const first = await request(app).get('/api/projects/browse?page=1&limit=9&sort=title').expect(200)
+    const second = await request(app).get('/api/projects/browse?page=2&limit=9&sort=title').expect(200)
+    expect(first.body).toMatchObject({ total: 22, totalProjects: 22, page: 1, limit: 9 })
+    expect(first.body.projects).toHaveLength(9)
+    expect(second.body.projects).toHaveLength(9)
+    expect(first.body.projects[0].title).toBe('Project 00')
+    expect(second.body.projects[0].title).toBe('Project 09')
+    expect(first.body.featuredProject.title).toBe('Project 02')
+    expect(first.body.projects.every(item => item.reviews === undefined)).toBe(true)
+    const filtered = await request(app).get('/api/projects/browse?category=sports-analytics&sort=views&limit=9').expect(200)
+    expect(filtered.body).toMatchObject({ total: 12, totalProjects: 22 })
+    expect(filtered.body.projects[0].title).toBe('Project 21')
+    expect(filtered.body.categories).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slug: 'web-applications', count: 10 }),
+      expect.objectContaining({ slug: 'sports-analytics', count: 12 }),
+    ]))
+    const legacy = await request(app).get('/api/projects').expect(200)
+    expect(Array.isArray(legacy.body)).toBe(true)
+    expect(legacy.body).toHaveLength(22)
+  })
+
+  it('handles legacy categories, literal searches, empty results, and query limits', async () => {
+    await Project.create({ ...validProject, category: 'Machine Learning/AI', categorySlug: '', title: 'Literal [x].*' })
+    const category = await request(app).get('/api/projects/browse?category=machine-learning-forecasting').expect(200)
+    expect(category.body.total).toBe(1)
+    expect(category.body.categories[0].slug).toBe('machine-learning-forecasting')
+    const literal = await request(app).get('/api/projects/browse').query({ search: '[x].*' }).expect(200)
+    expect(literal.body.total).toBe(1)
+    const empty = await request(app).get('/api/projects/browse?search=missing').expect(200)
+    expect(empty.body).toMatchObject({ projects: [], total: 0, totalProjects: 1 })
+    await request(app).get('/api/projects/browse?limit=25').expect(400)
+    await request(app).get('/api/projects/selected?limit=4').expect(400)
+  })
+})
+
 describe('reviews and resume', () => {
   it('saves structured education and personal content while excluding hidden entries from public reads', async () => {
     const payload = {
@@ -702,7 +749,7 @@ describe('reviews and resume', () => {
   })
 
   it('validates public review submissions', async () => {
-    const project = await Project.create(validProject)
+    const project = await Project.create({ ...validProject, reviews: [{ stars: 3, comment: 'Earlier feedback.' }] })
 
     const submitted = await request(app)
       .post(`/api/projects/${project._id}/reviews`)
@@ -714,8 +761,14 @@ describe('reviews and resume', () => {
     const reviews = await request(app)
       .get(`/api/projects/${project._id}/reviews?limit=1`)
       .expect(200)
-    expect(reviews.body).toMatchObject({ total: 1, page: 1, limit: 1 })
+    expect(reviews.body).toMatchObject({ total: 2, page: 1, limit: 1 })
     expect(reviews.body.reviews).toHaveLength(1)
+    expect(reviews.body.reviews[0].comment).toBe('Strong work.')
+    const older = await request(app).get(`/api/projects/${project._id}/reviews?page=2&limit=1`).expect(200)
+    expect(older.body.reviews[0].comment).toBe('Earlier feedback.')
+    const listing = await request(app).get('/api/projects').expect(200)
+    expect(listing.body.find(item => item._id === String(project._id))).toMatchObject({ avgStars: 4, reviewCount: 2 })
+    expect(submitted.body).toMatchObject({ avgStars: 4, total: 2 })
 
     await request(app)
       .get(`/api/projects/${project._id}/reviews?limit=51`)
