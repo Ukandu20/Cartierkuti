@@ -226,7 +226,19 @@ const setupApi = async (page) => {
     }
 
     if (path === '/api/activities' && method === 'GET') {
-      return route.fulfill({ status: 200, json: { activities: [], total: 0 } })
+      state.activityRequests ||= []
+      state.activityRequests.push(Object.fromEntries(url.searchParams))
+      if (state.activityFailures > 0) {
+        state.activityFailures -= 1
+        return route.fulfill({ status: 503, json: { message: 'Temporarily unavailable' } })
+      }
+      const filtered = (state.activities || []).filter(item =>
+        (!url.searchParams.get('type') || item.type === url.searchParams.get('type')) &&
+        (!url.searchParams.get('startDate') || item.timestamp.slice(0, 10) >= url.searchParams.get('startDate')) &&
+        (!url.searchParams.get('endDate') || item.timestamp.slice(0, 10) <= url.searchParams.get('endDate')))
+      const page = Number(url.searchParams.get('page') || 1)
+      const limit = Number(url.searchParams.get('limit') || 20)
+      return route.fulfill({ status: 200, json: { activities: filtered.slice((page - 1) * limit, page * limit), total: filtered.length, page, limit } })
     }
 
     if (path === '/api/activities' && method === 'POST') {
@@ -597,6 +609,35 @@ test('edit project updates displayed data', async ({ page }) => {
 
   await expect(page.getByText('Alpha Analytics Updated', { exact: true }).filter({ visible: true })).toBeVisible()
   expect(api.projectWrites.at(-1).title).toBe('Alpha Analytics Updated')
+})
+
+test('admin activity filters apply once from a later page and recover from load failures', async ({ page }) => {
+  const api = await setupApi(page)
+  api.activities = Array.from({ length: 16 }, (_, index) => ({ _id: `activity-${index}`, title: `Activity ${index + 1}`, type: index % 2 ? 'Updated' : 'Created', timestamp: '2026-01-15T12:00:00Z', detail: 'Project edited' }))
+  api.activityFailures = 1
+  await login(page)
+  const activity = page.getByRole('region', { name: 'Recent activity' })
+  await expect(activity.getByRole('alert')).toContainText('Activity could not be loaded.')
+  await expect(activity.getByText('No activity yet.')).toHaveCount(0)
+  await activity.getByRole('button', { name: 'Retry activity' }).click()
+  await expect(activity.getByText('Activity 1', { exact: true })).toBeVisible()
+  await activity.getByRole('button', { name: 'Page 3', exact: true }).click()
+  await expect(activity.getByText('Activity 11', { exact: true })).toBeVisible()
+  const beforeEditing = api.activityRequests.length
+  await activity.getByRole('button', { name: 'Filters', exact: true }).click()
+  await activity.getByLabel('Filter activity type').selectOption('Updated')
+  await activity.getByLabel('Activity start date').fill('2026-01-01')
+  await activity.getByLabel('Activity end date').fill('2026-01-31')
+  expect(api.activityRequests).toHaveLength(beforeEditing)
+  await activity.getByRole('button', { name: 'Apply', exact: true }).click()
+  await expect(activity.getByText('Activity 2', { exact: true })).toBeVisible()
+  expect(api.activityRequests).toHaveLength(beforeEditing + 1)
+  expect(api.activityRequests.at(-1)).toEqual({ page: '1', limit: '5', type: 'Updated', startDate: '2026-01-01', endDate: '2026-01-31' })
+  await expect(activity.getByText('Type: Updated')).toBeVisible()
+  await activity.getByRole('button', { name: 'Clear', exact: true }).click()
+  await expect(activity.getByText('Activity 1', { exact: true })).toBeVisible()
+  expect(api.activityRequests).toHaveLength(beforeEditing + 2)
+  expect(api.activityRequests.at(-1)).toEqual({ page: '1', limit: '5' })
 })
 
 test('About editor structures content, stages the PDF, previews, and saves as one workflow', async ({ page }) => {

@@ -125,15 +125,15 @@ export default function AdminDashboard() {
     activities,
     totalActivities,
     filterType,
-    setFilterType,
     filterStart,
-    setFilterStart,
     filterEnd,
-    setFilterEnd,
     page,
     setPage,
     fetchActivities,
     clearFilters,
+    applyFilters,
+    loading: activitiesLoading,
+    error: activitiesError,
   } = useAdminActivities({ isAuth, pageSize: ACTIVITY_PAGE_SIZE })
 
   const [projectPage, setProjectPage] = useState(1)
@@ -533,14 +533,14 @@ export default function AdminDashboard() {
           pageCount={pageCount}
           pageSize={ACTIVITY_PAGE_SIZE}
           filterType={filterType}
-          setFilterType={setFilterType}
           filterStart={filterStart}
-          setFilterStart={setFilterStart}
           filterEnd={filterEnd}
-          setFilterEnd={setFilterEnd}
           setPage={setPage}
           fetchActivities={fetchActivities}
           clearFilters={clearFilters}
+          applyFilters={applyFilters}
+          loading={activitiesLoading}
+          error={activitiesError}
           bg={bg}
           dialogBg={dialogBg}
           dialogBorder={dialogBorder}
