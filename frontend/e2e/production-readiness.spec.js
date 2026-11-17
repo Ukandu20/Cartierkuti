@@ -1032,6 +1032,11 @@ test('shared theme tokens drive contact controls in light and dark modes', async
   const submitButton = page.getByRole('button', { name: /send message/i })
   await expect(pageHeading).toBeVisible()
   await expect(submitButton).toBeVisible()
+  await page.getByLabel(/^Name/).fill('Taylor')
+  await page.getByLabel(/^Email/).fill('taylor@example.com')
+  await page.getByRole('combobox', { name: 'Subject' }).selectOption('Collaboration')
+  await page.getByLabel(/^Message/).fill('I would like to discuss a project.')
+  expect(await page.locator('form').evaluate(form => Object.fromEntries(new FormData(form)))).toMatchObject({ subject: 'Collaboration', user_name: 'Taylor', user_email: 'taylor@example.com', message: 'I would like to discuss a project.' })
 
   const lightTheme = await page.evaluate(() => ({
     bodyFont: getComputedStyle(document.body).fontFamily,

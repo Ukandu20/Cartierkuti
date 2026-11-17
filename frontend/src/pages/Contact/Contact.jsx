@@ -18,9 +18,8 @@ import {
 } from '@chakra-ui/react'
 import { Helmet } from 'react-helmet-async'
 import emailjs from '@emailjs/browser'
-import { FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa'
+import { FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa'
 import { SectionLabel, SurfaceCard, fieldStyles } from '@/components/ui/DesignSystem'
-import { toaster } from '@/components/ui/toaster'
 import { absoluteUrl, siteName } from '@/utils/siteConfig'
 
 const contactMethods = [
@@ -33,24 +32,44 @@ export default function ContactPage() {
   const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
   const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [feedback, setFeedback] = useState(null)
   const formRef = useRef(null)
+  const sending = useRef(false)
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (sending.current) return
+    const form = formRef.current
+    if (!form.reportValidity()) return
+    const nextErrors = {}
+    for (const [name, label] of [['user_name', 'name'], ['message', 'message']]) {
+      const input = form.elements.namedItem(name)
+      input.value = input.value.trim()
+      if (!input.value) nextErrors[name] = `Enter your ${label}.`
+    }
+    setErrors(nextErrors)
+    setFeedback(null)
+    if (Object.keys(nextErrors).length) {
+      form.elements.namedItem(Object.keys(nextErrors)[0]).focus()
+      return
+    }
     if (!serviceId || !templateId || !publicKey) {
-      toaster.create({ title: 'Email service not configured', type: 'error', closable: true })
+      setFeedback({ type: 'error', message: 'The contact form is currently unavailable. Please email me directly.' })
       return
     }
 
+    sending.current = true
     setLoading(true)
     try {
-      await emailjs.sendForm(serviceId, templateId, formRef.current, publicKey)
-      toaster.create({ title: 'Message sent', description: 'Thanks — I will get back to you shortly.', type: 'success', closable: true })
-      formRef.current.reset()
+      await emailjs.sendForm(serviceId, templateId, form, publicKey)
+      setFeedback({ type: 'success', message: 'Message sent. Thanks — I will get back to you shortly.' })
+      form.reset()
     } catch (error) {
       if (import.meta.env.DEV) console.error(error)
-      toaster.create({ title: 'Message could not be sent', description: 'Please try again later or email me directly.', type: 'error', closable: true })
+      setFeedback({ type: 'error', message: 'Message could not be sent. Your message is still here. Please try again or email me directly.' })
     } finally {
+      sending.current = false
       setLoading(false)
     }
   }
@@ -95,21 +114,22 @@ export default function ContactPage() {
           <Heading id="contact-form-heading" as="h2" fontSize={{ base: '3xl', md: '4xl' }} mt={3} mb={2}>Tell me what you are exploring</Heading>
           <Text color="fg.muted" mb={7}>A few useful details are enough to begin.</Text>
 
-          <chakra.form ref={formRef} onSubmit={handleSubmit} display="grid" gridTemplateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={5}>
-            <Field.Root required>
+          <chakra.form ref={formRef} onSubmit={handleSubmit} aria-busy={loading} display="grid" gridTemplateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={5}>
+            <Field.Root required invalid={Boolean(errors.user_name)}>
               <Field.Label htmlFor="user_name">Name <Field.RequiredIndicator /></Field.Label>
-              <Input id="user_name" name="user_name" placeholder="Your name" required {...fieldStyles} />
+              <Input id="user_name" name="user_name" placeholder="Your name" autoComplete="name" maxLength={120} required disabled={loading} onChange={() => setErrors(current => ({ ...current, user_name: undefined }))} {...fieldStyles} />
+              <Field.ErrorText>{errors.user_name}</Field.ErrorText>
             </Field.Root>
 
             <Field.Root required>
               <Field.Label htmlFor="user_email">Email <Field.RequiredIndicator /></Field.Label>
-              <Input id="user_email" name="user_email" type="email" placeholder="you@example.com" required {...fieldStyles} />
+              <Input id="user_email" name="user_email" type="email" placeholder="you@example.com" autoComplete="email" maxLength={254} required disabled={loading} {...fieldStyles} />
             </Field.Root>
 
             <Field.Root gridColumn={{ md: '1 / -1' }}>
               <Field.Label htmlFor="subject">Subject</Field.Label>
-              <NativeSelect.Root id="subject" name="subject" width="full">
-                <NativeSelect.Field placeholder="Choose a subject" {...fieldStyles}>
+              <NativeSelect.Root width="full">
+                <NativeSelect.Field id="subject" name="subject" placeholder="Choose a subject" disabled={loading} {...fieldStyles}>
                   <option value="Project Inquiry">Project inquiry</option>
                   <option value="Collaboration">Collaboration</option>
                   <option value="General Question">General question</option>
@@ -118,15 +138,20 @@ export default function ContactPage() {
               </NativeSelect.Root>
             </Field.Root>
 
-            <Field.Root required gridColumn={{ md: '1 / -1' }}>
+            <Field.Root required invalid={Boolean(errors.message)} gridColumn={{ md: '1 / -1' }}>
               <Field.Label htmlFor="message">Message <Field.RequiredIndicator /></Field.Label>
-              <Textarea id="message" name="message" rows={7} placeholder="What problem are you trying to solve?" required {...fieldStyles} />
+              <Textarea id="message" name="message" rows={7} placeholder="What problem are you trying to solve?" maxLength={5000} required disabled={loading} onChange={() => setErrors(current => ({ ...current, message: undefined }))} {...fieldStyles} />
+              <Field.ErrorText>{errors.message}</Field.ErrorText>
             </Field.Root>
 
-            <Button type="submit" colorPalette="brand" size="lg" gridColumn={{ md: '1 / -1' }} justifySelf={{ base: 'stretch', sm: 'end' }} w={{ base: 'full', sm: 'auto' }} loading={loading} loadingText="Sending">
+            <Button type="submit" colorPalette="brand" size="lg" gridColumn={{ md: '1 / -1' }} justifySelf={{ base: 'stretch', sm: 'end' }} w={{ base: 'full', sm: 'auto' }} loading={loading} disabled={loading} loadingText="Sending">
               Send message
             </Button>
           </chakra.form>
+          {feedback ? <Box role={feedback.type === 'error' ? 'alert' : 'status'} mt={5} p={4} borderRadius="md" bg={feedback.type === 'error' ? 'bg.error' : 'bg.subtle'}>
+            <Text>{feedback.message}</Text>
+            {feedback.type === 'error' ? <Link href="mailto:okechiprest@gmail.com" fontWeight="700" mt={2}>Email me directly</Link> : null}
+          </Box> : null}
         </SurfaceCard>
       </SimpleGrid>
     </Box>
