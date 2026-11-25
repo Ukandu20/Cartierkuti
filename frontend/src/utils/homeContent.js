@@ -13,9 +13,9 @@ export const homeTextFields = [
   ['capability3Title', 'Third capability title', 'Sports analytics', 100],
   ['capability3Description', 'Third capability description', 'Study player and team performance, match trends, scouting questions, and the context behind the numbers.', 400],
   ['profileTitle', 'Profile heading', 'Analytical rigour, practical delivery.', 120],
-  ['ctaEyebrow', 'Closing invitation label', 'Have a question worth measuring?', 120],
-  ['ctaTitle', 'Closing invitation heading', "Let's turn it into something decision-ready.", 160],
-  ['ctaDescription', 'Closing invitation description', 'Open to data science, dashboarding, and sports analytics collaborations.', 400],
+  ['ctaEyebrow', 'Footer invitation label', 'Have a question worth measuring?', 120],
+  ['ctaTitle', 'Footer invitation heading', "Let's turn it into something decision-ready.", 160],
+  ['ctaDescription', 'Footer invitation description', 'Open to data science, dashboarding, and sports analytics collaborations.', 400],
 ]
 
 export const normalizeHomeContent = (content) => Object.fromEntries(

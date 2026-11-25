@@ -79,16 +79,14 @@ describe('Home', () => {
     expect(screen.getByRole('link', { name: /view selected work/i })).toHaveAttribute('href', '/portfolio')
     expect(screen.getByRole('link', { name: /let's collaborate/i })).toHaveAttribute('href', '/contact')
     expect(screen.getByRole('heading', { name: /sports analytics/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /let's turn it into something decision-ready/i })).toBeInTheDocument()
   })
 
   it('shows saved Home text returned with the public profile', async () => {
     apiGet.mockImplementation(url => url === '/api/resume'
-      ? Promise.resolve({ data: { homeContent: { heroLead: 'Custom analytics', heroAccent: 'for better decisions.', ctaTitle: 'Work with me.' } } })
+      ? Promise.resolve({ data: { homeContent: { heroLead: 'Custom analytics', heroAccent: 'for better decisions.' } } })
       : Promise.resolve({ data: [] }))
     renderWithProviders(<Home />)
     expect(await screen.findByRole('heading', { level: 1, name: 'Custom analytics for better decisions.' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Work with me.' })).toBeInTheDocument()
   })
 
   it('renders selected work with the featured case-study card treatment', async () => {

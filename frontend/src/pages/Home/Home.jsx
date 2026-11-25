@@ -21,7 +21,7 @@ import {
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { useResumeDownload } from '@/hooks/useResumeDownload'
-import { PageCta, SectionLabel, SurfaceCard } from '@/components/ui/DesignSystem'
+import { SectionLabel, SurfaceCard } from '@/components/ui/DesignSystem'
 import apiClient from '@/utils/axiosConfig'
 import { getSelectedPublicProjects } from '@/services/projectService'
 import { ErrorState } from '@/components/ui/StateFeedback'
@@ -339,16 +339,14 @@ const ProfileSnapshot = ({ summary, content }) => {
   )
 }
 
-const CollaborationCta = ({ content }) => (
-  <PageCta
-    headingId="collaboration-heading"
-    eyebrow={content.ctaEyebrow}
-    title={content.ctaTitle}
-    description={content.ctaDescription}
-  >
-    <Link to="/contact">Start a conversation <FaArrowRight /></Link>
-  </PageCta>
-)
+export function HomeContent({ content, summary }) {
+  return <>
+    <Hero content={content} />
+    <FeaturedWork content={content} />
+    <Capabilities content={content} />
+    <ProfileSnapshot summary={summary} content={content} />
+  </>
+}
 
 export default function Home() {
   const [summary, setSummary] = useState('')
@@ -370,11 +368,7 @@ export default function Home() {
         <meta property="og:image" content={absoluteUrl('/personalportfolio.png')} />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
-      <Hero content={content} />
-      <FeaturedWork content={content} />
-      <Capabilities content={content} />
-      <ProfileSnapshot summary={summary} content={content} />
-      <CollaborationCta content={content} />
+      <HomeContent content={content} summary={summary} />
     </>
   )
 }

@@ -109,13 +109,17 @@ The admin dashboard reads the authenticated `GET /api/projects/admin` endpoint. 
 
 ### Home Page Content
 
-Admin > Edit Home controls the hero, selected-project introduction, three capability cards, profile heading, and closing invitation. Home page text is saved independently from About page edits. The profile summary and working approaches still come from About; selected projects are managed in Projects. Existing sites use the current default wording until Home text is saved. Deploy the backend before the frontend to enable saving, and allow the public data cache up to 60 seconds to refresh for other visitors.
+Admin > Edit Home controls the hero, selected-project introduction, three capability cards, and profile heading, with a preview of unsaved edits. Home page text is saved independently from About page edits. The profile summary and working approaches still come from About; selected projects are managed in Projects. Existing sites use the current default wording until Home text is saved.
+
+### Footer Content
+
+Admin > Edit Footer controls the site-wide invitation, contact email, and up to 20 social links, with a preview. Choose a suggested platform for its logo or enter a custom name, then add its URL. Remove a link to hide it. Existing LinkedIn, X, and GitHub settings are retained. The contact email is shared with the Contact page, but changing it does not change the EmailJS form's configured recipient. Existing invitation text from Edit Home is preserved until the footer is saved independently. Deploy the backend before the frontend to enable saving, and allow the public data cache up to 60 seconds to refresh for other visitors.
 
 ### About Page Content
 
 The About editor separates education into institution, program name, program level, start date, finish date, and status. Dates accept a year or year and month. For In progress, the finish field becomes an optional expected finish; leaving it empty displays Present. Education sits alongside the introduction, followed by experience, ahead of metrics and working principles. Highlights appear as wrapping tags throughout the page and preview. The program is displayed as a heading; level and status appear as badges. Existing `degree` and `period` values remain readable.
 
-The Page text tab edits the main heading, section labels and introductions, working approaches (add or remove up to 12), skill group names, personal and gallery headings, contact invitation, button text, browser title, and search description. These are saved in `pageContent`. Existing pages retain their previous copy until edited; cleared optional copy stays cleared. The preview shares the public page renderer. Empty personal-data collections stay empty, and unavailable data never produces sample jobs, education, qualifications, or skills. Deploy the backend schema update before the frontend.
+The Page text tab edits the main heading, section labels and introductions, working approaches (add or remove up to 12), skill group names, personal and gallery headings, button text, browser title, and search description. These are saved in `pageContent`. Existing pages retain their previous copy until edited; cleared optional copy stays cleared. The preview shares the public page renderer. Empty personal-data collections stay empty, and unavailable data never produces sample jobs, education, qualifications, or skills. Deploy the backend schema update before the frontend.
 
 “Outside my work” supports optional Language, Learning, Interest, and Volunteering cards with a status, descriptive proficiency level, and personal note. The experience gallery supports photos, accessible descriptions, captions or stories, dates, locations, and featured entries. Both collections support reordering, removal with undo, visibility controls, and public preview. Empty or fully hidden sections disappear from the public page.
 
