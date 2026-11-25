@@ -107,6 +107,10 @@ In Admin > Projects, use the project's actions menu to **Hide from website** or 
 
 The admin dashboard reads the authenticated `GET /api/projects/admin` endpoint. Public lists, selected work, category counts, search, individual project reads, reviews, and view tracking exclude projects with `visible: false`. Successful visibility changes invalidate the browser's public project cache; other visitors' cached lists expire within 60 seconds. Deploy the backend before the frontend to enable the protected admin list and visibility enforcement. Hiding removes a project from this website; previously shared external links and image URLs are unchanged.
 
+### Home Page Content
+
+Admin > Edit Home controls the hero, selected-project introduction, three capability cards, profile heading, and closing invitation. Home page text is saved independently from About page edits. The profile summary and working approaches still come from About; selected projects are managed in Projects. Existing sites use the current default wording until Home text is saved. Deploy the backend before the frontend to enable saving, and allow the public data cache up to 60 seconds to refresh for other visitors.
+
 ### About Page Content
 
 The About editor separates education into institution, program name, program level, start date, finish date, and status. Dates accept a year or year and month. For In progress, the finish field becomes an optional expected finish; leaving it empty displays Present. Education sits alongside the introduction, followed by experience, ahead of metrics and working principles. Highlights appear as wrapping tags throughout the page and preview. The program is displayed as a heading; level and status appear as badges. Existing `degree` and `period` values remain readable.

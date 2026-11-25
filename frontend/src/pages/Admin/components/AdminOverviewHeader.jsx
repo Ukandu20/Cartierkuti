@@ -3,7 +3,7 @@ import { Box, Button, ButtonGroup, Flex, Heading, Text } from '@chakra-ui/react'
 import { HiChartBar, HiCog, HiDocumentText, HiFolder, HiLogout, HiPlus } from 'react-icons/hi'
 import { SurfaceCard } from '@/components/ui/DesignSystem'
 
-export default function AdminOverviewHeader({ dialogBg, dialogBorder, onOpenCreate, onOpenCategories, onOpenAnalytics, onOpenAbout, onOpenSecurity, onLogout }) {
+export default function AdminOverviewHeader({ dialogBg, dialogBorder, onOpenCreate, onOpenCategories, onOpenAnalytics, onOpenAbout, onOpenHome, onOpenSecurity, onLogout }) {
   return (
     <SurfaceCard mb={6} p={{ base: 4, md: 5 }} bg={dialogBg} borderColor={dialogBorder}>
       <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
@@ -25,6 +25,9 @@ export default function AdminOverviewHeader({ dialogBg, dialogBorder, onOpenCrea
           </Button>
           <Button variant="outline" onClick={onOpenAbout}>
             <HiDocumentText /> Edit About
+          </Button>
+          <Button variant="outline" onClick={onOpenHome}>
+            <HiDocumentText /> Edit Home
           </Button>
           <Button variant="outline" onClick={onOpenSecurity}>
             <HiCog /> Security

@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  Badge,
   Box,
   Button,
   ButtonGroup,
   Flex,
   Heading,
-  Icon,
   IconButton,
   Link as ChakraLink,
-  Separator,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -18,14 +15,9 @@ import {
 import { Helmet } from 'react-helmet-async'
 import {
   FaArrowRight,
-  FaChartLine,
   FaChevronLeft,
   FaChevronRight,
-  FaDatabase,
   FaDownload,
-  FaPause,
-  FaPlay,
-  FaRunning,
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { useResumeDownload } from '@/hooks/useResumeDownload'
@@ -35,11 +27,14 @@ import { getSelectedPublicProjects } from '@/services/projectService'
 import { ErrorState } from '@/components/ui/StateFeedback'
 import { absoluteUrl, siteTitle } from '@/utils/siteConfig'
 import PortfolioProjectCard from '@/pages/Portfolio/ProjectCard'
-
-const SELECTED_WORK_AUTOPLAY_DELAY = 5000
+import { useProjectFavorites } from '@/hooks/useProjectFavorites'
+import { getPublicResume } from '@/services/resumeService'
+import { useWorkingPrinciples } from '@/hooks/useWorkingPrinciples'
+import { normalizeHomeContent } from '@/utils/homeContent'
 
 const AnalysisCanvas = () => {
   const bars = [34, 52, 45, 68, 61, 82, 74, 91]
+  const principles = useWorkingPrinciples()
 
   return (
     <SurfaceCard
@@ -71,13 +66,9 @@ const AnalysisCanvas = () => {
           ))}
         </Flex>
         <SimpleGrid columns={3} gap={3} mt={5}>
-          {[
-            ['01', 'Frame'],
-            ['02', 'Model'],
-            ['03', 'Explain'],
-          ].map(([number, label]) => (
+          {principles.slice(0, 3).map(({ title: label }, index) => (
             <Box key={label} borderTop="1px solid" borderColor={'border.subtle'} pt={3}>
-              <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'}>{number}</Text>
+              <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'}>{String(index + 1).padStart(2, '0')}</Text>
               <Text mt={1} fontFamily={'body'} fontWeight="600" color={'fg.default'}>{label}</Text>
             </Box>
           ))}
@@ -87,7 +78,7 @@ const AnalysisCanvas = () => {
   )
 }
 
-const Hero = () => {
+const Hero = ({ content }) => {
   const resumeDownload = useResumeDownload()
 
   return (
@@ -95,22 +86,24 @@ const Hero = () => {
       <SimpleGrid columns={{ base: 1, lg: 2 }} alignItems="center" gap={{ base: 12, lg: 16 }} maxW="7xl" mx="auto">
         <Stack gap={7} align="flex-start">
           <Text fontFamily={'mono'} fontSize="xs" letterSpacing="0.2em" textTransform="uppercase" color={'accent.default'}>
-            Preston Ukandu · Data Science & Sports Analytics
+            {content.heroEyebrow}
           </Text>
           <Heading
+            as="h1"
             id="hero-heading"
             fontFamily={'heading'}
             fontSize={{ base: '4xl', sm: '5xl', md: '6xl' }}
-            fontWeight="600"
+            fontWeight="500"
             color={'fg.default'}
-            lineHeight="1.02"
+            letterSpacing="-0.035em"
+            lineHeight={{ base: '1.2', md: '1.12' }}
             maxW="760px"
           >
-            Turning complex data into{' '}
-            <Box as="span" color={'accent.default'}>clear decisions and observations.</Box>
+            {content.heroLead}{' '}
+            <Box as="span" color={'accent.default'}>{content.heroAccent}</Box>
           </Heading>
           <Text fontFamily={'body'} fontSize={{ base: 'lg', md: 'xl' }} lineHeight="1.7" color={'fg.muted'} maxW="680px">
-            I build decision-ready dashboards, analytical models, and reproducible data products—bringing rigorous data science to business questions and sports performance.
+            {content.heroDescription}
           </Text>
           <ButtonGroup w={{ base: 'full', sm: 'auto' }} gap={3} flexDirection={{ base: 'column', sm: 'row' }} alignItems="stretch">
             <Button asChild size="lg" colorPalette="brand" fontFamily={'body'}>
@@ -131,10 +124,10 @@ const Hero = () => {
             color={'fg.muted'}
             _hover={{ color: 'accent.default' }}
           >
-            <FaDownload /> Download resume
+            <FaDownload /> Download résumé
           </ChakraLink>
         </Stack>
-        <Flex justify={{ base: 'center', lg: 'flex-end' }}>
+        <Flex display={{ base: 'none', lg: 'flex' }} justify="flex-end">
           <AnalysisCanvas />
         </Flex>
       </SimpleGrid>
@@ -142,59 +135,13 @@ const Hero = () => {
   )
 }
 
-const proofPoints = [
-  { icon: FaChartLine, label: 'Decision intelligence', note: 'Dashboards, KPIs, and analytical storytelling' },
-  { icon: FaRunning, label: 'Sports analytics', note: 'Performance, trends, and game context' },
-  { icon: FaDatabase, label: 'Reproducible workflows', note: 'Clean data, evaluation, and reliable delivery' },
-]
-
-const ProofStrip = () => {
-
-  return (
-    <Box as="section" aria-label="Core practice areas" bg={'bg.surface'} borderY="1px solid" borderColor={'border.subtle'} px={{ base: 5, md: 10 }}>
-      <SimpleGrid columns={{ base: 1, md: 3 }} maxW="7xl" mx="auto">
-        {proofPoints.map(({ icon, label, note }, index) => (
-          <Flex
-            key={label}
-            gap={4}
-            py={6}
-            px={{ base: 0, md: 6 }}
-            borderLeftWidth={{ base: 0, md: index ? '1px' : 0 }}
-            borderTopWidth={{ base: index ? '1px' : 0, md: 0 }}
-            borderColor={'border.subtle'}
-          >
-            <Icon as={icon} mt={1} color={'accent.default'} boxSize={5} />
-            <Box>
-              <Text fontFamily={'body'} fontWeight="700" color={'fg.default'}>{label}</Text>
-              <Text fontFamily={'body'} fontSize="sm" color={'fg.muted'}>{note}</Text>
-            </Box>
-          </Flex>
-        ))}
-      </SimpleGrid>
-    </Box>
-  )
-}
-
 const SelectedWorkCarousel = ({ projects, onReviewSaved }) => {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [favorites, setFavorites] = useState([])
-  const [isHovered, setIsHovered] = useState(false)
-  const [isFocusWithin, setIsFocusWithin] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
+  const { favorites, toggleFavorite } = useProjectFavorites()
 
   useEffect(() => {
     setActiveIndex((current) => Math.min(current, Math.max(projects.length - 1, 0)))
   }, [projects.length])
-
-  useEffect(() => {
-    if (projects.length < 2 || isPaused || isHovered || isFocusWithin) return undefined
-
-    const interval = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % projects.length)
-    }, SELECTED_WORK_AUTOPLAY_DELAY)
-
-    return () => window.clearInterval(interval)
-  }, [isFocusWithin, isHovered, isPaused, projects.length])
 
   const showPrevious = () => {
     setActiveIndex((current) => (current - 1 + projects.length) % projects.length)
@@ -202,12 +149,6 @@ const SelectedWorkCarousel = ({ projects, onReviewSaved }) => {
 
   const showNext = () => {
     setActiveIndex((current) => (current + 1) % projects.length)
-  }
-
-  const toggleFavorite = (id) => {
-    setFavorites((current) => (
-      current.includes(id) ? current.filter((favoriteId) => favoriteId !== id) : [...current, id]
-    ))
   }
 
   const hitAndOpen = (id, url, event) => {
@@ -223,12 +164,6 @@ const SelectedWorkCarousel = ({ projects, onReviewSaved }) => {
       role="region"
       aria-roledescription="carousel"
       aria-label="Selected projects"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onFocusCapture={() => setIsFocusWithin(true)}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setIsFocusWithin(false)
-      }}
     >
       <Box overflow="hidden" borderRadius="lg">
         <Flex
@@ -268,29 +203,21 @@ const SelectedWorkCarousel = ({ projects, onReviewSaved }) => {
               <Button
                 key={project.id}
                 size="xs"
-                minW={index === activeIndex ? 10 : 6}
-                h={2}
+                minW={10}
+                h={8}
                 p={0}
-                borderRadius="full"
-                bg={index === activeIndex ? 'accent.default' : 'border.subtle'}
+                variant={index === activeIndex ? 'solid' : 'outline'}
+                colorPalette="brand"
                 aria-label={`Show ${project.title}`}
                 aria-current={index === activeIndex ? 'true' : undefined}
                 onClick={() => setActiveIndex(index)}
-                transition="width 0.2s ease, background-color 0.2s ease"
-                _hover={{ bg: index === activeIndex ? 'accent.default' : 'fg.muted' }}
-              />
+              >{index + 1}</Button>
             ))}
           </Flex>
 
           <ButtonGroup size="sm" variant="outline" colorPalette="brand">
             <IconButton aria-label="Previous selected project" onClick={showPrevious}>
               <FaChevronLeft />
-            </IconButton>
-            <IconButton
-              aria-label={isPaused ? 'Resume carousel' : 'Pause carousel'}
-              onClick={() => setIsPaused((current) => !current)}
-            >
-              {isPaused ? <FaPlay /> : <FaPause />}
             </IconButton>
             <IconButton aria-label="Next selected project" onClick={showNext}>
               <FaChevronRight />
@@ -302,7 +229,7 @@ const SelectedWorkCarousel = ({ projects, onReviewSaved }) => {
   )
 }
 
-const FeaturedWork = () => {
+const FeaturedWork = ({ content }) => {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -324,10 +251,10 @@ const FeaturedWork = () => {
           <Stack gap={3} maxW="700px">
             <SectionLabel number="01" color={'accent.default'}>Selected work</SectionLabel>
             <Heading id="featured-heading" fontFamily={'heading'} fontSize={{ base: '3xl', md: '5xl' }} color={'fg.default'}>
-              Proof of concepts.
+              {content.workTitle}
             </Heading>
             <Text fontFamily={'body'} fontSize="lg" color={'fg.muted'}>
-              A selection of my best work across modeling, visualization, automation, and decision support.
+              {content.workDescription}
             </Text>
           </Stack>
           <Button asChild variant="outline" colorPalette="brand">
@@ -354,28 +281,12 @@ const FeaturedWork = () => {
   )
 }
 
-const capabilities = [
-  {
-    number: '01',
-    title: 'Decision intelligence',
-    desc: 'Turn business questions into KPI systems, dashboards, forecasts, and concise analytical narratives.',
-    tools: ['SQL', 'Power BI', 'Tableau', 'Forecasting'],
-  },
-  {
-    number: '02',
-    title: 'Applied data science',
-    desc: 'Build and evaluate models with careful validation, transparent assumptions, and reproducible workflows.',
-    tools: ['Python', 'Pandas', 'scikit-learn', 'Experimentation'],
-  },
-  {
-    number: '03',
-    title: 'Sports analytics',
-    desc: 'Study player and team performance, match trends, scouting questions, and the context behind the numbers.',
-    tools: ['Performance data', 'Comparisons', 'Game context', 'Storytelling'],
-  },
-]
-
-const Capabilities = () => {
+const Capabilities = ({ content }) => {
+  const capabilities = [1, 2, 3].map(number => ({
+    number: String(number).padStart(2, '0'),
+    title: content[`capability${number}Title`],
+    desc: content[`capability${number}Description`],
+  }))
 
   return (
     <Box as="section" aria-labelledby="capabilities-heading" bg={'bg.canvas'} px={{ base: 5, md: 10 }} py={{ base: 16, md: 24 }}>
@@ -383,20 +294,16 @@ const Capabilities = () => {
         <Stack gap={3} mb={10} maxW="720px">
           <SectionLabel number="02" color={'accent.default'}>Capabilities</SectionLabel>
           <Heading id="capabilities-heading" fontFamily={'heading'} fontSize={{ base: '3xl', md: '5xl' }} color={'fg.default'}>
-            Three ways I approach the work.
+            {content.capabilitiesTitle}
           </Heading>
         </Stack>
         <SimpleGrid columns={{ base: 1, lg: 3 }} gap={5}>
           {capabilities.map((capability) => (
-            <SurfaceCard key={capability.title} p={{ base: 6, md: 7 }} boxShadow="none">
+            <SurfaceCard key={capability.number} p={{ base: 6, md: 7 }} boxShadow="none">
               <Stack gap={5}>
               <Text fontFamily={'mono'} fontSize="sm" color={'accent.default'}>{capability.number}</Text>
               <Heading as="h3" fontFamily={'heading'} fontSize="2xl" color={'fg.default'}>{capability.title}</Heading>
               <Text fontFamily={'body'} fontSize="lg" color={'fg.muted'}>{capability.desc}</Text>
-              <Separator borderColor={'border.subtle'} />
-              <Flex gap={2} wrap="wrap">
-                {capability.tools.map((tool) => <Badge key={tool} variant="subtle" colorPalette="gray">{tool}</Badge>)}
-              </Flex>
               </Stack>
             </SurfaceCard>
           ))}
@@ -406,7 +313,9 @@ const Capabilities = () => {
   )
 }
 
-const ProfileSnapshot = () => {
+const ProfileSnapshot = ({ summary, content }) => {
+
+  if (!summary) return null
 
   return (
     <Box as="section" aria-labelledby="profile-heading" bg={'bg.surface'} px={{ base: 5, md: 10 }} py={{ base: 16, md: 20 }} borderY="1px solid" borderColor={'border.subtle'}>
@@ -414,12 +323,12 @@ const ProfileSnapshot = () => {
         <Stack gridColumn={{ lg: 'span 4' }} gap={3}>
           <SectionLabel number="03" color={'accent.default'}>Profile</SectionLabel>
           <Heading id="profile-heading" fontFamily={'heading'} fontSize={{ base: '3xl', md: '4xl' }} color={'fg.default'}>
-            Analytical rigor, practical delivery.
+            {content.profileTitle}
           </Heading>
         </Stack>
         <Stack gridColumn={{ lg: 'span 8' }} gap={5}>
           <Text fontFamily={'body'} fontSize={{ base: 'lg', md: 'xl' }} lineHeight="1.75" color={'fg.muted'}>
-            My work sits where statistical thinking, clear communication, and useful software meet. I care about questions that can be framed precisely, analysis that can be reproduced, and conclusions that help someone act—especially in data science and sports performance.
+            {summary}
           </Text>
           <ChakraLink asChild color={'accent.default'} fontFamily={'body'} fontWeight="700" alignSelf="flex-start">
             <Link to="/about">More about my approach <FaArrowRight /></Link>
@@ -430,18 +339,25 @@ const ProfileSnapshot = () => {
   )
 }
 
-const CollaborationCta = () => (
+const CollaborationCta = ({ content }) => (
   <PageCta
     headingId="collaboration-heading"
-    eyebrow="Have a question worth measuring?"
-    title="Let's turn it into something decision-ready."
-    description="Open to data science, dashboarding, and sports analytics collaborations."
+    eyebrow={content.ctaEyebrow}
+    title={content.ctaTitle}
+    description={content.ctaDescription}
   >
     <Link to="/contact">Start a conversation <FaArrowRight /></Link>
   </PageCta>
 )
 
 export default function Home() {
+  const [summary, setSummary] = useState('')
+  const [content, setContent] = useState(() => normalizeHomeContent())
+  useEffect(() => {
+    let active = true
+    getPublicResume().then(data => { if (active) { setSummary(data?.summary || ''); setContent(normalizeHomeContent(data?.homeContent)) } }).catch(() => {})
+    return () => { active = false }
+  }, [])
   return (
     <>
       <Helmet>
@@ -454,12 +370,11 @@ export default function Home() {
         <meta property="og:image" content={absoluteUrl('/personalportfolio.png')} />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
-      <Hero />
-      <ProofStrip />
-      <FeaturedWork />
-      <Capabilities />
-      <ProfileSnapshot />
-      <CollaborationCta />
+      <Hero content={content} />
+      <FeaturedWork content={content} />
+      <Capabilities content={content} />
+      <ProfileSnapshot summary={summary} content={content} />
+      <CollaborationCta content={content} />
     </>
   )
 }

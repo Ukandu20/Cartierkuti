@@ -505,6 +505,7 @@ export default function AdminDashboard() {
           onOpenAnalytics={() => setAnalyticsOpen(true)}
           onOpenCategories={() => setCategoryManagerOpen(true)}
           onOpenAbout={() => navigate('/admin/about')}
+          onOpenHome={() => navigate('/admin/home')}
           onOpenSecurity={() => navigate('/admin/security')}
           onLogout={logout}
         />
