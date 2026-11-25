@@ -28,6 +28,8 @@ import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState } from '@/components/ui/StateFeedback'
 import { PageCta, SectionLabel } from '@/components/ui/DesignSystem'
 import { absoluteUrl } from '@/utils/siteConfig'
+import { useWorkingPrinciples } from '@/hooks/useWorkingPrinciples'
+import { useProjectFavorites } from '@/hooks/useProjectFavorites'
 
 import ProjectList from './ProjectList'
 import ProjectCard from './ProjectCard'
@@ -48,7 +50,8 @@ export default function Portfolio() {
   )
 
   const { data, query, search, setSearch, loading, error, retry, onReviewSaved, setCategory, setSort, setPage } = useProjectBrowser()
-  const [favorites, setFavorites] = useState([])
+  const { favorites, toggleFavorite } = useProjectFavorites()
+  const principles = useWorkingPrinciples()
   const page = query.page
   const sort = query.sort
   const projects = data?.projects || []
@@ -56,12 +59,6 @@ export default function Portfolio() {
   const visibleCategories = [{ label: 'All', value: 'all' }, ...(data?.categories || []).map(item => ({ label: item.name, value: item.slug }))]
   const currentCategory = visibleCategories.find(item => item.value === query.category) || visibleCategories[0]
   const pageCount = Math.max(1, Math.ceil((data?.total || 0) / PAGE_SIZE))
-
-  const toggleFavorite = (id) => {
-    setFavorites((current) =>
-      current.includes(id) ? current.filter((favoriteId) => favoriteId !== id) : [...current, id]
-    )
-  }
 
   const hitAndOpen = (id, url, event) => {
     event?.preventDefault?.()
@@ -104,16 +101,14 @@ export default function Portfolio() {
           </Stack>
 
           <Stack gridColumn={{ lg: 'span 4' }} borderTop="1px solid" borderColor={'border.subtle'} gap={0}>
-            {[
-              ['01', 'Frame the decision'],
-              ['02', 'Build the evidence'],
-              ['03', 'Communicate the result'],
-            ].map(([number, label]) => (
+            {principles.slice(0, 3).map(({ title: label }, index) => {
+              const number = String(index + 1).padStart(2, '0')
+              return (
               <HStack key={number} py={4} borderBottom="1px solid" borderColor={'border.subtle'} gap={4}>
                 <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'}>{number}</Text>
                 <Text fontWeight="600">{label}</Text>
               </HStack>
-            ))}
+            )})}
           </Stack>
         </SimpleGrid>
       </Box>
