@@ -7,7 +7,7 @@ import asyncHandler from 'express-async-handler'
 import requireAdmin from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import Resume from '../models/resume.model.js'
-import { resumeWriteSchema } from '../validation/schemas.js'
+import { homeContentSchema, resumeWriteSchema } from '../validation/schemas.js'
 import cloudinary from '../config/cloudinary.js'
 import logger from '../logger.js'
 import galleryRouter from './about-gallery.router.js'
@@ -118,6 +118,11 @@ resumeRouter.get(
 resumeRouter.get('/admin', requireAdmin, asyncHandler(async (_req, res) => {
   res.set('Cache-Control', 'no-store')
   res.json(await findResume() || { ...DEFAULT_RESUME, key: RESUME_KEY })
+}))
+
+resumeRouter.put('/home-content', requireAdmin, validate({ body: homeContentSchema }), asyncHandler(async (req, res) => {
+  const updated = await publishResume({ homeContent: req.body })
+  res.json(updated.homeContent)
 }))
 
 resumeRouter.put(

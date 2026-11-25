@@ -731,6 +731,25 @@ describe('bounded public project browsing', () => {
 })
 
 describe('reviews and resume', () => {
+  it('publishes validated Home text independently of About content', async () => {
+    const homeContent = Object.fromEntries([
+      'heroEyebrow', 'heroLead', 'heroAccent', 'heroDescription', 'workTitle', 'workDescription',
+      'capabilitiesTitle', 'capability1Title', 'capability1Description', 'capability2Title',
+      'capability2Description', 'capability3Title', 'capability3Description', 'profileTitle',
+      'ctaEyebrow', 'ctaTitle', 'ctaDescription',
+    ].map(key => [key, `Example ${key}`]))
+    await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send({ headline: 'About headline', summary: 'About summary' }).expect(200)
+    await request(app).put('/api/resume/home-content').send(homeContent).expect(401)
+    await request(app).put('/api/resume/home-content').set('Authorization', `Bearer ${token}`).send({ ...homeContent, heroLead: '' }).expect(400)
+    await request(app).put('/api/resume/home-content').set('Authorization', `Bearer ${token}`).send(homeContent).expect(200)
+    let publicPage = await request(app).get('/api/resume').expect(200)
+    expect(publicPage.body.homeContent).toEqual(homeContent)
+    expect(publicPage.body.summary).toBe('About summary')
+    await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send({ headline: 'Updated About' }).expect(200)
+    publicPage = await request(app).get('/api/resume').expect(200)
+    expect(publicPage.body.homeContent).toEqual(homeContent)
+  })
+
   it('saves structured education and personal content while excluding hidden entries from public reads', async () => {
     const payload = {
       headline: 'Analyst', summary: 'About me',

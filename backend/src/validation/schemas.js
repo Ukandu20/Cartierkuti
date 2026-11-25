@@ -202,6 +202,15 @@ const aboutContentSchema = z.object({
   principles: z.array(z.object({ title: optionalText(160), description: optionalText(1000) }).strict()).max(12).optional(),
 }).strict()
 
+export const homeContentSchema = z.object({
+  heroEyebrow: text(120), heroLead: text(100), heroAccent: text(140), heroDescription: text(500),
+  workTitle: text(120), workDescription: text(400), capabilitiesTitle: text(120),
+  capability1Title: text(100), capability1Description: text(400),
+  capability2Title: text(100), capability2Description: text(400),
+  capability3Title: text(100), capability3Description: text(400), profileTitle: text(120),
+  ctaEyebrow: text(120), ctaTitle: text(160), ctaDescription: text(400),
+}).strict()
+
 export const resumeWriteSchema = z
   .object({
     pageContent: aboutContentSchema.optional(),
