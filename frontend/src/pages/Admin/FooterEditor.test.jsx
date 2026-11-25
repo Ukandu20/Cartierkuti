@@ -1,0 +1,56 @@
+import React from 'react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { expect, it, vi } from 'vitest'
+import FooterEditor from './FooterEditor'
+import { renderWithProviders } from '../../test-utils'
+
+const get = vi.fn()
+const put = vi.fn()
+vi.mock('@/utils/axiosConfig', () => ({ default: { get: (...args) => get(...args), put: (...args) => put(...args) } }))
+
+it('preserves the old invitation, previews edits and saves optional links', async () => {
+  sessionStorage.clear()
+  sessionStorage.setItem('isAdminAuthenticated', 'true')
+  sessionStorage.setItem('loginTime', `${Date.now()}`)
+  sessionStorage.setItem('adminToken', 'valid-token')
+  get.mockImplementation(url => Promise.resolve({ data: url === '/api/resume/admin' ? { homeContent: { ctaTitle: 'Existing invitation' } } : {} }))
+  put.mockImplementation((_url, content) => Promise.resolve({ data: content }))
+  renderWithProviders(<FooterEditor />)
+  const heading = await screen.findByLabelText('Invitation heading')
+  expect(heading).toHaveValue('Existing invitation')
+  fireEvent.change(heading, { target: { value: 'A new invitation' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Remove GitHub' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add social link' }))
+  const nameInput = screen.getByLabelText('Social name 3')
+  expect(nameInput).toHaveAttribute('list', 'suggested-social-platforms')
+  expect(document.querySelector('#suggested-social-platforms option[value="Behance"]')).toBeInTheDocument()
+  expect(document.querySelector('#suggested-social-platforms option[value="Instagram"]')).toBeInTheDocument()
+  fireEvent.change(nameInput, { target: { value: 'Behance' } })
+  fireEvent.change(screen.getByLabelText('Social URL 3'), { target: { value: 'https://behance.net/example' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Preview footer' }))
+  const dialog = await screen.findByRole('dialog')
+  expect(within(dialog).getByRole('heading', { name: 'A new invitation' })).toBeInTheDocument()
+  expect(within(dialog).queryByRole('link', { name: 'GitHub' })).not.toBeInTheDocument()
+  expect(within(dialog).getByRole('link', { name: 'Behance' })).toHaveAttribute('href', 'https://behance.net/example')
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close preview' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Save footer' }))
+  await waitFor(() => expect(put).toHaveBeenCalledWith('/api/resume/footer-content', expect.objectContaining({ title: 'A new invitation', socialLinks: expect.arrayContaining([{ label: 'Behance', url: 'https://behance.net/example' }]) })))
+  expect(await screen.findByRole('status')).toHaveTextContent('Footer saved.')
+})
+
+it('retains edits if saving fails', async () => {
+  sessionStorage.clear()
+  sessionStorage.setItem('isAdminAuthenticated', 'true')
+  sessionStorage.setItem('loginTime', `${Date.now()}`)
+  sessionStorage.setItem('adminToken', 'valid-token')
+  get.mockResolvedValue({ data: {} })
+  put.mockReset()
+  put.mockRejectedValue(new Error('Offline'))
+  renderWithProviders(<FooterEditor />)
+  const heading = await screen.findByLabelText('Invitation heading')
+  fireEvent.change(heading, { target: { value: 'Keep this draft' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save footer' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Your edits are still here')
+  expect(heading).toHaveValue('Keep this draft')
+  expect(JSON.parse(sessionStorage.getItem('adminFooterDraft')).title).toBe('Keep this draft')
+})

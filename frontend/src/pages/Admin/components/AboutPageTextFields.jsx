@@ -8,7 +8,7 @@ export default function AboutPageTextFields({ value, onChange, errors = {} }) {
   const updatePrinciple = (index, key, text) => update('principles', content.principles.map((item, i) => i === index ? { ...item, [key]: text } : item))
   return <Stack gap={6}>
     <SimpleGrid columns={{ base: 1, md: 2 }} gap={5}>
-      {aboutTextFields.map(([key, label]) => <Field.Root key={key} invalid={Boolean(errors[`pageContent.${key}`])}>
+      {aboutTextFields.filter(([key]) => !['ctaLabel', 'ctaTitle', 'ctaDescription'].includes(key)).map(([key, label]) => <Field.Root key={key} invalid={Boolean(errors[`pageContent.${key}`])}>
         <Field.Label>{label}</Field.Label>
         <Textarea value={content[key]} onChange={event => update(key, event.target.value)} maxLength={key === 'metaDescription' ? 320 : 1000} rows={2} />
         <Field.ErrorText>{errors[`pageContent.${key}`]}</Field.ErrorText>

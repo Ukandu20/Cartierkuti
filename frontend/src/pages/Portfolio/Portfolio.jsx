@@ -21,12 +21,11 @@ import {
   Text,
   createListCollection,
 } from '@chakra-ui/react'
-import { FaArrowRight, FaSearch } from 'react-icons/fa'
+import { FaSearch } from 'react-icons/fa'
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { Helmet } from 'react-helmet-async'
-import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState } from '@/components/ui/StateFeedback'
-import { PageCta, SectionLabel } from '@/components/ui/DesignSystem'
+import { SectionLabel } from '@/components/ui/DesignSystem'
 import { absoluteUrl } from '@/utils/siteConfig'
 import { useWorkingPrinciples } from '@/hooks/useWorkingPrinciples'
 import { useProjectFavorites } from '@/hooks/useProjectFavorites'
@@ -294,14 +293,6 @@ export default function Portfolio() {
         </Box>
       </Box>
 
-      <PageCta
-        headingId="portfolio-collaboration-heading"
-        eyebrow="Have a question worth measuring?"
-        title="Let's build the evidence around it."
-        description="Open to data science, dashboards, and sports analytics collaborations."
-      >
-        <Link to="/contact">Start a conversation <FaArrowRight /></Link>
-      </PageCta>
     </Box>
   )
 }

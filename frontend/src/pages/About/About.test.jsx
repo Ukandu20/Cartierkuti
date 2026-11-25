@@ -69,8 +69,8 @@ describe('About', () => {
     renderWithProviders(<About />)
     expect(await screen.findByRole('heading', { name: 'My research and learning journey' })).toBeInTheDocument()
     expect(screen.getByText('About me')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Discuss a research idea' })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Get in touch' })).toHaveLength(2)
+    expect(screen.queryByRole('heading', { name: 'Discuss a research idea' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Get in touch' })).toHaveLength(1)
     expect(screen.queryByText('Full-Stack Developer')).not.toBeInTheDocument()
     expect(screen.queryByText('Freelance')).not.toBeInTheDocument()
     expect(screen.queryByText('Python')).not.toBeInTheDocument()
@@ -147,10 +147,8 @@ describe('About', () => {
     expect(screen.getByRole('heading', { name: 'Frame the question' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Build and evaluate' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Make it useful' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /Have a data problem or a sports analytics idea/i })).toBeInTheDocument()
-
     const contactLinks = screen.getAllByRole('link', { name: /Start a conversation/i })
-    expect(contactLinks).toHaveLength(2)
+    expect(contactLinks).toHaveLength(1)
     contactLinks.forEach((link) => expect(link).toHaveAttribute('href', '/contact'))
 
     expect(await screen.findByText('Performance')).toBeInTheDocument()

@@ -11,6 +11,7 @@ const About = React.lazy(() => import('./pages/About/About'));
 const AdminDashboard = React.lazy(() => import('./pages/Admin/AdminDashboard'));
 const AboutEditor = React.lazy(() => import('./pages/Admin/AboutEditor'));
 const HomeEditor = React.lazy(() => import('./pages/Admin/HomeEditor'));
+const FooterEditor = React.lazy(() => import('./pages/Admin/FooterEditor'));
 const AdminSecurity = React.lazy(() => import('./pages/Admin/AdminSecurity'));
 const AdminRecovery = React.lazy(() => import('./pages/Admin/AdminRecovery'));
 const AdminResetPassword = React.lazy(() => import('./pages/Admin/AdminResetPassword'));
@@ -26,6 +27,7 @@ const AppRoutes = () => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/about" element={<AboutEditor />} />
         <Route path="/admin/home" element={<HomeEditor />} />
+        <Route path="/admin/footer" element={<FooterEditor />} />
         <Route path="/admin/security" element={<AdminSecurity />} />
         <Route path="/admin/recover" element={<AdminRecovery />} />
         <Route path="/admin/reset-password" element={<AdminResetPassword />} />

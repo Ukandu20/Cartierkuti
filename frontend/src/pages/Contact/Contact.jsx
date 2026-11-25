@@ -21,13 +21,14 @@ import emailjs from '@emailjs/browser'
 import { FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa'
 import { SectionLabel, SurfaceCard, fieldStyles } from '@/components/ui/DesignSystem'
 import { absoluteUrl, siteName } from '@/utils/siteConfig'
-
-const contactMethods = [
-  { icon: FaMapMarkerAlt, label: 'Location', value: 'Windsor, ON' },
-  { icon: FaEnvelope, label: 'Email', value: 'okechiprest@gmail.com', href: 'mailto:okechiprest@gmail.com' },
-]
+import { useFooterContent } from '@/hooks/useFooterContent'
 
 export default function ContactPage() {
+  const { email } = useFooterContent()
+  const contactMethods = [
+    { icon: FaMapMarkerAlt, label: 'Location', value: 'Windsor, ON' },
+    { icon: FaEnvelope, label: 'Email', value: email, href: `mailto:${email}` },
+  ]
   const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
   const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
   const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
@@ -150,7 +151,7 @@ export default function ContactPage() {
           </chakra.form>
           {feedback ? <Box role={feedback.type === 'error' ? 'alert' : 'status'} mt={5} p={4} borderRadius="md" bg={feedback.type === 'error' ? 'bg.error' : 'bg.subtle'}>
             <Text>{feedback.message}</Text>
-            {feedback.type === 'error' ? <Link href="mailto:okechiprest@gmail.com" fontWeight="700" mt={2}>Email me directly</Link> : null}
+            {feedback.type === 'error' ? <Link href={`mailto:${email}`} fontWeight="700" mt={2}>Email me directly</Link> : null}
           </Box> : null}
         </SurfaceCard>
       </SimpleGrid>

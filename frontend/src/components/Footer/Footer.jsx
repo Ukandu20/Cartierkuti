@@ -3,6 +3,7 @@
 import React from 'react'
 import {
   Box,
+  Button,
   Flex,
   Heading,
   HStack,
@@ -14,8 +15,9 @@ import {
   Text,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
-import { FaDownload, FaGithub, FaLinkedinIn, FaXTwitter } from 'react-icons/fa6'
+import { FaDownload, FaGithub, FaLinkedinIn, FaXTwitter, FaInstagram, FaYoutube, FaTiktok, FaFacebook, FaBehance, FaDribbble, FaPinterest, FaBluesky, FaThreads, FaDiscord, FaReddit, FaTwitch, FaMedium, FaLink } from 'react-icons/fa6'
 import { useResumeDownload } from '@/hooks/useResumeDownload'
+import { useFooterContent } from '@/hooks/useFooterContent'
 
 const footerLinks = [
   { href: '/', label: 'Home' },
@@ -24,14 +26,17 @@ const footerLinks = [
   { href: '/contact', label: 'Contact' },
 ]
 
+const socialIcons = { linkedin: FaLinkedinIn, x: FaXTwitter, twitter: FaXTwitter, github: FaGithub, instagram: FaInstagram, youtube: FaYoutube, tiktok: FaTiktok, facebook: FaFacebook, behance: FaBehance, dribbble: FaDribbble, pinterest: FaPinterest, bluesky: FaBluesky, threads: FaThreads, discord: FaDiscord, reddit: FaReddit, twitch: FaTwitch, medium: FaMedium }
+const isWebUrl = value => { try { return ['http:', 'https:'].includes(new URL(value).protocol) } catch { return false } }
+
 const FooterLink = ({ children, ...props }) => (
   <ChakraLink
     color="fg.muted"
     fontFamily={'body'}
     fontWeight="600"
     width="fit-content"
-    _hover={{ color: 'brand.500', textDecoration: 'none' }}
-    _focusVisible={{ outline: '2px solid', outlineColor: 'brand.500', outlineOffset: '3px' }}
+    _hover={{ color: 'accent.default', textDecoration: 'none' }}
+    _focusVisible={{ outline: '2px solid', outlineColor: 'accent.default', outlineOffset: '3px' }}
     {...props}
   >
     {children}
@@ -40,24 +45,32 @@ const FooterLink = ({ children, ...props }) => (
 
 export default function Footer() {
   const resumeDownload = useResumeDownload()
+  const content = useFooterContent()
 
+  return <FooterView content={content} resumeDownload={resumeDownload} />
+}
+
+export function FooterView({ content, resumeDownload }) {
   return (
     <Box as="footer" bg={'bg.raised'} color={'fg.default'} borderTop="1px solid" borderColor={'border.subtle'} px={{ base: 6, md: 10 }}>
       <Box maxW="7xl" mx="auto" py={{ base: 12, md: 16 }}>
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 12 }} gap={{ base: 10, lg: 12 }}>
-          <Stack gridColumn={{ sm: 'span 2', lg: 'span 6' }} gap={4} maxW="560px">
+        <SimpleGrid templateColumns={{ base: 'minmax(0, 2fr) minmax(0, 3fr)', lg: 'repeat(12, minmax(0, 1fr))' }} gap={{ base: 7, md: 10, lg: 12 }}>
+          <Stack gridColumn={{ base: 'span 2', lg: 'span 6' }} gap={4} maxW="560px">
             <Text fontFamily={'mono'} fontSize="xs" color={'accent.default'} textTransform="uppercase" letterSpacing="0.18em">
-              Preston Ukandu
+              {content.eyebrow}
             </Text>
             <Heading as="h2" fontFamily={'heading'} fontSize={{ base: '3xl', md: '4xl' }} fontWeight="500" lineHeight="1.2">
-              Data science that makes the next decision clearer.
+              {content.title}
             </Heading>
             <Text color={'fg.muted'} fontSize="lg" lineHeight="1.75">
-              Building analytical models, dashboards, and sports-performance insights with an emphasis on useful evidence and clear communication.
+              {content.description}
             </Text>
+            <Button asChild colorPalette="brand" alignSelf="flex-start">
+              <RouterLink to="/contact">Start a conversation</RouterLink>
+            </Button>
           </Stack>
 
-          <Stack gridColumn={{ lg: 'span 2' }} gap={4}>
+          <Stack gridColumn={{ lg: 'span 2' }} gap={4} minW={0}>
             <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.14em">
               Explore
             </Text>
@@ -73,31 +86,23 @@ export default function Footer() {
             </Stack>
           </Stack>
 
-          <Stack gridColumn={{ lg: 'span 4' }} gap={4}>
+          <Stack gridColumn={{ lg: 'span 4' }} gap={4} minW={0}>
             <Text fontFamily={'mono'} fontSize="xs" color={'fg.muted'} textTransform="uppercase" letterSpacing="0.14em">
               Connect
             </Text>
-            <FooterLink href="mailto:okechiprest@gmail.com">okechiprest@gmail.com</FooterLink>
-            <Text color={'fg.muted'} maxW="320px">
-              Open to thoughtful data science, dashboarding, and sports analytics collaborations.
-            </Text>
-            <HStack gap={3} pt={1}>
-              {[
-                { label: 'LinkedIn', href: 'https://linkedin.com/in/okechiukandu', icon: FaLinkedinIn },
-                { label: 'X', href: 'https://x.com/cartierkut1', icon: FaXTwitter },
-                { label: 'GitHub', href: 'https://github.com/ukandu20', icon: FaGithub },
-                
-              ].map(({ label, href, icon }) => (
+            <FooterLink href={`mailto:${content.email}`} overflowWrap="anywhere">{content.email}</FooterLink>
+            <HStack gap={2} pt={1} flexWrap="wrap">
+              {content.socialLinks.filter(({ label, url }) => label.trim() && isWebUrl(url)).map(({ label, url }, index) => (
                 <ChakraLink
-                  key={label}
-                  href={href}
+                  key={`${label}-${url}-${index}`}
+                  href={url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
                   display="inline-flex"
                   alignItems="center"
                   justifyContent="center"
-                  boxSize="42px"
+                  boxSize="44px"
                   border="1px solid"
                   borderColor={'border.subtle'}
                   borderRadius="full"
@@ -105,7 +110,7 @@ export default function Footer() {
                   _hover={{ color: 'accent.default', borderColor: 'accent.default' }}
                   _focusVisible={{ outline: '2px solid', outlineColor: 'accent.default', outlineOffset: '3px' }}
                 >
-                  <Icon as={icon} boxSize={5} aria-hidden="true" />
+                  <Icon as={socialIcons[label.trim().toLowerCase()] || FaLink} boxSize={5} aria-hidden="true" />
                 </ChakraLink>
               ))}
             </HStack>
@@ -114,9 +119,8 @@ export default function Footer() {
 
         <Separator borderColor={'border.subtle'} my={{ base: 10, md: 12 }} />
 
-        <Flex direction={{ base: 'column', sm: 'row' }} justify="space-between" gap={3} color={'fg.muted'} fontFamily={'mono'} fontSize="xs">
+        <Flex color={'fg.muted'} fontFamily={'mono'} fontSize="xs">
           <Text>&copy; {new Date().getFullYear()} Preston Ukandu. All rights reserved.</Text>
-          <Text>Data science · Sports analytics · Decision intelligence</Text>
         </Flex>
       </Box>
     </Box>

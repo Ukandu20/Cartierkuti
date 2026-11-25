@@ -5,8 +5,10 @@ import userEvent from '@testing-library/user-event'
 import Contact from './Contact'
 import { renderWithProviders } from '@/test-utils'
 import emailjs from '@emailjs/browser'
+import { useFooterContent } from '@/hooks/useFooterContent'
 
 vi.mock('@emailjs/browser', () => ({ default: { sendForm: vi.fn() } }))
+vi.mock('@/hooks/useFooterContent', () => ({ useFooterContent: vi.fn(() => ({ email: 'okechiprest@gmail.com' })) }))
 
 const fillForm = async (user, { name = 'Taylor', message = 'I would like to discuss an analytics project.' } = {}) => {
   await user.type(screen.getByLabelText(/^Name/), name)
@@ -17,12 +19,19 @@ const fillForm = async (user, { name = 'Taylor', message = 'I would like to disc
 
 describe('Contact form', () => {
   beforeEach(() => {
+    useFooterContent.mockReturnValue({ email: 'okechiprest@gmail.com' })
     vi.stubEnv('VITE_EMAILJS_SERVICE_ID', 'test-service')
     vi.stubEnv('VITE_EMAILJS_TEMPLATE_ID', 'test-template')
     vi.stubEnv('VITE_EMAILJS_PUBLIC_KEY', 'test-key')
     emailjs.sendForm.mockReset()
   })
   afterEach(() => vi.unstubAllEnvs())
+
+  it('uses the footer contact email on the contact page', () => {
+    useFooterContent.mockReturnValue({ email: 'hello@example.com' })
+    renderWithProviders(<Contact />)
+    expect(screen.getByRole('link', { name: 'hello@example.com' })).toHaveAttribute('href', 'mailto:hello@example.com')
+  })
 
   it('includes the selected subject and trimmed text, then clears the form only on success', async () => {
     let submitted

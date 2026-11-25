@@ -16,14 +16,13 @@ import {
 } from '@chakra-ui/react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { FaArrowRight, FaDownload, FaExternalLinkAlt } from 'react-icons/fa'
+import { FaDownload, FaExternalLinkAlt } from 'react-icons/fa'
 import { getPublicResume } from '@/services/resumeService'
 import EducationDetails from './EducationDetails'
 import HighlightTags from './HighlightTags'
 import { formatStudyPeriod } from '@/utils/educationDates'
 import AboutExtras from './AboutExtras'
 import { getResumeDownloadFilename, getResumeDownloadUrl } from '@/hooks/useResumeDownload'
-import { PageCta } from '@/components/ui/DesignSystem'
 import FormattedParagraphs from '@/components/ui/FormattedParagraphs'
 import { absoluteUrl } from '@/utils/siteConfig'
 import { normalizeAboutContent } from '@/utils/aboutContent'
@@ -428,14 +427,6 @@ export function AboutContent({ resume, loading = false, preview = false }) {
       </Box> : null}
 
       <AboutExtras personalItems={resume.personalItems} gallery={resume.gallery} content={content} />
-      {content.ctaTitle || content.ctaDescription ? <PageCta
-        headingId="about-collaboration-heading"
-        eyebrow={content.ctaLabel}
-        title={content.ctaTitle}
-        description={content.ctaDescription}
-      >
-        <Link to="/contact">{content.contactButtonLabel} <FaArrowRight /></Link>
-      </PageCta> : null}
     </Box>
   )
 }
