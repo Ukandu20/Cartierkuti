@@ -731,6 +731,24 @@ describe('bounded public project browsing', () => {
 })
 
 describe('reviews and resume', () => {
+  it('protects and validates footer edits without changing Home or About content', async () => {
+    const footer = { eyebrow: 'Hello', title: 'Let’s talk', description: 'Get in touch.', email: 'new@example.com', linkedin: '', x: '', github: 'https://github.com/example' }
+    await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send({ headline: 'Analyst', summary: 'About me' }).expect(200)
+    await request(app).put('/api/resume/footer-content').send(footer).expect(401)
+    await request(app).put('/api/resume/footer-content').set('Authorization', `Bearer ${token}`).send({ ...footer, email: 'bad' }).expect(400)
+    await request(app).put('/api/resume/footer-content').set('Authorization', `Bearer ${token}`).send({ ...footer, github: 'javascript:alert(1)' }).expect(400)
+    await request(app).put('/api/resume/footer-content').set('Authorization', `Bearer ${token}`).send(footer).expect(200)
+    await request(app).put('/api/resume').set('Authorization', `Bearer ${token}`).send({ headline: 'Updated' }).expect(200)
+    const result = await request(app).get('/api/resume').expect(200)
+    expect(result.body.footerContent).toEqual(footer)
+    expect(result.body.headline).toBe('Updated')
+    const custom = { eyebrow: footer.eyebrow, title: footer.title, description: footer.description, email: footer.email, socialLinks: [{ label: 'Mastodon', url: 'https://example.social/user' }] }
+    await request(app).put('/api/resume/footer-content').set('Authorization', `Bearer ${token}`).send({ ...custom, socialLinks: [{ label: 'Bad', url: 'javascript:alert(1)' }] }).expect(400)
+    await request(app).put('/api/resume/footer-content').set('Authorization', `Bearer ${token}`).send(custom).expect(200)
+    expect((await request(app).get('/api/resume').expect(200)).body.footerContent.socialLinks).toEqual(custom.socialLinks)
+    await request(app).put('/api/resume/footer-content').set('Authorization', `Bearer ${token}`).send({ ...custom, socialLinks: [] }).expect(200)
+    expect((await request(app).get('/api/resume').expect(200)).body.footerContent.socialLinks).toEqual([])
+  })
   it('publishes validated Home text independently of About content', async () => {
     const homeContent = Object.fromEntries([
       'heroEyebrow', 'heroLead', 'heroAccent', 'heroDescription', 'workTitle', 'workDescription',

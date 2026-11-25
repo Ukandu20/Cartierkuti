@@ -211,6 +211,15 @@ export const homeContentSchema = z.object({
   ctaEyebrow: text(120), ctaTitle: text(160), ctaDescription: text(400),
 }).strict()
 
+export const footerContentSchema = z.object({
+  eyebrow: text(120), title: text(160), description: text(400),
+  email: z.string().trim().email().max(254),
+  linkedin: z.union([z.literal(''), url]).optional(), x: z.union([z.literal(''), url]).optional(), github: z.union([z.literal(''), url]).optional(),
+  socialLinks: z.array(z.object({ label: text(60), url }).strict()).max(20).optional(),
+}).strict().refine(value => Array.isArray(value.socialLinks) || ['linkedin', 'x', 'github'].every(key => typeof value[key] === 'string'), {
+  message: 'Provide social links or the existing social fields',
+})
+
 export const resumeWriteSchema = z
   .object({
     pageContent: aboutContentSchema.optional(),
